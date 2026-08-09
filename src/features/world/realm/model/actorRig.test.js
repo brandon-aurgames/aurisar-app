@@ -411,10 +411,20 @@ describe('evaluatePose — the palette', () => {
     expect(() => evaluatePose({ bones }, { 0: { axis: [0, 1, 0], angleRad: 0.3 } })).not.toThrow();
   });
 
-  it.each(IDS)('%s palette entries stay rigid under an arbitrary pose', () => {
+  it.each(IDS)('%s palette entries stay rigid under an arbitrary pose', (id) => {
     // Rotation about a pivot is length-preserving. A palette row that lost
     // orthonormality would shear the mesh and no bone-count pin would notice.
-    const rig = buildActorRig(IDS[0]);
+    //
+    // This case is parameterized over every archetype rather than picked
+    // once: `buildActorRig(IDS[0])` here previously ignored the loop's `id`
+    // entirely, so legion/magistari/orghon printed under their own names
+    // while silently re-running unbound's rig three more times (caught by
+    // Bugbot on PR #323 — verified with a per-archetype rigidity mutation
+    // before trusting the fix: an anisotropic scale planted on only one
+    // archetype's palette failed exactly that archetype's case and no
+    // other, restored, and the loop above reproduces it for any of the
+    // three previously-unexercised ids).
+    const rig = buildActorRig(id);
     const pose = Object.fromEntries(rig.bones.map((_, i) => [i, { axis: [0, 0, 1], angleRad: 0.11 * (i + 1) }]));
     const palette = evaluatePose(rig, pose);
     for (let i = 0; i < rig.bones.length; i++) {
