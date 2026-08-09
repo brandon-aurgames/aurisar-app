@@ -47,19 +47,19 @@
     "lint:undef": "node scripts/check_no_undef.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.111.0",
+    "@supabase/supabase-js": "^2.112.2",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "babylonjs": "9.19.0",
-    "babylonjs-gui": "9.19.0",
-    "babylonjs-loaders": "9.19.0",
-    "babylonjs-serializers": "9.19.0",
+    "babylonjs": "9.20.0",
+    "babylonjs-gui": "9.20.0",
+    "babylonjs-loaders": "9.20.0",
+    "babylonjs-serializers": "9.20.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-is": "^19.2.8",
     "react-window": "^2.3.0",
     "recharts": "^3.10.1",
-    "spacetimedb": "^2.7.0",
+    "spacetimedb": "^2.8.0",
     "svix": "^1.99.1"
   },
   "devDependencies": {
@@ -70,18 +70,18 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
     "eslint": "^10.8.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
-    "globals": "^17.8.0",
+    "globals": "^17.9.0",
     "jsdom": "^29.1.1",
     "meshoptimizer": "^1.2.0",
     "sharp": "^0.35.3",
-    "vite": "^8.2.0",
+    "vite": "^8.2.1",
     "vitest": "^4.1.10"
   }
 }
