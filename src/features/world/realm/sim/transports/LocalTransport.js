@@ -14,6 +14,11 @@
  *
  * Time is injected (`now`) rather than read from Date.now(), so tests are
  * deterministic and a forged-dt scenario is expressible.
+ *
+ * ─── A transport is a CONNECTION to a world, not the world itself (P8) ───────
+ * The world (tables + fan-out) lives in localWorld.js, so several transports
+ * can share one. Passing no world still builds a private one, which is what
+ * every single-client caller wants and what P1–P7 assumed.
  */
 
 import {
@@ -22,22 +27,23 @@ import {
   ack,
   nack,
 } from '../WorldTransport.js';
-import { createMemoryDb } from './memoryDb.js';
+import { createLocalWorld, TABLES } from './localWorld.js';
 import { resolveMove, MOVE_LIMITS } from '../rules/moveRules.js';
 import { packId } from '../InputSnapshot.js';
 
-export const TABLES = Object.freeze(['player', 'mob']);
+export { TABLES };
 
 /** Where a fresh player stands. Provisional until worldgen lands in P2. */
 const SPAWN = Object.freeze({ x: 0, z: 0, yaw: 0 });
 const PLAYER_MAX_HP = 100;
 
-export function createLocalTransport({ now = () => 0 } = {}) {
-  const db = createMemoryDb(TABLES);
+export function createLocalTransport({ now = () => 0, world = createLocalWorld() } = {}) {
+  const db = world.db;
   const subscribers = new Set();
   let identity = null;
   let connected = false;
 
+  /** Deliver to THIS client only: connection state, and corrections addressed to it. */
   function emit(kind, payload) {
     for (const fn of [...subscribers]) {
       try {
@@ -48,13 +54,25 @@ export function createLocalTransport({ now = () => 0 } = {}) {
     }
   }
 
+  /** Deliver to every client attached to the same world. */
+  const emitWorld = (kind, payload) => world.broadcast(kind, payload);
+
+  const detach = world.attach(emit);
+
   /**
    * Public row shape — a copy, never the live reference. Server-internal
    * bookkeeping (move timing) stays out of the event stream.
+   *
+   * `t` is the SERVER time this state was true, and it is what the client's
+   * interpolation buffer keys on. Without it a client can only order snapshots
+   * by arrival, which under jitter is the very noise interpolation exists to
+   * remove. `originSeq` names the command that produced the row (null when
+   * nothing did), so a client can recognise the echo of its own prediction
+   * instead of treating a delayed self-update as a correction from elsewhere.
    */
-  const playerView = (row) => {
+  const playerView = (row, { t = now(), originSeq = null } = {}) => {
     const { lastMoveAtMs: _internal, ...view } = row;
-    return view;
+    return { ...view, t, originSeq };
   };
 
   const commands = {
@@ -85,8 +103,13 @@ export function createLocalTransport({ now = () => 0 } = {}) {
       const yaw = Number.isFinite(payload?.yaw) ? payload.yaw : me.yaw;
       const updated = db.upsert('player', identity, { x: r.x, z: r.z, yaw, lastMoveAtMs: tMs });
 
-      emit(EVENT.ENTITY_UPSERT, playerView(updated));
+      // Stamped with the move's own time, not now(): the two are equal here,
+      // but a reducer that batches would make them differ, and the buffer must
+      // key on when the state was TRUE rather than when it was sent.
+      emitWorld(EVENT.ENTITY_UPSERT, playerView(updated, { t: tMs, originSeq: seq }));
       if (!r.accepted) {
+        // A correction is addressed to the client that overreached. Broadcasting
+        // it would tell every other client to move too.
         emit(EVENT.RECONCILE, { seq, x: r.x, z: r.z, yaw });
       }
       return ack(seq, { x: r.x, z: r.z, accepted: r.accepted });
@@ -102,7 +125,7 @@ export function createLocalTransport({ now = () => 0 } = {}) {
         return nack(seq, REJECT.INVALID_TARGET, `no such mob ${targetId}`);
       }
       const updated = db.upsert('player', identity, { targetId });
-      emit(EVENT.ENTITY_UPSERT, playerView(updated));
+      emitWorld(EVENT.ENTITY_UPSERT, playerView(updated, { originSeq: seq }));
       return ack(seq, { targetId });
     },
   };
@@ -122,11 +145,28 @@ export function createLocalTransport({ now = () => 0 } = {}) {
       });
 
       emit(EVENT.CONNECTION, { connected: true, reason: 'local' });
-      emit(EVENT.ENTITY_UPSERT, playerView(row));
+
+      // Initial state sync: this client has never heard about anyone already
+      // standing in the world. Without it, a second player only becomes visible
+      // when they next move — so a stationary occupant would be invisible
+      // forever, which reads as "remote players are broken" rather than as a
+      // missing sync. Addressed to this client only; everyone else knows.
+      for (const other of db.rows('player')) {
+        if (other.id !== identity) emit(EVENT.ENTITY_UPSERT, playerView(other));
+      }
+
+      // The joiner itself goes to the whole world, so existing clients learn
+      // about it at the moment it arrives.
+      emitWorld(EVENT.ENTITY_UPSERT, playerView(row));
     },
 
     async disconnect() {
       connected = false;
+      // Tell the world the actor is gone BEFORE the local connection notice, so
+      // a client tearing itself down still forwards the removal. ENTITY_REMOVE
+      // has been defined since P1 and emitted by nothing; a hub that never
+      // receives it leaks an actor per departure.
+      if (identity != null) emitWorld(EVENT.ENTITY_REMOVE, { id: identity });
       emit(EVENT.CONNECTION, { connected: false, reason: 'local-disconnect' });
     },
 
@@ -144,11 +184,22 @@ export function createLocalTransport({ now = () => 0 } = {}) {
       return () => subscribers.delete(fn);
     },
 
+    /**
+     * Detach from the shared world. Required for a multi-client setup: a
+     * transport left attached keeps receiving broadcasts and keeps its
+     * subscribers alive, which on a churning demo is an unbounded leak.
+     */
+    dispose() {
+      detach();
+      subscribers.clear();
+    },
+
     // ── Test/dev-only surface, deliberately outside the WorldTransport contract.
     /** Seed a mob so targeting has something to hit. */
     _seedMob(id, row = {}) {
       return db.upsert('mob', id, { hp: 50, maxHp: 50, x: 5, z: 5, ...row });
     },
     _db: db,
+    _world: world,
   };
 }
