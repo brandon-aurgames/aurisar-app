@@ -63,6 +63,10 @@ import { ActorRig } from './ActorRig.js';
 import { CANARY_POSE } from '../../model/actorCanary.js';
 import { ARCHETYPES } from '../../model/actorMasses.js';
 import { hash2 } from '../../model/noise.js';
+import {
+  advanceOdometer, createOdometer, gaitPose, gaitRootMotion, strideForSpeed,
+} from '../../model/gait.js';
+import { createAnimState, updateAnimState } from '../../sim/animState.js';
 
 /** Distinct from each other and from PLAYER_ARCHETYPE — see the header. */
 const PLAYER_ARCHETYPE = 'unbound';
@@ -125,6 +129,16 @@ export class ActorCast {
      */
     this.remotes = new Map();
 
+    /**
+     * P9 animation state, one entry per ANIMATED rig (the player, and each
+     * remote by its roster key). The two static demo actors are deliberately
+     * absent: the posed legion is P7's living exhibit and its palette staying
+     * bit-identical to CANARY_POSE is asserted by tests — gait-driving it
+     * would repose P7's proof every frame.
+     */
+    this.playerAnim = { odo: createOdometer(), state: createAnimState() };
+    this._remoteAnim = new Map();
+
     /** The live actor integrateWalker drives. */
     this.player = new ActorRig(scene, this._protos, PLAYER_ARCHETYPE, {
       name: 'player',
@@ -169,13 +183,40 @@ export class ActorCast {
    *   target — see ActorRig.update / ActorShadowRig.update for why not the
    *   camera itself.
    */
-  update(walker, focusPos) {
+  update(walker, focusPos, nowMs = null) {
     if (this._disposed) return;
     this.player.seatOn(walker.x, walker.y, walker.z);
     this.player.setYaw(walker.yaw);
+    // P9: the walker drives the player's gait. `nowMs` is optional so every
+    // pre-P9 caller (and test) keeps its exact behaviour: no clock, no gait —
+    // the actor stands at rest exactly as it did through P8.
+    if (nowMs !== null) {
+      this._driveGait(this.player, this.playerAnim, walker.speedMps ?? 0, nowMs, walker.y);
+    }
     this.player.update(focusPos);
     for (const rig of this.demoActors) rig.update(focusPos);
     for (const rig of this.remotes.values()) rig.update(focusPos);
+  }
+
+  /**
+   * One animated rig, one frame: route speed through the state machine,
+   * advance the odometer by the stride this speed produces, pose the
+   * skeleton, and apply the root-motion channel — bob as a seat offset ON TOP
+   * of the ground Y (never below it: the seat is ground contact), lean as an
+   * Euler roll on the root node. Lean composes with setYaw's rotation.y
+   * because both are plain Euler channels; the rotationQuaternion guard
+   * covers this path exactly as it covers yaw.
+   */
+  _driveGait(rig, anim, speedMps, nowMs, groundY) {
+    const dtMs = anim.lastMs == null ? 0 : nowMs - anim.lastMs;
+    anim.lastMs = nowMs;
+    const params = updateAnimState(anim.state, speedMps, nowMs);
+    advanceOdometer(anim.odo, params.speed, dtMs, strideForSpeed(rig.archetypeId, params.speed));
+    rig.setPose(gaitPose(rig.archetypeId, anim.odo.phase, params));
+    const root = gaitRootMotion(rig.archetypeId, anim.odo.phase, params);
+    const p = rig.root.position;
+    rig.seatOn(p.x, groundY + root.bobM, p.z);
+    rig.root.rotation.z = root.leanRad;
   }
 
   /**
@@ -191,7 +232,7 @@ export class ActorCast {
    *
    * @param {{id: string, epoch: number, x: number, z: number, yaw: number}[]} samples
    */
-  syncRemotes(samples) {
+  syncRemotes(samples, nowMs = null) {
     if (this._disposed) return;
     const seen = new Set();
     for (const s of samples) {
@@ -205,17 +246,40 @@ export class ActorCast {
         });
         this.remotes.set(key, rig);
       }
-      rig.seatOn(s.x, this._field.surfaceY(s.x, s.z), s.z);
+      const groundY = this._field.surfaceY(s.x, s.z);
+      rig.seatOn(s.x, groundY, s.z);
       rig.setYaw(s.yaw);
+
+      // P9: remotes animate from OBSERVED motion — speed differenced from the
+      // interpolated samples themselves, so a remote's gait is driven by the
+      // same smoothed trajectory the player sees it follow. The state
+      // machine's EMA + hysteresis absorb the derivative's noise (the chaos
+      // gate in gait.test.js is the proof).
+      if (nowMs !== null) {
+        let anim = this._remoteAnim.get(key);
+        if (!anim) {
+          anim = { odo: createOdometer(), state: createAnimState(), lastPos: null, lastMs: null };
+          this._remoteAnim.set(key, anim);
+        }
+        let speed = 0;
+        if (anim.lastPos && anim.lastMs != null && nowMs > anim.lastMs) {
+          speed = Math.hypot(s.x - anim.lastPos.x, s.z - anim.lastPos.z)
+            / ((nowMs - anim.lastMs) / 1000);
+        }
+        anim.lastPos = { x: s.x, z: s.z };
+        this._driveGait(rig, anim, speed, nowMs, groundY);
+      }
     }
     // Despawn by absence. rig.dispose() is NOT optional cleanup: a Skeleton is
     // scene-registered and outlives its nodes, so skipping this leaks one
     // skeleton + bone palette per departed player — invisible everywhere
-    // except scene.skeletons, forever.
+    // except scene.skeletons, forever. The anim entry goes with it, or the
+    // map leaks one odometer per departed player instead.
     for (const [key, rig] of this.remotes) {
       if (!seen.has(key)) {
         rig.dispose();
         this.remotes.delete(key);
+        this._remoteAnim.delete(key);
       }
     }
   }

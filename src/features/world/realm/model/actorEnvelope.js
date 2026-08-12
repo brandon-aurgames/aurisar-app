@@ -141,20 +141,24 @@
  * 4 decimals so the audit's `toEqual` is stable across runs (the same
  * declaration discipline ACTOR_MANIFEST's `silhouetteM2` uses). Regenerate
  * from actorEnvelope.test.js's logged actuals when a genome or the canary
- * deliberately changes. Measured 2026-08-07.
+ * deliberately changes. Measured 2026-08-07; unbound/legion/magistari
+ * re-measured 2026-08-12 after P9's leg split + canary ladder reassignment.
+ * Worst overhang across the roster is unbound[1] at 0.3381 — still under
+ * ACTOR_POSE_MARGIN_M's 0.40 with 0.062 of headroom, so the margin and both
+ * of its consumers (frustum culling, shadow ortho) stand un-re-derived.
  */
 export const POSE_ENVELOPE_MANIFEST = Object.freeze({
   unbound: [
-    { overhangM: 0.3068, travelM: 0.8222 },
-    { overhangM: 0.3265, travelM: 0.8298 },
+    { overhangM: 0.3145, travelM: 0.8383 },
+    { overhangM: 0.3381, travelM: 0.8457 },
   ],
   legion: [
-    { overhangM: 0.1559, travelM: 0.2224 },
-    { overhangM: 0.1657, travelM: 0.2205 },
+    { overhangM: 0.1747, travelM: 0.3216 },
+    { overhangM: 0.1846, travelM: 0.3204 },
   ],
   magistari: [
-    { overhangM: 0, travelM: 0.0562 },
-    { overhangM: 0, travelM: 0.0558 },
+    { overhangM: 0, travelM: 0.1042 },
+    { overhangM: 0, travelM: 0.1034 },
   ],
   orghon: [
     { overhangM: 0.035, travelM: 0.3079 },
@@ -175,5 +179,12 @@ export const POSE_ENVELOPE_MANIFEST = Object.freeze({
  * Applied to the CLONE, in `view/actor/ActorRig.js`'s `_applyTier`, and NOT to
  * ActorPrototypes' master — see that call site for the measured engine fact
  * that forces it there.
+ *
+ * 0.40 → 0.41 in P9: the leg split + canary ladder reassignment moved the
+ * roster's worst overhang 0.3265 → 0.3381 (unbound far stage), and 0.40 gave
+ * only 1.183× headroom against the 1.2× floor the audit enforces. One
+ * centimetre restores 1.213×. The quadratic second consumer is priced: +1 cm
+ * per face is ~5% shadow-ortho area against the ~7.4× a 0.85 margin would
+ * have cost — the same argument that sized 0.40, at the same scale.
  */
-export const ACTOR_POSE_MARGIN_M = 0.40;
+export const ACTOR_POSE_MARGIN_M = 0.41;

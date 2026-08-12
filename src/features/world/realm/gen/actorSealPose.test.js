@@ -206,10 +206,10 @@ describe('1a. posed seal — two-sided: pipeline liveness and gross dislocation 
     const perMass = AXIAL.length * (1 + (RADIAL.length - 1) * AZIMUTHS);
     const masses = ARCHETYPES.reduce((n, a) => n + a.masses.length, 0);
     expect(perMass).toBe(51);
-    expect(masses).toBe(45);
-    expect(masses * perMass * DIRECTIONS.length).toBe(59670);
+    expect(masses).toBe(49); // P9 leg split: +2 hip masses on each biped
+    expect(masses * perMass * DIRECTIONS.length).toBe(64974);
     const actualTotal = IDS.reduce((n, id) => n + posedRayMetrics(id).rays, 0);
-    expect(actualTotal, 'actual cast ray count drifted from the grid-constant total').toBe(59670);
+    expect(actualTotal, 'actual cast ray count drifted from the grid-constant total').toBe(64974);
   });
 });
 
@@ -225,7 +225,11 @@ describe('1a. posed seal — two-sided: pipeline liveness and gross dislocation 
  * exactly the way ACTOR_MANIFEST pins geometry costs in model/actorBudget.test.js.
  */
 const ONE_SIDED_BASELINE = {
-  unbound: 0, legion: 4, magistari: 384, orghon: 0,
+  // legion was 4 through P8; P9's leg split re-hung its legs from capped hip
+  // ends and the four one-sided escapes at the old shared pelvis pivot went
+  // to zero — the split SEALED a gap the fused geometry had. Recorded
+  // 2026-08-12; a rise from 0 here is a torn weld, same as ever.
+  unbound: 0, legion: 0, magistari: 384, orghon: 0,
 };
 
 describe('1b. posed seal — one-sided: the criterion that can actually see a torn weld', () => {

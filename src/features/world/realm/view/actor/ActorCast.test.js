@@ -427,6 +427,96 @@ describe('ActorCast — remote roster (P8b)', () => {
   });
 });
 
+describe('ActorCast — gait driving (P9)', () => {
+  const paletteOf = (rig) => Array.from(rig.skeleton.getTransformMatrices(null));
+
+  it('a moving walker animates the player palette; stopping freezes it', () => {
+    const { scene, material, field, shadowRig } = newWorld();
+    try {
+      const cast = new ActorCast(scene, { material, field, shadowRig });
+      const focus = { x: 0, y: 0, z: 0 };
+      // Walk at speed for ~1 s of frames.
+      let last = null;
+      for (let ms = 0; ms <= 1000; ms += 16) {
+        cast.update({ x: 0, y: 0, z: ms / 1000 * 4.2, yaw: 0, speedMps: 4.2 }, focus, ms);
+        const p = paletteOf(cast.player);
+        if (ms > 500 && last) {
+          expect(p, `palette frozen mid-walk at ${ms}ms`).not.toEqual(last);
+        }
+        last = p;
+      }
+      // Stop: speed 0 freezes the odometer, so the palette must freeze too.
+      cast.update({ x: 0, y: 0, z: 4.2, yaw: 0, speedMps: 0 }, focus, 1016);
+      // Let the EMA and blend settle, then two identical frames must match.
+      for (let ms = 1032; ms <= 3000; ms += 16) {
+        cast.update({ x: 0, y: 0, z: 4.2, yaw: 0, speedMps: 0 }, focus, ms);
+      }
+      const a = paletteOf(cast.player);
+      cast.update({ x: 0, y: 0, z: 4.2, yaw: 0, speedMps: 0 }, focus, 3016);
+      expect(paletteOf(cast.player)).toEqual(a);
+      cast.dispose();
+    } finally {
+      scene.dispose();
+    }
+  });
+
+  it('the posed legion demo actor stays bit-identical to CANARY_POSE while the player walks', () => {
+    // P7's living exhibit. The gait driver animates the PLAYER and remotes;
+    // repose the demo cast and P7's on-screen proof silently becomes P9's
+    // output. This is the assertion that keeps the two phases' evidence
+    // separate.
+    const { scene, material, field, shadowRig } = newWorld();
+    try {
+      const cast = new ActorCast(scene, { material, field, shadowRig });
+      const before = paletteOf(cast.posedDemo);
+      for (let ms = 0; ms <= 500; ms += 16) {
+        cast.update({ x: 0, y: 0, z: ms / 100, yaw: 0, speedMps: 4.2 }, { x: 0, y: 0, z: 0 }, ms);
+      }
+      expect(paletteOf(cast.posedDemo)).toEqual(before);
+      cast.dispose();
+    } finally {
+      scene.dispose();
+    }
+  });
+
+  it('pre-P9 callers (no clock argument) get exactly the old behaviour', () => {
+    const { scene, material, field, shadowRig } = newWorld();
+    try {
+      const cast = new ActorCast(scene, { material, field, shadowRig });
+      const before = paletteOf(cast.player);
+      cast.update({ x: 1, y: 0, z: 1, yaw: 0.5, speedMps: 4.2 }, { x: 0, y: 0, z: 0 });
+      expect(paletteOf(cast.player)).toEqual(before); // rest palette, untouched
+      cast.dispose();
+    } finally {
+      scene.dispose();
+    }
+  });
+
+  it('remotes animate from observed motion and their anim state dies with them', () => {
+    const { scene, material, field, shadowRig } = newWorld();
+    try {
+      const cast = new ActorCast(scene, { material, field, shadowRig });
+      // A remote walking +z at 4 m/s, sampled at 60 Hz.
+      let last = null;
+      let varied = false;
+      for (let ms = 0; ms <= 1000; ms += 16) {
+        cast.syncRemotes([{ id: 'g1', epoch: 1, x: 0, z: (ms / 1000) * 4, yaw: 0 }], ms);
+        const rig = cast.remotes.get('g1#1');
+        const p = paletteOf(rig);
+        if (ms > 600 && last && p.some((v, i) => v !== last[i])) varied = true;
+        last = p;
+      }
+      expect(varied, 'a moving remote never animated').toBe(true);
+      expect(cast._remoteAnim.size).toBe(1);
+      cast.syncRemotes([], 1100);
+      expect(cast._remoteAnim.size).toBe(0);
+      cast.dispose();
+    } finally {
+      scene.dispose();
+    }
+  });
+});
+
 describe('P8b guards', () => {
   it('setYaw throws loudly if anything has set rotationQuaternion on an actor root', () => {
     // Babylon semantics: the first non-null rotationQuaternion assignment

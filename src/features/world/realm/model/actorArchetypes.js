@@ -148,8 +148,25 @@ export const ARCHETYPES = Object.freeze([
     bandTargets: [0.370, 0.484, 0.146],
     masses: [
       { id: 'torso', a: [0, 0.88, 0], b: [0, 1.40, 0], r0: 0.20, r1: 0.23, color: UNBOUND_HIDE, capA: true, capB: true },
-      { id: 'legL', a: [0, 0.88, 0], b: [-0.15, 0.09, 0], r0: 0.155, r1: 0.095, color: UNBOUND_WRAP, capA: false, capB: true },
-      { id: 'legR', a: [0, 0.88, 0], b: [0.15, 0.09, 0], r0: 0.155, r1: 0.095, color: UNBOUND_WRAP, capA: false, capB: true },
+      // ── P9 GENOME SPLIT: independent legs ────────────────────────────────
+      // Through P8, legL/legR shared the torso's pivot at [0, 0.88, 0], so ONE
+      // BONE PER CAP PIVOT fused them into a single bone and no gait was
+      // expressible (the P7 carry-forward). The split is orghon's own hip
+      // pattern: a mirrored hip pair whose OUTER ends give each leg its own
+      // cap pivot — centre pivot spawns the hip-cluster bone, each outer pivot
+      // spawns a leg bone (+2 bones, 8 → 10).
+      //
+      // Radii obey the far-stage burial ratio (0.7947·R, actorMasses.js):
+      // hips r0 0.15 ≤ 0.7947·0.20 (torso's cap) = 0.159; legs r0 0.125 ≤
+      // 0.7947·0.16 (hip's capB) = 0.127. Foot positions are UNCHANGED so the
+      // stance the silhouette gates measured is preserved; hips sit low and
+      // wide DELIBERATELY ASYMMETRIC to legion's (0.09 vs 0.055 half-width)
+      // so the two bipeds' bare chassis move APART under the ablation gate,
+      // not together — its ceiling had 0.008 of headroom before this edit.
+      { id: 'hipL', a: [0, 0.88, 0], b: [-0.09, 0.84, 0], r0: 0.15, r1: 0.16, color: UNBOUND_WRAP, capA: false, capB: true },
+      { id: 'hipR', a: [0, 0.88, 0], b: [0.09, 0.84, 0], r0: 0.15, r1: 0.16, color: UNBOUND_WRAP, capA: false, capB: true },
+      { id: 'legL', a: [-0.09, 0.84, 0], b: [-0.15, 0.09, 0], r0: 0.125, r1: 0.095, color: UNBOUND_WRAP, capA: false, capB: true },
+      { id: 'legR', a: [0.09, 0.84, 0], b: [0.15, 0.09, 0], r0: 0.125, r1: 0.095, color: UNBOUND_WRAP, capA: false, capB: true },
       { id: 'yokeL', a: [0, 1.40, 0], b: [-0.26, 1.44, 0], r0: 0.16, r1: 0.11, color: UNBOUND_HIDE, capA: false, capB: true },
       { id: 'yokeR', a: [0, 1.40, 0], b: [0.30, 1.42, 0], r0: 0.16, r1: 0.19, color: UNBOUND_HIDE, capA: false, capB: false },
       { id: 'armL', a: [-0.26, 1.44, 0], b: [-0.32, 0.88, 0.02], r0: 0.075, r1: 0.055, color: UNBOUND_WRAP, capA: false, capB: true },
@@ -175,8 +192,23 @@ export const ARCHETYPES = Object.freeze([
     bandTargets: [0.248, 0.337, 0.415],
     masses: [
       { id: 'torso', a: [0, 0.86, 0], b: [0, 1.42, 0], r0: 0.12, r1: 0.15, color: LEGION_LACQUER, capA: true, capB: true },
-      { id: 'legL', a: [0, 0.86, 0], b: [-0.11, 0.055, 0], r0: 0.10, r1: 0.06, color: LEGION_LACQUER, capA: false, capB: true },
-      { id: 'legR', a: [0, 0.86, 0], b: [0.11, 0.055, 0], r0: 0.10, r1: 0.06, color: LEGION_LACQUER, capA: false, capB: true },
+      // ── P9 GENOME SPLIT — see unbound's hip comment for the mechanism ────
+      // Legion's hips are NARROW and HIGH where unbound's are wide and low
+      // (0.055 vs 0.09 half-width): the asymmetry is the point, pushing the
+      // two bare biped chassis apart under the ablation ceiling instead of
+      // spending its 0.008 headroom. Burial: hips r0 0.09 ≤ 0.7947·0.12
+      // (torso cap) = 0.0954; legs r0 0.075 ≤ 0.7947·0.10 (hip capB) = 0.079.
+      // Slimmer legs than P6's 0.10 — slender legs ARE legion's identity, and
+      // the feet stand exactly where the gates measured them. 6 → 8 bones.
+      // Half-width 0.075, not the first draft's 0.055: the hip-cluster bone is
+      // bone 1 and takes the ladder's smallest angle (7°), and at 0.055 the
+      // lever was so short the canary moved hipL's surface only 0.0146 m
+      // against the 0.02 m vacuity floor. Length is the honest fix — the floor
+      // exists to catch inert canaries, not to be lowered for them.
+      { id: 'hipL', a: [0, 0.86, 0], b: [-0.075, 0.825, 0], r0: 0.09, r1: 0.10, color: LEGION_LACQUER, capA: false, capB: true },
+      { id: 'hipR', a: [0, 0.86, 0], b: [0.075, 0.825, 0], r0: 0.09, r1: 0.10, color: LEGION_LACQUER, capA: false, capB: true },
+      { id: 'legL', a: [-0.075, 0.825, 0], b: [-0.11, 0.055, 0], r0: 0.075, r1: 0.06, color: LEGION_LACQUER, capA: false, capB: true },
+      { id: 'legR', a: [0.075, 0.825, 0], b: [0.11, 0.055, 0], r0: 0.075, r1: 0.06, color: LEGION_LACQUER, capA: false, capB: true },
       { id: 'yokeL', a: [0, 1.42, 0], b: [-0.28, 1.48, 0], r0: 0.12, r1: 0.12, color: LEGION_LACQUER, capA: false, capB: true },
       { id: 'yokeR', a: [0, 1.42, 0], b: [0.28, 1.48, 0], r0: 0.12, r1: 0.12, color: LEGION_LACQUER, capA: false, capB: true },
       { id: 'armL', a: [-0.28, 1.48, 0], b: [-0.34, 0.88, 0.02], r0: 0.055, r1: 0.045, color: LEGION_LACQUER, capA: false, capB: true },
