@@ -162,11 +162,15 @@ async function boot() {
   // world, and everything inbound arrives through a seeded latency shaper.
   // RECONCILE snaps the walker: server clamps are small (the walker's sprint
   // sits under the server cap), so a snap here is centimetres, not a lurch.
+  // Yaw is applied for completeness as the P12 wiring template — in THIS demo
+  // the next input sample re-derives it from the camera immediately, but a
+  // template that silently dropped a field the wire carries would teach the
+  // wrong shape.
   const netParams = parseNetParams(location.search);
   const net = netParams ? await createSpikeNet({
     params: netParams,
     now: () => performance.now(),
-    onReconcile: (p) => { walker.x = p.x; walker.z = p.z; },
+    onReconcile: (p) => { walker.x = p.x; walker.z = p.z; walker.yaw = p.yaw; },
   }) : null;
 
   // ── Chase camera ────────────────────────────────────────────────────────────

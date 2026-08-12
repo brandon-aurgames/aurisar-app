@@ -27,12 +27,18 @@
  * departure to count as a genuine respawn. Stale echoes die at the door.
  *
  * ─── The ceiling becomes real here ───────────────────────────────────────────
- * ACTOR_CEILINGS.maxSimultaneousActors has been test-only since P6 —
- * actorBudget.js says outright "NOTHING AT RUNTIME READS EITHER NUMBER" and
- * assigns enforcement to whichever phase first spawns actors dynamically.
- * That is this phase. At the ceiling, new spawns are refused and counted;
- * refusal degrades to "fewer players rendered", which beats rendering a crowd
- * the budgets never priced.
+ * ACTOR_CEILINGS.maxSimultaneousActors was test-only from P6 until this
+ * module — actorBudget.js assigned enforcement to whichever phase first
+ * spawns actors dynamically, and that is this phase. At the ceiling, new
+ * spawns are refused and counted; refusal degrades to "fewer players
+ * rendered", which beats rendering a crowd the budgets never priced.
+ *
+ * The default reserves ONE slot: the ceiling prices ACTORS, the local player
+ * is an actor, and the hub manages only remotes — a hub allowed the full 24
+ * would put 25 rigs on screen and quietly overrun the invoice
+ * realmActorBudget.test.js spends against the draw-call budget. (The spike's
+ * two dev-only demo actors are outside this arithmetic on purpose; they ship
+ * to nobody.)
  */
 
 import { EVENT } from './WorldTransport.js';
@@ -51,7 +57,7 @@ const MAX_TOMBSTONES = 64;
 
 export function createRemoteActorHub({
   localId = null,
-  maxActors = ACTOR_CEILINGS.maxSimultaneousActors,
+  maxActors = ACTOR_CEILINGS.maxSimultaneousActors - 1, // one reserved for the local player
   clock = createPlayoutClock(),
 } = {}) {
   /** @type {Map<string, {epoch: number, buffer: object, row: object}>} */
@@ -63,8 +69,13 @@ export function createRemoteActorHub({
   let staleDropped = 0;
 
   function bury(id, t) {
+    // Keep the NEWER departure: two REMOVEs for one id can themselves arrive
+    // reordered, and letting the older one narrow the gate would re-admit
+    // echoes stamped between the two departures.
+    const existing = tombstones.get(id);
+    const at = existing != null ? Math.max(existing, t) : t;
     tombstones.delete(id); // re-insert to refresh Map order
-    tombstones.set(id, t);
+    tombstones.set(id, at);
     while (tombstones.size > MAX_TOMBSTONES) {
       tombstones.delete(tombstones.keys().next().value);
     }
@@ -82,12 +93,21 @@ export function createRemoteActorHub({
         const id = payload?.id == null ? null : String(payload.id);
         if (id === null) return;
         const slot = slots.get(id);
-        if (!slot) return; // never knew them; nothing to forget
-        // The departure's server time gates future echoes. Fall back to the
-        // newest position we ever heard, for a transport that (unlike ours)
-        // stamps no time on removals.
-        bury(id, Number.isFinite(payload.t) ? payload.t : (slot.buffer.newest()?.t ?? 0));
-        slots.delete(id);
+        // NO "never knew them, nothing to forget" branch — that was the review
+        // hole. The shaped link reorders by construction, so a REMOVE can
+        // outrun every UPSERT for its id (or the actor was ceiling-refused and
+        // never held a slot at all). Skipping the burial leaves the late,
+        // pre-departure UPSERT free to spawn a permanent ghost. An unknown id
+        // with a finite departure time is still a departure worth remembering;
+        // one with NO time gives nothing to gate on, and burying it at a made-
+        // up time could block that id's genuine future spawn — so only the
+        // truly untimed unknown is a no-op.
+        if (slot) {
+          bury(id, Number.isFinite(payload.t) ? payload.t : (slot.buffer.newest()?.t ?? 0));
+          slots.delete(id);
+        } else if (Number.isFinite(payload.t)) {
+          bury(id, payload.t);
+        }
         return;
       }
 

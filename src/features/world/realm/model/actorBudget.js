@@ -107,12 +107,14 @@ export const ACTOR_MANIFEST = Object.freeze({
  *    has ever asked.
  *  - MATERIAL/OVERDRAW cost of any kind, same as propBudget.js.
  *
- * AND NOTHING AT RUNTIME READS EITHER NUMBER. `maxSimultaneousActors` is
- * spent only by realmActorBudget.test.js; nothing spawns, counts, or refuses
- * an actor against it. `silhouetteM2` is likewise read only by
- * actorBudget.test.js's audit — no LOD, culling or impostor decision
- * consumes it. Both are CEILINGS THAT TESTS DEFEND, not runtime limits, and
- * a future phase that wants either enforced has to write the enforcement.
+ * RUNTIME ENFORCEMENT (P8b): `maxSimultaneousActors` IS now read at runtime —
+ * sim/remoteActorHub.js refuses remote spawns against it, reserving one slot
+ * for the local player (who is drawn outside the hub but is still an actor
+ * this file's arithmetic priced). The paragraph that used to stand here said
+ * "nothing at runtime reads either number ... a future phase that wants
+ * either enforced has to write the enforcement" — P8b was that phase, and
+ * the hub is that enforcement. `silhouetteM2` remains test-only: no LOD,
+ * culling or impostor decision consumes it yet.
  */
 export const ACTOR_CEILINGS = Object.freeze({
   maxSimultaneousActors: 24,

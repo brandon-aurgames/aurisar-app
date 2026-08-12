@@ -62,6 +62,55 @@ describe('createRemoteActorHub', () => {
     expect(hub.staleDroppedCount()).toBe(1);
   });
 
+  it('a REMOVE for a never-known id still buries it — reorder cannot resurrect', () => {
+    // Review finding: the shaped link reorders by construction, so a REMOVE
+    // can be delivered BEFORE any UPSERT for that id ever arrives. Ignoring
+    // it with "never knew them, nothing to forget" leaves no tombstone, and
+    // the late UPSERT (stamped before the departure) spawns a permanent ghost
+    // — the server already said REMOVE and will never say it again.
+    const hub = createRemoteActorHub();
+    hub.ingest(...rm('x', 100), 0);
+    hub.ingest(...up('x', 50, 9, 9), 60); // the reordered, pre-departure echo
+    expect(hub.count()).toBe(0);
+    expect(hub.staleDroppedCount()).toBe(1);
+  });
+
+  it('a REMOVE-first burial still admits a genuinely newer spawn', () => {
+    // The tombstone must gate on time, not on the id forever: the same player
+    // really can join after the client heard their (reordered) departure.
+    const hub = createRemoteActorHub();
+    hub.ingest(...rm('x', 100), 0);
+    warm(hub, 'x', { fromT: 200 });
+    expect(hub.count()).toBe(1);
+  });
+
+  it('a ceiling-refused actor cannot slip in as a stale echo after departing', () => {
+    // The compound case from review: an actor refused at the ceiling never
+    // entered slots; the server later REMOVEs them (unknown-id REMOVE here);
+    // another departure frees a slot; then their delayed pre-departure UPSERT
+    // arrives. Without the unknown-id burial it would spawn a ghost into the
+    // freed slot.
+    const hub = createRemoteActorHub({ maxActors: 1 });
+    warm(hub, 'a', { n: 2 });                 // fills the only slot
+    hub.ingest(...up('b', 100, 1, 1), 100);   // refused at ceiling
+    expect(hub.refusedCount()).toBe(1);
+    hub.ingest(...rm('b', 150), 150);         // b departs, still unknown here
+    hub.ingest(...rm('a', 200), 200);         // a departs — slot frees
+    hub.ingest(...up('b', 120, 2, 2), 250);   // b's stale echo, pre-departure
+    expect(hub.count()).toBe(0);
+    expect(hub.staleDroppedCount()).toBe(1);
+  });
+
+  it('two reordered REMOVEs keep the NEWER departure time', () => {
+    // bury() must take max: a stale REMOVE delivered after a fresh one must
+    // not narrow the gate and re-admit echoes between the two stamps.
+    const hub = createRemoteActorHub();
+    hub.ingest(...rm('x', 500), 0);
+    hub.ingest(...rm('x', 100), 10); // older departure, delivered later
+    hub.ingest(...up('x', 300, 1, 1), 20); // between the stamps — still stale
+    expect(hub.count()).toBe(0);
+  });
+
   it('accepts a genuine respawn as a NEW actor with a new epoch', () => {
     // Same id, later server time than the departure: the server really did
     // spawn them again. The fresh epoch is what lets the view key rigs by
@@ -89,13 +138,16 @@ describe('createRemoteActorHub', () => {
     expect(hub.refusedCount()).toBe(2);
   });
 
-  it('defaults the ceiling to the committed budget number', () => {
+  it('defaults the ceiling to the budget number MINUS the local player', () => {
+    // The ceiling prices ACTORS; the local player is one, drawn outside the
+    // hub. A default of the full 24 would put 25 rigs on screen and quietly
+    // overrun the invoice realmActorBudget.test.js spends.
     const hub = createRemoteActorHub();
     for (let i = 0; i < ACTOR_CEILINGS.maxSimultaneousActors + 4; i++) {
       warm(hub, `r${i}`, { n: 1 });
     }
-    expect(hub.count()).toBe(ACTOR_CEILINGS.maxSimultaneousActors);
-    expect(hub.refusedCount()).toBe(4);
+    expect(hub.count()).toBe(ACTOR_CEILINGS.maxSimultaneousActors - 1);
+    expect(hub.refusedCount()).toBe(5);
   });
 
   it('frees ceiling room when an actor departs', () => {
