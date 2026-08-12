@@ -30,8 +30,12 @@
  * time forward, and on the 60 ms-jitter profile a single unusually fast packet
  * jumped the actor 0.25 m in one frame — 14.8 m/s, well past anything the
  * server would authorise. Every discontinuity the exit bar forbade was coming
- * from the clock, not from the interpolator. Rising is slower still, so one
- * freakishly fast packet cannot pin the estimate low after a route change.
+ * from the clock, not from the interpolator. Rising works differently: the
+ * estimate HOLDS at the window's minimum until the fast packet that set it
+ * ages out, then steps up to the new minimum in one move. The step pushes
+ * render time BACKWARDS, which the monotonic guard in renderTimeAt absorbs by
+ * holding — so a stale fast packet cannot pin the estimate low forever, and
+ * the correction still never reaches the screen as motion.
  *
  * ─── Why the delay adapts, and why it may only creep ─────────────────────────
  * NET_TIMING's two-interval delay is a FLOOR, not the whole answer. A link
@@ -102,8 +106,15 @@ const LOSS_INTERVALS = 2;
 const DELAY_GROW_MS = 3;
 const DELAY_SHRINK_MS = 0.25;
 
-/** Per-observation decay of the jitter estimate. ~0.5% at 20 Hz ≈ a 7 s memory. */
-const JITTER_DECAY = 0.995;
+/**
+ * Hard ceiling on the adaptive delay: the buffer's own reach, less one
+ * interval. The snapshot buffer holds capacity × interval of history (400 ms
+ * at the defaults); a delay pushed past that samples at server moments the
+ * buffer has already evicted, so the sampler pins to the oldest snapshot it
+ * still has — WARMUP forever, a frozen actor. From here on, worse jitter is a
+ * link the interpolator cannot save, and freezing honestly beats pretending.
+ */
+const MAX_DELAY_MS = (NET_TIMING.bufferCapacity - 1) * NET_TIMING.snapshotIntervalMs;
 
 export function createPlayoutClock({
   delayMs = NET_TIMING.interpolationDelayMs,
@@ -150,9 +161,12 @@ export function createPlayoutClock({
       if (offsetMs === null || windowMin > offsetMs) offsetMs = windowMin;
       else offsetMs = Math.max(windowMin, offsetMs - OFFSET_FALL_MS);
 
-      const target = Math.max(
-        floorDelayMs,
-        jitterMs * jitterSafety + NET_TIMING.snapshotIntervalMs * LOSS_INTERVALS,
+      const target = Math.min(
+        MAX_DELAY_MS,
+        Math.max(
+          floorDelayMs,
+          jitterMs * jitterSafety + NET_TIMING.snapshotIntervalMs * LOSS_INTERVALS,
+        ),
       );
       const delta = target - currentDelayMs;
       currentDelayMs += delta > 0

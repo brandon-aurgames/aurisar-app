@@ -57,12 +57,29 @@ describe('createPlayoutClock', () => {
     expect(clock.offset()).toBeLessThan(1);
   });
 
-  it('rises only gradually toward a worse link', () => {
+  it('holds against worse readings while the fast packet is in the window', () => {
+    // The estimate is a windowed minimum, so a run of slow packets does not
+    // move it at all — they are jitter, not a new truth — for as long as one
+    // fast reading remains in the window.
     const clock = createPlayoutClock();
     clock.observe(1000, 1000); // offset 0
     for (let i = 0; i < 5; i++) clock.observe(2000 + i * 50 + 200, 2000 + i * 50);
-    // Nowhere near the 200 ms the readings claim, after only five of them.
-    expect(clock.offset()).toBeLessThan(20);
+    expect(clock.offset()).toBe(0);
+  });
+
+  it('steps up to a genuinely worse link once the fast packet ages out', () => {
+    // The other half of window semantics, stated honestly: when the reading
+    // that set the minimum leaves the window, the estimate jumps to the new
+    // minimum in ONE observation — there is no gradual rise. The jump pushes
+    // render time backwards, which the monotonic renderTimeAt guard absorbs,
+    // so the correction never reaches the screen as motion (asserted by the
+    // burst test below).
+    const clock = createPlayoutClock({ windowSamples: 10 });
+    clock.observe(1000, 1000); // offset 0, the packet that sets the minimum
+    for (let i = 1; i <= 9; i++) clock.observe(1000 + i * 50 + 200, 1000 + i * 50);
+    expect(clock.offset()).toBe(0); // still in the window
+    clock.observe(1000 + 10 * 50 + 200, 1000 + 10 * 50); // evicts it
+    expect(clock.offset()).toBe(200);
   });
 
   it('keeps the delay at the floor on a clean link', () => {
@@ -86,6 +103,19 @@ describe('createPlayoutClock', () => {
     const clock = createPlayoutClock();
     feed(clock, { n: 500, delayFor: () => 5 });
     expect(clock.delayMs()).toBeGreaterThanOrEqual(NET_TIMING.interpolationDelayMs);
+  });
+
+  it('never grows the delay past what the buffer can hold', () => {
+    // The buffer keeps capacity x interval of history. A delay pushed past
+    // that samples at server moments already evicted, so the sampler pins to
+    // the oldest snapshot it has — WARMUP forever, a frozen actor. Past this
+    // ceiling, worse jitter is a link the interpolator cannot save.
+    const clock = createPlayoutClock();
+    // Pathological spread: 0-600 ms of jitter, far beyond any profile.
+    feed(clock, { n: 1000, delayFor: (i) => 40 + (i % 13) * 50 });
+    const ceiling = (NET_TIMING.bufferCapacity - 1) * NET_TIMING.snapshotIntervalMs;
+    expect(clock.delayMs()).toBeLessThanOrEqual(ceiling);
+    expect(clock.jitterMs()).toBeGreaterThan(ceiling); // the clamp actually bit
   });
 
   it('never moves render time backwards, even on a burst', () => {

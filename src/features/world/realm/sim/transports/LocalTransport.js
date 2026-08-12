@@ -71,9 +71,28 @@ export function createLocalTransport({ now = () => 0, world = createLocalWorld()
    * instead of treating a delayed self-update as a correction from elsewhere.
    */
   const playerView = (row, { t = now(), originSeq = null } = {}) => {
-    const { lastMoveAtMs: _internal, ...view } = row;
+    const { lastMoveAtMs: _timing, online: _presence, ...view } = row;
     return { ...view, t, originSeq };
   };
+
+  /**
+   * The departure broadcast, once. Both disconnect() and dispose() land here,
+   * in either order, so the guard lives in one place: without it a
+   * disconnect-then-dispose (the normal teardown sequence) would announce the
+   * same departure twice and a hub would tear down a slot that was already
+   * recycled. The row itself stays — reconnect resumes it, P1 semantics — but
+   * `online: false` keeps it out of every future joiner's initial sync.
+   * Leaving the row in WITH no flag was the ghost bug: the joiner's sync
+   * resurrected departed players at their last position, forever, because the
+   * REMOVE that would have cleaned them up had been broadcast before the
+   * joiner existed to hear it.
+   */
+  function depart() {
+    if (!connected || identity == null) return;
+    connected = false;
+    db.upsert('player', identity, { online: false });
+    emitWorld(EVENT.ENTITY_REMOVE, { id: identity });
+  }
 
   const commands = {
     /**
@@ -140,9 +159,16 @@ export function createLocalTransport({ now = () => 0, world = createLocalWorld()
       // On resume, the row arrives with its lastMoveAtMs intact: "no last move"
       // means a true first spawn, never a reconnect.
       const existing = db.get('player', identity);
-      const row = existing ?? db.upsert('player', identity, {
-        ...SPAWN, hp: PLAYER_MAX_HP, maxHp: PLAYER_MAX_HP, targetId: null, lastMoveAtMs: null,
-      });
+      const row = existing
+        ? db.upsert('player', identity, { online: true })
+        : db.upsert('player', identity, {
+          ...SPAWN,
+          hp: PLAYER_MAX_HP,
+          maxHp: PLAYER_MAX_HP,
+          targetId: null,
+          lastMoveAtMs: null,
+          online: true,
+        });
 
       emit(EVENT.CONNECTION, { connected: true, reason: 'local' });
 
@@ -151,8 +177,11 @@ export function createLocalTransport({ now = () => 0, world = createLocalWorld()
       // when they next move — so a stationary occupant would be invisible
       // forever, which reads as "remote players are broken" rather than as a
       // missing sync. Addressed to this client only; everyone else knows.
+      // OFFLINE rows are skipped: they are resume state, not occupants, and
+      // syncing them resurrects departed players as ghosts (their REMOVE was
+      // broadcast before this client existed to hear it).
       for (const other of db.rows('player')) {
-        if (other.id !== identity) emit(EVENT.ENTITY_UPSERT, playerView(other));
+        if (other.id !== identity && other.online) emit(EVENT.ENTITY_UPSERT, playerView(other));
       }
 
       // The joiner itself goes to the whole world, so existing clients learn
@@ -161,12 +190,11 @@ export function createLocalTransport({ now = () => 0, world = createLocalWorld()
     },
 
     async disconnect() {
-      connected = false;
-      // Tell the world the actor is gone BEFORE the local connection notice, so
-      // a client tearing itself down still forwards the removal. ENTITY_REMOVE
-      // has been defined since P1 and emitted by nothing; a hub that never
-      // receives it leaks an actor per departure.
-      if (identity != null) emitWorld(EVENT.ENTITY_REMOVE, { id: identity });
+      // Departure first, connection notice second, so a client tearing itself
+      // down still forwards the removal to the world before going quiet.
+      // ENTITY_REMOVE has been defined since P1 and emitted by nothing; a hub
+      // that never receives it leaks an actor per departure.
+      depart();
       emit(EVENT.CONNECTION, { connected: false, reason: 'local-disconnect' });
     },
 
@@ -185,12 +213,19 @@ export function createLocalTransport({ now = () => 0, world = createLocalWorld()
     },
 
     /**
-     * Detach from the shared world. Required for a multi-client setup: a
-     * transport left attached keeps receiving broadcasts and keeps its
-     * subscribers alive, which on a churning demo is an unbounded leak.
+     * Tear down this client. A dispose while still connected IS a departure —
+     * the churning-demo path never calls disconnect() first, and peers left
+     * holding the actor would keep its rig and scene-registered skeleton alive
+     * with nothing ever to remove them.
+     *
+     * Detach FIRST, announce second. detach() removes only this client's own
+     * port, so the departure broadcast still reaches every remaining peer —
+     * while the disposed transport itself, which promised to deliver nothing
+     * after dispose, does not hear its own removal.
      */
     dispose() {
       detach();
+      depart();
       subscribers.clear();
     },
 

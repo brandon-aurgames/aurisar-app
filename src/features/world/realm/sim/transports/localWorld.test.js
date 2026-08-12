@@ -126,6 +126,88 @@ describe('a shared world', () => {
     expect(seenByA.some((e) => e.kind === EVENT.CONNECTION)).toBe(false);
   });
 
+  it('does not resurrect a leaver as a ghost for a later joiner', async () => {
+    // THE presence hole from review: disconnect broadcast ENTITY_REMOVE but the
+    // authoritative row stayed in the db, so a later joiner's initial sync
+    // upserted the departed player back into existence — a ghost actor no
+    // REMOVE would ever clean up, standing at their last position forever.
+    const world = createLocalWorld();
+    const now = () => 0;
+    const a = createLocalTransport({ now, world });
+    await a.connect('pa');
+    await a.disconnect();
+
+    const b = createLocalTransport({ now, world });
+    const seenByB = listen(b);
+    await b.connect('pb');
+
+    expect(upserts(seenByB).map((e) => e.payload.id)).not.toContain('pa');
+  });
+
+  it('re-announces a returning player to later joiners', async () => {
+    // The other half of presence: marking the leaver must not be permanent.
+    // Reconnect keeps the row (lastMoveAtMs resume semantics are P1 behaviour),
+    // so coming back has to flip them visible again.
+    const world = createLocalWorld();
+    const now = () => 0;
+    const a = createLocalTransport({ now, world });
+    await a.connect('pa');
+    await a.disconnect();
+    await a.connect('pa');
+
+    const b = createLocalTransport({ now, world });
+    const seenByB = listen(b);
+    await b.connect('pb');
+
+    expect(upserts(seenByB).map((e) => e.payload.id)).toContain('pa');
+  });
+
+  it('treats dispose while connected as a departure', async () => {
+    // dispose() is how a churning demo tears a client down. Detaching without
+    // announcing the departure leaves every peer holding a live actor — and a
+    // scene-registered skeleton — that nothing will ever remove.
+    const world = createLocalWorld();
+    const now = () => 0;
+    const a = createLocalTransport({ now, world });
+    const b = createLocalTransport({ now, world });
+    await a.connect('pa');
+    await b.connect('pb');
+
+    const seenByB = listen(b);
+    a.dispose();
+
+    const removal = seenByB.find((e) => e.kind === EVENT.ENTITY_REMOVE);
+    expect(removal, 'dispose of a connected transport announced nothing').toBeTruthy();
+    expect(removal.payload.id).toBe('pa');
+  });
+
+  it('announces a departure exactly once across disconnect then dispose', async () => {
+    const world = createLocalWorld();
+    const now = () => 0;
+    const a = createLocalTransport({ now, world });
+    const b = createLocalTransport({ now, world });
+    await a.connect('pa');
+    await b.connect('pb');
+
+    const seenByB = listen(b);
+    await a.disconnect();
+    await a.disconnect(); // idempotent
+    a.dispose();
+
+    expect(seenByB.filter((e) => e.kind === EVENT.ENTITY_REMOVE)).toHaveLength(1);
+  });
+
+  it('keeps presence bookkeeping off the wire', async () => {
+    // Same rule as lastMoveAtMs: server-internal fields never reach clients.
+    const world = createLocalWorld();
+    const now = () => 0;
+    const a = createLocalTransport({ now, world });
+    await a.connect('pa');
+    const seenByA = listen(a);
+    await a.send('moveIntent', { x: 1, z: 0 }, 1);
+    expect(upserts(seenByA)[0].payload).not.toHaveProperty('online');
+  });
+
   it('stops delivering to a disposed transport', async () => {
     const world = createLocalWorld();
     const now = () => 0;

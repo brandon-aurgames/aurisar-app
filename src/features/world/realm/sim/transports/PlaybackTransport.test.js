@@ -10,7 +10,12 @@ import { NET_TIMING } from '../../model/netTiming.js';
 
 describe('PlaybackTransport conformance', () => {
   for (const c of transportConformanceCases(() => {
-    const transport = createPlaybackTransport({ now: () => 0 });
+    // A short real script, so the wire-shape case has upserts to inspect
+    // rather than passing vacuously on an empty stream.
+    const transport = createPlaybackTransport({
+      now: () => 0,
+      script: scriptCircle({ durationMs: 100 }),
+    });
     return {
       transport,
       okCommand: { name: 'noop', payload: {} },

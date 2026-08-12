@@ -187,5 +187,29 @@ export function transportConformanceCases(setup) {
     },
   });
 
+  cases.push({
+    name: 'every entity upsert carries the P8 wire shape (t + originSeq)',
+    async run(expect) {
+      // The interpolation buffer orders on `t` (server time the state was
+      // true) and prediction reconciles on `originSeq`. A transport that omits
+      // either works perfectly against every direct assertion and starves the
+      // consumer downstream — the exact "asserted for one arm only" drift this
+      // suite exists to prevent. P12's SpacetimeTransport must pass this case
+      // with a SERVER-stamped t, never a client-supplied one.
+      const { transport, identity, settle, okCommand } = await open();
+      const { seen } = record(transport);
+      await transport.connect(identity);
+      if (okCommand) await transport.send(okCommand.name, okCommand.payload, 21);
+      await settle();
+
+      const ups = seen.filter((e) => e.kind === EVENT.ENTITY_UPSERT);
+      expect(ups.length, 'no upsert was observed — this case ran vacuously; give the setup an okCommand or a script').toBeGreaterThan(0);
+      for (const { payload } of ups) {
+        expect(Number.isFinite(payload.t), `upsert for "${payload.id}" has no finite t`).toBe(true);
+        expect('originSeq' in payload, `upsert for "${payload.id}" is missing originSeq`).toBe(true);
+      }
+    },
+  });
+
   return cases;
 }

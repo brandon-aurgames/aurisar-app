@@ -6,16 +6,14 @@
  * and the scripted events come out at their scripted times.
  *
  * ─── Why the exit-bar gate uses this and not LocalTransport ──────────────────
- * LocalTransport is single-occupant and only ever emits the local player's own
- * row, so it cannot produce a remote actor to interpolate at all. More
- * importantly, a gate built on it would be asserting against a position the
- * simulation just computed — if the rules and the interpolator ever drift the
- * same way, the test moves with them and proves nothing. A script is an
- * independent oracle: the exact path is known in advance, so "did the rendered
- * motion stay smooth and track the truth" is a real question with a real answer.
- *
- * The multi-client shared-world arm (N LocalTransports over one memoryDb) is
- * what the eyeball demo runs on; this is what CI runs on. Both exist on purpose.
+ * LocalTransport CAN produce remote players now (several clients over one
+ * shared localWorld — that is what the eyeball demo runs on). But a gate built
+ * on it would be asserting against a position the simulation just computed — if
+ * the rules and the interpolator ever drift the same way, the test moves with
+ * them and proves nothing. A script is an INDEPENDENT oracle: the exact path is
+ * known in advance, so "did the rendered motion stay smooth and track the
+ * truth" is a real question with a real answer. Both arms exist on purpose;
+ * this is the one CI trusts.
  */
 
 import { EVENT, REJECT, ack, nack } from '../WorldTransport.js';
@@ -55,6 +53,11 @@ export function scriptCircle({
       payload: {
         id,
         t: startMs + t,
+        // Same wire shape LocalTransport emits: originSeq names the command a
+        // row answered, and a scripted walk answers no one's command. The
+        // scripted arm producing a DIFFERENT shape than the real arm is exactly
+        // the drift the conformance suite exists to catch, so don't start it.
+        originSeq: null,
         x: radiusM * Math.cos(a),
         z: radiusM * Math.sin(a),
         yaw: normalizeAngle(Math.atan2(-Math.sin(a), Math.cos(a))),
