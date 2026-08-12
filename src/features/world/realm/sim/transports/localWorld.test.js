@@ -93,6 +93,24 @@ describe('a shared world', () => {
     const removal = seenByB.find((e) => e.kind === EVENT.ENTITY_REMOVE);
     expect(removal, 'no ENTITY_REMOVE reached the other client').toBeTruthy();
     expect(removal.payload.id).toBe('pa');
+    // The departure's server time is load-bearing: the remote hub's tombstone
+    // gates post-removal echoes on it. A P12 transport that dropped the field
+    // would silently reopen the ghost-resurrection class this asserts shut.
+    expect(removal.payload.t).toBe(0);
+  });
+
+  it('stamps the removal with the server time of the departure', async () => {
+    let t = 0;
+    const world = createLocalWorld();
+    const a = createLocalTransport({ now: () => t, world });
+    const b = createLocalTransport({ now: () => t, world });
+    await a.connect('pa');
+    await b.connect('pb');
+
+    const seenByB = listen(b);
+    t = 7777;
+    await a.disconnect();
+    expect(seenByB.find((e) => e.kind === EVENT.ENTITY_REMOVE).payload.t).toBe(7777);
   });
 
   it('addresses a correction to the mover alone', async () => {

@@ -82,6 +82,20 @@ const WINDOW_SAMPLES = 80;
  */
 const OFFSET_FALL_MS = 0.5;
 
+/**
+ * Beyond this, a high offset estimate is not jitter to slew through — it is a
+ * dead timeline. A tab frozen for a minute (phone lock, hidden pane) delivers
+ * its queued backlog on resume with stale stamps; those readings ratchet the
+ * windowed minimum up, and once fresh packets flow again the estimate sits
+ * SECONDS above truth with only the 0.5 ms/observation slew to unwind it —
+ * measured live: 13.3 s of error, an ~8 minute unwind, 86% of frames pinned
+ * to WARMUP the whole way. Past this gap the clock RESYNCS: one step down,
+ * stale window readings purged, one visible snap — which after a real freeze
+ * is correct, because the world genuinely moved on. Same doctrine as
+ * simClock's spiral guard: the stall is lost, not replayed.
+ */
+const RESYNC_GAP_MS = 1000;
+
 /** Headroom over measured jitter. Jitter is sampled, so the next packet can be worse. */
 const JITTER_SAFETY = 1.3;
 
@@ -158,8 +172,24 @@ export function createPlayoutClock({
       // Follow the window's minimum: instantly upward (render time moves
       // backwards, which the monotonic guard absorbs), slewed downward (render
       // time moves forwards, which is a visible lurch — see the header).
-      if (offsetMs === null || windowMin > offsetMs) offsetMs = windowMin;
-      else offsetMs = Math.max(windowMin, offsetMs - OFFSET_FALL_MS);
+      // EXCEPT past the resync gap, where slewing means minutes of frozen
+      // actors: step down once and drop the stale readings that caused it.
+      if (offsetMs === null || windowMin > offsetMs) {
+        offsetMs = windowMin;
+      } else if (offsetMs - windowMin > RESYNC_GAP_MS) {
+        offsetMs = windowMin;
+        const keep = window.filter((v) => v - windowMin <= RESYNC_GAP_MS);
+        window.length = 0;
+        window.push(...keep);
+        // Jitter re-derives from the purged window, so the dead timeline's
+        // spread cannot pin the delay at its clamp for another 4 seconds.
+        let mn = Infinity;
+        let mx = -Infinity;
+        for (const v of window) { if (v < mn) mn = v; if (v > mx) mx = v; }
+        jitterMs = window.length ? mx - mn : 0;
+      } else {
+        offsetMs = Math.max(windowMin, offsetMs - OFFSET_FALL_MS);
+      }
 
       const target = Math.min(
         MAX_DELAY_MS,

@@ -91,7 +91,10 @@ export function createLocalTransport({ now = () => 0, world = createLocalWorld()
     if (!connected || identity == null) return;
     connected = false;
     db.upsert('player', identity, { online: false });
-    emitWorld(EVENT.ENTITY_REMOVE, { id: identity });
+    // `t` is the server time of the departure. The remote hub's tombstone
+    // gates on it: an upsert delayed past this REMOVE must be provably NEWER
+    // than the departure to count as a respawn, or it is a ghost echo.
+    emitWorld(EVENT.ENTITY_REMOVE, { id: identity, t: now() });
   }
 
   const commands = {
