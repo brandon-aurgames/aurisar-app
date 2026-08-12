@@ -157,6 +157,46 @@ describe('createPlayoutClock', () => {
     expect(distant.delayMs()).toBeCloseTo(quiet.delayMs(), 6);
   });
 
+  it('resyncs after a frozen-tab resume instead of unwinding for minutes', () => {
+    // The field scenario, reproduced live in the hidden browser pane before
+    // this path existed: a freeze flushes its backlog on resume with stale
+    // stamps, the windowed minimum ratchets up seconds high, and the
+    // 0.5 ms/observation slew needs ~8 minutes to unwind 13 s of error — 86%
+    // of frames pinned to WARMUP the whole way. Past the resync gap the clock
+    // must step down at once.
+    const clock = createPlayoutClock();
+    feed(clock, { n: 100, delayFor: () => 40 }); // healthy link, offset ~40
+    // The frozen-resume backlog: every reading in the window becomes ~13 s.
+    feed(clock, { n: 100, startT: 5000, delayFor: () => 13_000 });
+    expect(clock.offset()).toBeGreaterThan(10_000); // the poison took
+
+    // Fresh packets resume. Within one snapshot of readings — not minutes —
+    // the estimate must be back at the truth.
+    feed(clock, { n: 5, startT: 25_000, delayFor: () => 40 });
+    expect(clock.offset()).toBeLessThan(100);
+  });
+
+  it('a resync also purges the dead timeline from the jitter estimate', () => {
+    // Without the purge, the 13 s spread sits in the window for another 80
+    // observations pinning the delay at its clamp — four more seconds of
+    // maximum lag on a link that is already healthy again.
+    const clock = createPlayoutClock();
+    feed(clock, { n: 100, delayFor: () => 40 });
+    feed(clock, { n: 100, startT: 5000, delayFor: () => 13_000 });
+    feed(clock, { n: 10, startT: 25_000, delayFor: (i) => 40 + (i % 3) * 10 });
+    expect(clock.jitterMs()).toBeLessThan(100);
+  });
+
+  it('does NOT resync inside the gap — ordinary bad links still slew', () => {
+    // The boundary matters: a genuine 400 ms route change is jitter territory
+    // and must keep the smooth path, or every route change becomes a snap.
+    const clock = createPlayoutClock();
+    feed(clock, { n: 100, delayFor: () => 500 }); // offset ~500
+    feed(clock, { n: 3, startT: 5000, delayFor: () => 40 });
+    // Slewing: barely moved after 3 observations, no step.
+    expect(clock.offset()).toBeGreaterThan(490);
+  });
+
   it('forgets its estimate on reset', () => {
     const clock = createPlayoutClock();
     feed(clock, { n: 50, delayFor: (i) => 40 + (i % 5) * 40 });

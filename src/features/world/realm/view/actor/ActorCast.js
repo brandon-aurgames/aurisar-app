@@ -61,6 +61,8 @@
 import { ActorPrototypes } from './ActorPrototypes.js';
 import { ActorRig } from './ActorRig.js';
 import { CANARY_POSE } from '../../model/actorCanary.js';
+import { ARCHETYPES } from '../../model/actorMasses.js';
+import { hash2 } from '../../model/noise.js';
 
 /** Distinct from each other and from PLAYER_ARCHETYPE — see the header. */
 const PLAYER_ARCHETYPE = 'unbound';
@@ -79,6 +81,22 @@ const DEMO_POSITIONS = Object.freeze([
  */
 const POSED_DEMO_INDEX = 0;
 
+/**
+ * PLACEHOLDER until P12: which archetype a remote player renders as.
+ *
+ * The wire row carries no class or archetype field yet — that column arrives
+ * with the aurisar-realm module's real schema. Hashing the entity id keeps the
+ * choice DETERMINISTIC ACROSS CLIENTS: every client hashing 'ghost-2' lands on
+ * the same archetype, so two spectators of the same world see the same actor,
+ * which is the property the eventual server-supplied field will also have.
+ * When P12 lands, delete this and read the row.
+ */
+function archetypeForId(id) {
+  let acc = 0;
+  for (let i = 0; i < id.length; i++) acc = (Math.imul(acc, 31) + id.charCodeAt(i)) | 0;
+  return ARCHETYPES[Math.floor(hash2(acc, 0, 7) * ARCHETYPES.length)].id;
+}
+
 export class ActorCast {
   /**
    * @param {object} scene
@@ -94,6 +112,18 @@ export class ActorCast {
   constructor(scene, { material, field, shadowRig = null }) {
     this._protos = new ActorPrototypes(scene, material);
     this._disposed = false;
+    this._scene = scene;
+    this._field = field;
+    this._shadowRig = shadowRig;
+
+    /**
+     * Remote players, keyed by `id#epoch` — the roster half of P8's "actor
+     * hierarchy". Keying by epoch (not bare id) means a respawned id is a NEW
+     * rig by construction: a rig can never be reused for a new occupant of a
+     * recycled id, which is the view-side twin of the hub's ingestion gate.
+     * @type {Map<string, ActorRig>}
+     */
+    this.remotes = new Map();
 
     /** The live actor integrateWalker drives. */
     this.player = new ActorRig(scene, this._protos, PLAYER_ARCHETYPE, {
@@ -145,6 +175,49 @@ export class ActorCast {
     this.player.setYaw(walker.yaw);
     this.player.update(focusPos);
     for (const rig of this.demoActors) rig.update(focusPos);
+    for (const rig of this.remotes.values()) rig.update(focusPos);
+  }
+
+  /**
+   * Reconcile the remote roster against the hub's samples for this frame:
+   * spawn a rig for every actor heard of, seat every live one, dispose every
+   * one no longer present. One call per frame, after hub.sampleAll().
+   *
+   * Seating derives Y here — `seatOn(x, surfaceY(x, z), z)` — because the
+   * wire carries no Y at all. The alternative (interpolating pre-seated
+   * positions) cuts through slope curvature between snapshots; sampling the
+   * field at the INTERPOLATED (x, z) hugs the terrain by construction, the
+   * same "Y is a pure function of (x, z)" rule the walker lives by.
+   *
+   * @param {{id: string, epoch: number, x: number, z: number, yaw: number}[]} samples
+   */
+  syncRemotes(samples) {
+    if (this._disposed) return;
+    const seen = new Set();
+    for (const s of samples) {
+      const key = `${s.id}#${s.epoch}`;
+      seen.add(key);
+      let rig = this.remotes.get(key);
+      if (!rig) {
+        rig = new ActorRig(this._scene, this._protos, archetypeForId(s.id), {
+          name: `remote_${s.id}_${s.epoch}`,
+          shadowRig: this._shadowRig,
+        });
+        this.remotes.set(key, rig);
+      }
+      rig.seatOn(s.x, this._field.surfaceY(s.x, s.z), s.z);
+      rig.setYaw(s.yaw);
+    }
+    // Despawn by absence. rig.dispose() is NOT optional cleanup: a Skeleton is
+    // scene-registered and outlives its nodes, so skipping this leaks one
+    // skeleton + bone palette per departed player — invisible everywhere
+    // except scene.skeletons, forever.
+    for (const [key, rig] of this.remotes) {
+      if (!seen.has(key)) {
+        rig.dispose();
+        this.remotes.delete(key);
+      }
+    }
   }
 
   /** Release every rig, then the shared masters. Idempotent. */
@@ -154,6 +227,8 @@ export class ActorCast {
     this.player.dispose();
     for (const rig of this.demoActors) rig.dispose();
     this.demoActors = [];
+    for (const rig of this.remotes.values()) rig.dispose();
+    this.remotes.clear();
     this._protos.dispose();
   }
 }

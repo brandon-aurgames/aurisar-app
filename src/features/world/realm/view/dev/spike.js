@@ -32,6 +32,7 @@ import { buildCloudPuffs } from '../atmosphere/cloudPuffs.js';
 import { ActorShadowRig } from '../lighting/ActorShadowRig.js';
 import { buildActorMaterial } from '../materials/actorNME.js';
 import { ActorCast } from '../actor/ActorCast.js';
+import { createSpikeNet, parseNetParams } from './spikeNet.js';
 import { createWalkerState, integrateWalker } from '../../model/walker.js';
 import {
   BUTTON, createInputSnapshot, resetInputSnapshot, setButton,
@@ -155,6 +156,19 @@ async function boot() {
   const { material: actorMat } = await buildActorMaterial(scene, { name: 'realmActor' });
   const actorCast = new ActorCast(scene, { material: actorMat, field, shadowRig: actorShadowRig });
 
+  // ── Network demo (P8b): ?remotes=3&latency=80&jitter=60&drop=0.05 ─────────
+  // Inert without params. With them: the local player goes onto the transport
+  // (first-ever P1-stack wiring), ghost clients walk circles on a shared
+  // world, and everything inbound arrives through a seeded latency shaper.
+  // RECONCILE snaps the walker: server clamps are small (the walker's sprint
+  // sits under the server cap), so a snap here is centimetres, not a lurch.
+  const netParams = parseNetParams(location.search);
+  const net = netParams ? await createSpikeNet({
+    params: netParams,
+    now: () => performance.now(),
+    onReconcile: (p) => { walker.x = p.x; walker.z = p.z; },
+  }) : null;
+
   // ── Chase camera ────────────────────────────────────────────────────────────
   const camera = new BABYLON.ArcRotateCamera('chase', -Math.PI / 2, Math.PI / 3.1, 11,
     new BABYLON.Vector3(0, 1.4, 0), scene);
@@ -198,6 +212,13 @@ async function boot() {
     while (accumulator >= SIM_STEP_MS) {
       walker = integrateWalker(walker, sampleInput(), SIM_STEP_MS, field);
       accumulator -= SIM_STEP_MS;
+    }
+
+    // Net demo: report the walker (throttled to cadence inside), release
+    // whatever the shaped link owes, and reconcile the remote roster.
+    if (net) {
+      net.sendMove(walker, nowMs);
+      actorCast.syncRemotes(net.update(nowMs));
     }
 
     // One skyState per frame drives fog + clear + dome + lights, atomically.
@@ -255,10 +276,10 @@ async function boot() {
   window.addEventListener('resize', () => engine.resize());
 
   // ── Diag readout ────────────────────────────────────────────────────────────
-  // demoActors is ActorCast's own array and the readout indexes into it. If a
-  // future cast ships one demo actor (or none), `demoActors[1].mesh` throws
-  // INSIDE a setInterval — an exception nothing catches, on a timer, so the
-  // whole readout silently stops updating and the page still looks fine.
+  // Cast-shape TOLERANT on purpose: this used to hard-index demoActors[0]/[1],
+  // and a roster change would have thrown INSIDE the setInterval — an
+  // exception nothing catches, on a timer, silently killing the whole readout
+  // while the page still looked fine. Mapping over whatever exists cannot.
   const bucketOf = (rig) => (rig ? actorShadowRig.bucketOf(rig.mesh) : '-');
   setInterval(() => {
     if (!diag) return;
@@ -272,15 +293,16 @@ async function boot() {
       `rings     : ${ringKit.meshes.length}`,
       `clouds    : ${cloudKit.meshes.length} puffs, factor ${fogDriver.cloudFactor != null ? fogDriver.cloudFactor.toFixed(2) : '?'}`,
       `shadows   : player=${bucketOf(actorCast.player)} `
-        + `demoA=${bucketOf(actorCast.demoActors[0])} `
-        + `demoB=${bucketOf(actorCast.demoActors[1])}`,
+        + `demos=[${actorCast.demoActors.map(bucketOf).join(',')}] `
+        + `remotes=[${[...actorCast.remotes.values()].map(bucketOf).join(',')}]`,
+      ...(net ? [`net       : ${net.statsLine()}`] : []),
       `fps       : ${engine.getFps().toFixed(0)}`,
     ].join('\n');
   }, 250);
 
   window.__realmSpike = {
     engine, scene, adt, field, streamer, propStreamer, camera, fogDriver, ringKit, cloudKit,
-    actorShadowRig, actorCast, getWalker: () => walker,
+    actorShadowRig, actorCast, net, getWalker: () => walker,
   };
 }
 

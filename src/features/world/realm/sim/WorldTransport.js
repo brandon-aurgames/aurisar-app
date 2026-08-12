@@ -65,7 +65,9 @@ export const isNack = (r) => !!r && r.ok === false;
 export const EVENT = Object.freeze({
   /** Authoritative state for one entity. Payload: { id, ...fields } */
   ENTITY_UPSERT: 'entity_upsert',
-  /** An entity left interest range or died. Payload: { id } */
+  /** An entity left interest range or died. Payload: { id, t } — `t` is the
+   *  SERVER time of the departure, so a client can refuse resurrection by any
+   *  state snapshot delayed past its own removal. */
   ENTITY_REMOVE: 'entity_remove',
   /** Correction for the local player. Payload: { seq, x, z, yaw } */
   RECONCILE: 'reconcile',

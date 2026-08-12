@@ -247,6 +247,20 @@ export class ActorRig {
   }
 
   setYaw(yaw) {
+    // GUARD, not paranoia: the first non-null `rotationQuaternion` assignment
+    // on a node makes Babylon ignore `.rotation` in world-matrix composition
+    // PERMANENTLY — every Euler write below becomes a silent no-op while every
+    // test asserting `.rotation.y` keeps passing, because the property still
+    // stores the value; it just stops being read. That is the same
+    // green-while-wrong class as P6's winding and P7's rest identity. One null
+    // check per call turns it into a loud failure at the write site instead.
+    if (this._root.rotationQuaternion !== null) {
+      throw new Error(
+        `[ActorRig] ${this._name}: rotationQuaternion is set on the actor root — `
+        + 'yaw is Euler-only (.rotation.y); a quaternion silently disables it. '
+        + 'Remove the quaternion write, or migrate EVERY yaw path at once.',
+      );
+    }
     this._root.rotation.y = yaw;
     return this;
   }
