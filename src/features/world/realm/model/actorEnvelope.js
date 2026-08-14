@@ -39,8 +39,8 @@
  *
  *   `overhangM` — the largest distance any posed vertex sits OUTSIDE the
  *     axis-aligned box of the same master's REST positions, over all six
- *     faces. This is the fault itself, measured. Roster worst: 0.3265 m
- *     (unbound, far stage).
+ *     faces. This is the fault itself, measured. Roster worst: 0.3381 m
+ *     (unbound, far stage, post-P9).
  *
  *   `travelM` — the largest distance any single vertex MOVES between rest and
  *     posed. Roster worst: 0.8298 m (unbound, far stage). RETAINED AS A
@@ -80,8 +80,11 @@
  *
  * ── HOW THE MARGIN IS SIZED, AND THE BASIS THAT WAS REJECTED ───────────────
  *
- * SHIPPED: 0.40 m, isotropic on all six faces, from the measured worst CANARY
- * OVERHANG of 0.3265 m with 1.22x headroom.
+ * SHIPPED: 0.41 m, isotropic on all six faces, from the measured worst CANARY
+ * OVERHANG of 0.3381 m (post-P9 leg split + ladder reassignment) with 1.21x
+ * headroom. The table and prose below narrate the ORIGINAL 0.40/0.3265
+ * sizing argument; its logic is unchanged — only the two endpoints moved,
+ * and the constant's own comment carries the delta.
  *
  * OVERHANG IS WHAT BOTH CONSUMERS ACTUALLY NEED. Culling asks "does the box
  * contain every posed vertex"; the auto-extended shadow ortho asks "does the
@@ -119,8 +122,8 @@
  * ── WHAT THIS MARGIN DOES *NOT* COVER, AND WHEN P9 MUST REVISIT ────────────
  *
  * `setPose` accepts ANY table of unit-axis rotations. The margin is measured
- * at ONE point in that space — `CANARY_POSE`, the prime-degree ladder
- * 7/11/13/17/19/23/29 (model/actorCanary.js) — and everything beyond that
+ * at ONE point in that space — `CANARY_POSE`, the lever-assigned angle
+ * ladder (model/actorCanary.js) — and everything beyond that
  * point is UNMEASURED, not bounded. A pose with larger angles, or one that
  * compounds further down unbound's four-joint graft chain, will exceed it.
  *

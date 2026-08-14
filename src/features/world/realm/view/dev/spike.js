@@ -251,10 +251,10 @@ async function boot() {
     // Seat/face the player from the walker, then re-tier every actor
     // (player and the two static demo actors alike) against the SAME focus
     // point the shadow bucketing below uses.
-    actorCast.update(walker, camera.target, nowMs);
-    // Cast demo (P9): a started cast charges over 2 s and releases; the
-    // posture ramp IS the cast bar (model/gait.js), so this is the readable
-    // demonstration of that claim.
+    // Cast demo (P9): a started cast charges over 2 s and releases. Progress
+    // is applied BEFORE actorCast.update so the posture this frame reflects
+    // this frame's charge — review caught it a line after, where the pose
+    // trailed the bar it claims to BE by one frame.
     if (castStartedMs !== null) {
       const progress = (nowMs - castStartedMs) / 2000;
       if (progress >= 1) {
@@ -264,6 +264,7 @@ async function boot() {
         actorCast.playerAnim.state.castProgress = progress;
       }
     }
+    actorCast.update(walker, camera.target, nowMs);
 
     // nowMs stamps newly-born chunks and ramps every still-fading chunk's
     // visibility (model/chunkFade.js) — structural pop-in concealment.

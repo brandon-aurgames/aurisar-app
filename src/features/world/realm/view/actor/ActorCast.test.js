@@ -492,6 +492,33 @@ describe('ActorCast — gait driving (P9)', () => {
     }
   });
 
+  it('a remote teleport does not spin the gait — the derivative is clamped', () => {
+    // Review: the odometer clamps dt at 250 ms but nothing clamped speed, so
+    // a hub snap (P8's own teleport doctrine) over one 16 ms frame read as
+    // >1000 m/s and spun the walk like a zoetrope. Steps beyond a stride are
+    // discarded from the derivative; the phase must not lurch.
+    const { scene, material, field, shadowRig } = newWorld();
+    try {
+      const cast = new ActorCast(scene, { material, field, shadowRig });
+      for (let ms = 0; ms <= 500; ms += 16) {
+        cast.syncRemotes([{ id: 'g1', epoch: 1, x: 0, z: (ms / 1000) * 3, yaw: 0 }], ms);
+      }
+      const phaseBefore = cast._remoteAnim.get('g1#1').odo.phase;
+      // The 50 m snap.
+      cast.syncRemotes([{ id: 'g1', epoch: 1, x: 50, z: 1.5, yaw: 0 }], 516);
+      const phaseAfter = cast._remoteAnim.get('g1#1').odo.phase;
+      const stepped = Math.abs(phaseAfter - phaseBefore);
+      // 0.08: one legitimate 16 ms frame at the EMA-carried ~3 m/s advances
+      // phase ~0.054 (the router's smoothing decays, it does not snap), while
+      // integrating the 50 m step would wrap ~33 CYCLES. The bound separates
+      // "kept walking one frame" from "spun like a zoetrope".
+      expect(Math.min(stepped, 1 - stepped), 'the teleport was integrated into the odometer').toBeLessThan(0.08);
+      cast.dispose();
+    } finally {
+      scene.dispose();
+    }
+  });
+
   it('remotes animate from observed motion and their anim state dies with them', () => {
     const { scene, material, field, shadowRig } = newWorld();
     try {

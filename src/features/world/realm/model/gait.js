@@ -8,12 +8,15 @@
  *
  * ─── Phase is DISTANCE, never time ───────────────────────────────────────────
  * `advanceOdometer` integrates horizontal speed into metres travelled, and
- * phase = distance / strideLength. A foot is planted during its stance half,
- * and the body travels exactly one stride per cycle BY CONSTRUCTION — so the
- * feet cannot slide against the ground, and stopping freezes the walk
- * mid-stride exactly where the limbs are. Foot-slide is not tuned away here;
- * it is unrepresentable. (The exit-bar gate still measures it, because this
- * paragraph is a claim and gates do not take claims on faith.)
+ * phase = distance / stride. A foot is planted during its stance half, the
+ * body travels one stride per cycle by construction, and stopping freezes
+ * the walk mid-stride exactly where the limbs are. That makes the CLASS of
+ * foot-slide bug (feet cycling on a clock while the ground passes)
+ * structurally excluded — but with one bone per leg the stance foot still
+ * carries a bounded residual (measured |slide| ratio 0.215..0.231, mean
+ * +0.034..0.038), so the honest word is BOUNDED, not impossible, and
+ * gait.test.js's gate holds the bound rather than taking this paragraph's
+ * word for anything.
  *
  * ─── Blending happens in PARAMETER space ─────────────────────────────────────
  * `params` is {speed, combatIntensity, castCharge}, each continuous. The
@@ -33,11 +36,12 @@
  * pelvis pulse with arm counter-swing. The verb IS faction identity at
  * distance, extending P6's silhouette doctrine into motion.
  *
- * ─── The amplitudes are capped by the measured envelope ──────────────────────
- * Every angle below saturates well inside the canary-swept ranges the seal
- * and envelope gates certified (worst canary overhang 0.3381 m vs the 0.41 m
- * margin). gaitVerify's sweep re-measures the ACTUAL generator output across
- * the whole (phase × params) space, so this comment is enforced, not trusted.
+ * ─── The amplitudes sit inside the canary-certified envelope ──────────────────
+ * Every angle below is smaller than the canary angle certified for its bone
+ * (worst canary overhang 0.3381 m vs the 0.41 m margin). That is an authored
+ * discipline plus the envelope audit — NOT a swept proof: a full
+ * (phase × params) hypercube sweep through the seal machinery is a named
+ * carry-forward, and until it exists no comment here may claim otherwise.
  */
 
 import { buildActorRig } from './actorRig.js';
@@ -165,22 +169,76 @@ function rigFor(archetypeId) {
   return r;
 }
 
-/** Add a rotation into `table[bone]`, composing by summing same-axis angles or
- *  keeping the larger contribution on axis conflict (cheap and sufficient —
- *  the layers below are authored on disjoint bones except the torso, where
- *  lean and coil share the X axis and sum). */
+/** Rodrigues, row-major row-vector — the same expansion evaluatePose uses,
+ *  duplicated here because composition must happen in the identical
+ *  convention the palette will apply. */
+function rotM(ax, ay, az, angle) {
+  const s = Math.sin(angle);
+  const cs = Math.cos(angle);
+  const t = 1 - cs;
+  return [
+    t * ax * ax + cs, t * ax * ay + s * az, t * ax * az - s * ay,
+    t * ax * ay - s * az, t * ay * ay + cs, t * ay * az + s * ax,
+    t * ax * az + s * ay, t * ay * az - s * ax, t * az * az + cs,
+  ];
+}
+
+const mul3 = (a, b) => {
+  const o = new Array(9);
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      o[r * 3 + c] = a[r * 3] * b[c] + a[r * 3 + 1] * b[3 + c] + a[r * 3 + 2] * b[6 + c];
+    }
+  }
+  return o;
+};
+
+/** Inverse of rotM: matrix back to {axis, angleRad}, null at identity. The
+ *  skew-part signs match rotM's own layout (m[5]-m[7] = 2·sin·ax, etc.), so
+ *  extract(rotM(...)) round-trips — asserted in gait.test.js. */
+function toAxisAngle(m) {
+  const c = Math.min(1, Math.max(-1, (m[0] + m[4] + m[8] - 1) / 2));
+  const angle = Math.acos(c);
+  if (angle < 1e-9) return null;
+  const s2 = 2 * Math.sin(angle);
+  const axis = [(m[5] - m[7]) / s2, (m[6] - m[2]) / s2, (m[1] - m[3]) / s2];
+  const n = Math.hypot(axis[0], axis[1], axis[2]);
+  return { axis: Object.freeze([axis[0] / n, axis[1] / n, axis[2] / n]), angleRad: angle };
+}
+
+/**
+ * Record a rotation for `bone`. Contributions are COMPOSED at finalize time
+ * — never discarded. The first version kept whichever axis had the larger
+ * angle on conflict, and review probed the consequence: walk+combat was
+ * bit-identical to walk above ~2.65 m/s, because the arm's X swing outgrew
+ * the combat guard's Z and silently ate it. "Idle/run/combat/cast BLENDING"
+ * is the exit bar; a layer that evaporates under another is not blending.
+ */
 function contribute(table, bone, axis, angleRad) {
   if (bone < 0 || angleRad === 0) return;
-  const prev = table[bone];
-  if (!prev) {
-    table[bone] = { axis, angleRad };
-    return;
+  if (!table[bone]) table[bone] = [];
+  table[bone].push({ axis, angleRad });
+}
+
+/** Lists → single {axis, angleRad} per bone, composing in contribution
+ *  order (gait first, posture layers after — row-vector R1·R2). */
+function finalize(table, boneCount) {
+  const out = {};
+  for (const [k, list] of Object.entries(table)) {
+    const bone = Number(k);
+    if (bone <= 0 || bone >= boneCount) continue; // no-root rule; see below
+    if (list.length === 1) {
+      out[bone] = { axis: list[0].axis, angleRad: list[0].angleRad };
+      continue;
+    }
+    let m = rotM(list[0].axis[0], list[0].axis[1], list[0].axis[2], list[0].angleRad);
+    for (let i = 1; i < list.length; i++) {
+      m = mul3(m, rotM(list[i].axis[0], list[i].axis[1], list[i].axis[2], list[i].angleRad));
+    }
+    const e = toAxisAngle(m);
+    if (e) out[bone] = e;
   }
-  if (prev.axis === axis) {
-    table[bone] = { axis, angleRad: prev.angleRad + angleRad };
-    return;
-  }
-  if (Math.abs(angleRad) > Math.abs(prev.angleRad)) table[bone] = { axis, angleRad };
+  return out;
 }
 
 /**
@@ -243,10 +301,16 @@ export function gaitPose(archetypeId, phase, params = {}) {
   }
 
   // ── Posture layers: combat crouch and cast charge, additive, state-free ──
+  // The crouch lives on the neck/shoulder cluster (magistari, with no neck
+  // mass, braces its bone-1 upper cluster instead) — NEVER bone 0. The first
+  // version authored it on the root and the no-root guard silently deleted
+  // it: idle combat was one arm twitch on the bipeds and an EMPTY pose on
+  // magistari/orghon, found by review probing the palette, not the params.
   if (combat > 0) {
-    contribute(table, 0, X, SWING.combatCrouch * combat);
-    const guard = idx.owning('armL');
-    if (guard >= 0) contribute(table, guard, Z, 0.18 * combat);
+    const crouchBone = idx.owning('neck') >= 0 ? idx.owning('neck') : 1;
+    contribute(table, crouchBone, X, SWING.combatCrouch * combat);
+    const guard = [idx.owning('armL'), idx.owning('armLUpper')].find((b) => b >= 0);
+    if (guard !== undefined) contribute(table, guard, Z, 0.18 * combat);
   }
   if (cast > 0) {
     // MONOTONE in castCharge, asserted by the harness: posture that ramps
@@ -256,20 +320,17 @@ export function gaitPose(archetypeId, phase, params = {}) {
         : idx.owning('sleeveL') >= 0 ? 1
           : idx.owning('armRUpper');
     contribute(table, castArm, Z, -SWING.castRaise * cast);
-    // Spine coil rides the neck/shoulder cluster, same no-root rule as the
-    // lean. Magistari has no neck mass; its whole upper cluster (bone 1)
-    // already carries the raise, and a legless cone does not coil.
-    contribute(table, idx.owning('neck'), X, -SWING.castCoil * cast);
+    // Spine coil rides the neck/shoulder cluster (bone 1 on magistari),
+    // same no-root rule as the lean.
+    const coilBone = idx.owning('neck') >= 0 ? idx.owning('neck') : 1;
+    contribute(table, coilBone, X, -SWING.castCoil * cast);
   }
 
-  // Guard: never emit an entry for a bone the rig does not have, and NEVER
-  // for bone 0 — the root bone owns the entire skeleton, so any root entry
-  // moves the feet, and the foot-slide gate would be measuring this file's
-  // bug instead of the animation's quality.
-  for (const k of Object.keys(table)) {
-    if (Number(k) >= rig.bones.length || Number(k) === 0) delete table[k];
-  }
-  return table;
+  // finalize composes multi-contribution bones and enforces the structural
+  // rules: never a bone the rig lacks, and NEVER bone 0 — the root bone owns
+  // the entire skeleton, so a root entry moves the feet and the foot-slide
+  // gate would measure this file's bug instead of the animation's quality.
+  return finalize(table, rig.bones.length);
 }
 
 /**

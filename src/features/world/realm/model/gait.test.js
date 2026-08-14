@@ -15,7 +15,7 @@ import {
   STRIDE_LENGTH_M, advanceOdometer, createOdometer, gaitPose, gaitRootMotion,
 } from './gait.js';
 import { footSlideReport, glideRhythmReport } from './gaitVerify.js';
-import { buildActorRig } from './actorRig.js';
+import { buildActorRig, evaluatePose } from './actorRig.js';
 import {
   ANIM_STATE, BLEND_MS, MIN_DWELL_MS, createAnimState, requestState, updateAnimState,
 } from '../sim/animState.js';
@@ -171,6 +171,56 @@ describe('the generator, structurally', () => {
       expect(m.bobM).toBeGreaterThanOrEqual(0);
       expect(m.bobM).toBeLessThan(0.05);
     }
+  });
+});
+
+describe('combat and cast are VISIBLE verbs — the review-found vacuity class', () => {
+  // Review probed the palette (not the params) and found: crouch authored on
+  // bone 0 then stripped by the no-root guard; winner-take-all contribute()
+  // making walk+combat bit-identical to walk above ~2.65 m/s; magistari and
+  // orghon idle-combat poses EMPTY. These gates hold the palette itself.
+  const CASES = [
+    { name: 'combat', params: { combatIntensity: 1 } },
+    { name: 'cast', params: { castCharge: 1 } },
+  ];
+  for (const id of IDS) {
+    for (const c of CASES) {
+      it(`${id} ${c.name} changes the pose at idle AND at full walk`, () => {
+        const idlePlain = gaitPose(id, 0.3, { speed: 0 });
+        const idleVerb = gaitPose(id, 0.3, { speed: 0, ...c.params });
+        expect(idleVerb, `${id} idle ${c.name} pose is empty`).not.toEqual({});
+        expect(idleVerb).not.toEqual(idlePlain);
+
+        const walkPlain = gaitPose(id, 0.3, { speed: 4.2 });
+        const walkVerb = gaitPose(id, 0.3, { speed: 4.2, ...c.params });
+        expect(
+          walkVerb,
+          `${id} ${c.name} while walking is a palette no-op — a layer evaporated`,
+        ).not.toEqual(walkPlain);
+      });
+    }
+  }
+
+  it('composition preserves BOTH layers: the walk swing survives inside walk+combat', () => {
+    // Not just "differs" — the composed rotation must still carry the gait.
+    // Two phases of walk+combat must differ from each other (the swing is
+    // alive inside the composition), or combat could freeze locomotion and
+    // still pass every not-equal gate above.
+    const a = gaitPose('unbound', 0.2, { speed: 4.2, combatIntensity: 1 });
+    const b = gaitPose('unbound', 0.45, { speed: 4.2, combatIntensity: 1 });
+    expect(a).not.toEqual(b);
+  });
+
+  it('composed entries are unit-axis and survive evaluatePose', () => {
+    // The composition path (rotM → mul3 → toAxisAngle) must emit entries the
+    // palette evaluator accepts — its unit-axis guard throws otherwise.
+    const rig = buildActorRig('unbound');
+    const pose = gaitPose('unbound', 0.3, { speed: 4.2, combatIntensity: 1, castCharge: 0.5 });
+    for (const e of Object.values(pose)) {
+      expect(Math.hypot(...e.axis)).toBeCloseTo(1, 9);
+      expect(Number.isFinite(e.angleRad)).toBe(true);
+    }
+    expect(() => evaluatePose(rig, pose)).not.toThrow();
   });
 });
 

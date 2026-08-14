@@ -26,15 +26,14 @@
  * — one archetype standing bent next to two standing straight — that is the
  * live demonstration a real GPU can skin a mesh at all.
  *
- * AND IT IS NOT A WALK, because no rig in this roster can express one. The
- * derivation is `model/actorRig.js`'s header, under "ONE BONE PER CAP PIVOT":
- * a pivot joining N masses spawns exactly ONE bone owning every mass beyond
- * it, "so legs move as a pair". Both unbound and legion put `{legL, legR}` on
- * a single bone (bone 1 on each, re-derived from `buildActorRig` rather than
- * taken on trust), which makes independent legs a GENOME change and a P9
- * carry-forward, not a P7 omission. A CANARY_POSE-derived stance sidesteps it
- * entirely: the canary poses every non-root bone by construction and asks
- * nothing of leg independence.
+ * IT IS NOT A WALK — DELIBERATELY, AND THE REASON CHANGED IN P9. Through P8
+ * no rig could express one ({legL, legR} shared a bone). P9's genome split
+ * gave both bipeds independent leg bones and this file now DRIVES real walks
+ * — but only on the player and the remotes, via _driveGait below. The posed
+ * demo actor stays a STATIC CANARY_POSE exhibit on purpose: it is P7's
+ * living proof that a GPU skins this roster correctly, its palette is
+ * asserted bit-identical to the table every headless skinning gate measures,
+ * and gait-driving it would quietly replace P7's evidence with P9's output.
  *
  * Legion, not orghon, is the one posed: `DEMO_POSITIONS[0]` (150, 0) is
  * closer to spawn than `DEMO_POSITIONS[1]` (-200, 150) — `hypot(150,0) = 150`
@@ -263,8 +262,16 @@ export class ActorCast {
         }
         let speed = 0;
         if (anim.lastPos && anim.lastMs != null && nowMs > anim.lastMs) {
-          speed = Math.hypot(s.x - anim.lastPos.x, s.z - anim.lastPos.z)
-            / ((nowMs - anim.lastMs) / 1000);
+          const stepM = Math.hypot(s.x - anim.lastPos.x, s.z - anim.lastPos.z);
+          // A discontinuity is a TELEPORT (P8's snap doctrine), not motion:
+          // the odometer clamps dt at 250 ms but nothing clamped speed, so a
+          // 20 m hub snap over one 16 ms frame read as 1250 m/s and spun the
+          // gait like a zoetrope. Steps beyond a stride are discarded from
+          // the derivative outright; legitimate speed is capped at the
+          // server's own ceiling (7 × 1.35 — moveRules' clamp budget).
+          if (stepM < 1.5) {
+            speed = Math.min(stepM / ((nowMs - anim.lastMs) / 1000), 9.45);
+          }
         }
         anim.lastPos = { x: s.x, z: s.z };
         this._driveGait(rig, anim, speed, nowMs, groundY);
