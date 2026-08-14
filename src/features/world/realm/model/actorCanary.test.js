@@ -19,7 +19,9 @@ import { buildActorRig, evaluatePose } from './actorRig.js';
 import { CANARY_LADDER_DEG, CANARY_POSE, limbDirection } from './actorCanary.js';
 
 const IDS = ['unbound', 'legion', 'magistari', 'orghon'];
-const EXPECTED_NON_ROOT = { unbound: 7, legion: 5, magistari: 1, orghon: 4 };
+// unbound 7→9 and legion 5→7 with P9's leg split (hip-cluster + two leg bones
+// replacing the fused-pair bone on each biped).
+const EXPECTED_NON_ROOT = { unbound: 9, legion: 7, magistari: 1, orghon: 4 };
 
 /**
  * Two-sided worst-endpoint-travel envelope, in metres.
@@ -136,9 +138,9 @@ describe('CANARY_POSE — shape', () => {
     }
   });
 
-  it('the ladder holds enough distinct primes for the deepest rig', () => {
+  it('the ladder holds enough distinct angles for the deepest rig', () => {
     const deepest = Math.max(...IDS.map((id) => buildActorRig(id).bones.length - 1));
-    expect(deepest).toBe(7);
+    expect(deepest).toBe(9); // unbound, after P9's leg split
     expect(CANARY_LADDER_DEG.length).toBeGreaterThanOrEqual(deepest);
     expect(new Set(CANARY_LADDER_DEG).size).toBe(CANARY_LADDER_DEG.length);
   });

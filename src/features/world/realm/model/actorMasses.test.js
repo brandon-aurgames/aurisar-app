@@ -295,13 +295,23 @@ describe('pivotsOf', () => {
     expect(() => pivotsOf('nosuch')).toThrow(/\[actorMasses\] unknown archetype "nosuch"/);
   });
 
-  it('finds the pelvis, chest and neck joints Unbound was authored with', () => {
+  it('finds the pelvis, hip and neck joints Unbound was authored with', () => {
     const byId = new Map(pivotsOf('unbound').map((p) => [p.pivotId, p]));
-    const at = (y) => [...byId.values()].find((p) => Math.abs(p.at[1] - y) < 1e-9);
+    const at = (y, x = null) => [...byId.values()].find(
+      (p) => Math.abs(p.at[1] - y) < 1e-9 && (x === null || Math.abs(p.at[0] - x) < 1e-9),
+    );
 
+    // P9's leg split: the pelvis joins the mirrored HIP masses, and each leg
+    // now hangs from its own hip's outer end — that outer pivot existing is
+    // the entire point of the split (one bone per cap pivot ⇒ one bone per leg).
     const pelvis = at(0.88);
     expect(pelvis.at).toEqual([0, 0.88, 0]);
-    expect([...pelvis.massIds].sort()).toEqual(['legL', 'legR', 'torso']);
+    expect([...pelvis.massIds].sort()).toEqual(['hipL', 'hipR', 'torso']);
+
+    const hipOuterL = at(0.84, -0.09);
+    expect([...hipOuterL.massIds].sort()).toEqual(['hipL', 'legL']);
+    const hipOuterR = at(0.84, 0.09);
+    expect([...hipOuterR.massIds].sort()).toEqual(['hipR', 'legR']);
 
     const chest = at(1.40);
     expect([...chest.massIds].sort()).toEqual(['neck', 'torso', 'yokeL', 'yokeR']);
@@ -477,11 +487,13 @@ describe('joint closure — every pivot is held by a cap or a ring weld', () => 
         tally[p.closure] += 1;
       }
     }
-    // Measured 2026-08-06, after the P6 review closed magistari's shoulder
-    // and orghon's throat. Pinned rather than merely summed so a future edit
-    // that converts a cap joint into a pose-locked ring weld — which P7
-    // cannot animate — has to say so here.
-    expect(tally).toEqual({ cap: 17, ring: 5 });
+    // Measured 2026-08-06 as {cap: 17, ring: 5}, after the P6 review closed
+    // magistari's shoulder and orghon's throat. P9's leg split adds four cap
+    // joints — each biped's two hip-to-leg pivots — and converts nothing:
+    // every ring weld is exactly where it was. Pinned rather than merely
+    // summed so a future edit that converts a cap joint into a pose-locked
+    // ring weld — which cannot animate — has to say so here.
+    expect(tally).toEqual({ cap: 21, ring: 5 });
   });
 
   it('classifies a cap joint, a parallel weld and an opposed weld by hand', () => {

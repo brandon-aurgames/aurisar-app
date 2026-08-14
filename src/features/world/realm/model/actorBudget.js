@@ -57,15 +57,17 @@
 
 /** Per-archetype, per-stage declared costs. Regenerate via the audit test's
  *  logged actuals when a genome deliberately changes. Measured through the
- *  real generator (`buildActorPayload`), 2026-08-06. */
+ *  real generator (`buildActorPayload`), 2026-08-06; unbound and legion
+ *  re-measured 2026-08-12 after P9's leg split (+2 hip masses each: +192
+ *  near / +64 far tris — caps dominate, and each hip brings a capped end). */
 export const ACTOR_MANIFEST = Object.freeze({
   unbound: [
-    { tris: 1136, verts: 3056, silhouetteM2: 0.94 },
-    { tris: 372, verts: 852, silhouetteM2: 0.90 },
+    { tris: 1328, verts: 3568, silhouetteM2: 0.95 },
+    { tris: 436, verts: 996, silhouetteM2: 0.92 },
   ],
   legion: [
-    { tris: 1344, verts: 3584, silhouetteM2: 0.77 },
-    { tris: 448, verts: 1008, silhouetteM2: 0.74 },
+    { tris: 1536, verts: 4096, silhouetteM2: 0.78 },
+    { tris: 512, verts: 1152, silhouetteM2: 0.74 },
   ],
   magistari: [
     { tris: 624, verts: 1584, silhouetteM2: 1.06 },

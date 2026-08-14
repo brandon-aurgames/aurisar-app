@@ -33,6 +33,7 @@ import { ActorShadowRig } from '../lighting/ActorShadowRig.js';
 import { buildActorMaterial } from '../materials/actorNME.js';
 import { ActorCast } from '../actor/ActorCast.js';
 import { createSpikeNet, parseNetParams } from './spikeNet.js';
+import { ANIM_STATE, requestState } from '../../sim/animState.js';
 import { createWalkerState, integrateWalker } from '../../model/walker.js';
 import {
   BUTTON, createInputSnapshot, resetInputSnapshot, setButton,
@@ -186,7 +187,19 @@ async function boot() {
 
   // ── Input sampling (keyboard → InputSnapshot) ──────────────────────────────
   const keys = new Set();
-  window.addEventListener('keydown', (e) => { keys.add(e.code); });
+  // P9 state demo: F toggles combat stance, C starts a 2 s cast.
+  let castStartedMs = null;
+  window.addEventListener('keydown', (e) => {
+    keys.add(e.code);
+    const nowK = performance.now();
+    const st = actorCast.playerAnim.state;
+    if (e.code === 'KeyF') {
+      requestState(st, st.state === ANIM_STATE.COMBAT ? ANIM_STATE.IDLE : ANIM_STATE.COMBAT, nowK);
+    } else if (e.code === 'KeyC' && castStartedMs === null) {
+      requestState(st, ANIM_STATE.CAST, nowK);
+      castStartedMs = nowK;
+    }
+  });
   window.addEventListener('keyup', (e) => { keys.delete(e.code); });
   window.addEventListener('blur', () => keys.clear()); // alt-tab must not stick a key
 
@@ -220,9 +233,11 @@ async function boot() {
 
     // Net demo: report the walker (throttled to cadence inside), release
     // whatever the shaped link owes, and reconcile the remote roster.
+    // nowMs flows through so every remote's gait is driven from its own
+    // interpolated motion (P9).
     if (net) {
       net.sendMove(walker, nowMs);
-      actorCast.syncRemotes(net.update(nowMs));
+      actorCast.syncRemotes(net.update(nowMs), nowMs);
     }
 
     // One skyState per frame drives fog + clear + dome + lights, atomically.
@@ -236,7 +251,20 @@ async function boot() {
     // Seat/face the player from the walker, then re-tier every actor
     // (player and the two static demo actors alike) against the SAME focus
     // point the shadow bucketing below uses.
-    actorCast.update(walker, camera.target);
+    // Cast demo (P9): a started cast charges over 2 s and releases. Progress
+    // is applied BEFORE actorCast.update so the posture this frame reflects
+    // this frame's charge — review caught it a line after, where the pose
+    // trailed the bar it claims to BE by one frame.
+    if (castStartedMs !== null) {
+      const progress = (nowMs - castStartedMs) / 2000;
+      if (progress >= 1) {
+        castStartedMs = null;
+        requestState(actorCast.playerAnim.state, ANIM_STATE.IDLE, nowMs);
+      } else {
+        actorCast.playerAnim.state.castProgress = progress;
+      }
+    }
+    actorCast.update(walker, camera.target, nowMs);
 
     // nowMs stamps newly-born chunks and ramps every still-fading chunk's
     // visibility (model/chunkFade.js) — structural pop-in concealment.
@@ -269,7 +297,7 @@ async function boot() {
   title.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
   title.top = '28px';
   adt.addControl(title);
-  const hint = new GUI.TextBlock('spikeHint', 'WASD move · Shift sprint · drag to orbit · wheel to zoom');
+  const hint = new GUI.TextBlock('spikeHint', 'WASD move · Shift sprint · F combat · C cast · drag to orbit · wheel to zoom');
   hint.color = '#94A3B8';
   hint.fontSize = 14;
   hint.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
@@ -300,6 +328,7 @@ async function boot() {
         + `demos=[${actorCast.demoActors.map(bucketOf).join(',')}] `
         + `remotes=[${[...actorCast.remotes.values()].map(bucketOf).join(',')}]`,
       ...(net ? [`net       : ${net.statsLine()}`] : []),
+      `anim      : ${actorCast.playerAnim.state.state} · phase ${actorCast.playerAnim.odo.phase.toFixed(2)}`,
       `fps       : ${engine.getFps().toFixed(0)}`,
     ].join('\n');
   }, 250);

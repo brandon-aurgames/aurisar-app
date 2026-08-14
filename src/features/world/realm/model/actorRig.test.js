@@ -27,8 +27,15 @@ import { buildActorRig, buildActorRigOfMasses, evaluatePose } from './actorRig.j
 
 const IDS = ['unbound', 'legion', 'magistari', 'orghon'];
 
-/** The plan's locked counts. A different number here is a design change. */
-const EXPECTED_BONES = { unbound: 8, legion: 6, magistari: 2, orghon: 5 };
+/**
+ * The locked counts. A different number here is a design change — and P9 made
+ * one, deliberately: the leg split (mirrored hip masses per the orghon
+ * pattern) gives unbound and legion independent leg bones so a gait is
+ * expressible at all. +2 each: hip-cluster bone + two leg bones replacing the
+ * single fused-pair bone. P6/P7 shipped 8/6; the P7 carry-forward ("no walk
+ * cycle without a genome change") is the change this is.
+ */
+const EXPECTED_BONES = { unbound: 10, legion: 8, magistari: 2, orghon: 5 };
 
 /**
  * The named roots. All four are "heaviest mass that is not half of a mirrored
@@ -166,7 +173,7 @@ describe('buildActorRig — topology', () => {
     }
   });
 
-  it('owns every mass exactly once — 45 across the roster', () => {
+  it('owns every mass exactly once — 49 across the roster', () => {
     let total = 0;
     for (const id of IDS) {
       const masses = archetypeById(id).masses;
@@ -176,7 +183,8 @@ describe('buildActorRig — topology', () => {
       expect([...owned].sort(), id).toEqual(masses.map((m) => m.id).sort());
       total += masses.length;
     }
-    expect(total).toBe(45);
+    // 45 through P8; +4 in P9 (two hip masses on each of the two bipeds).
+    expect(total).toBe(49);
   });
 
   it.each(IDS)('%s boneOfMass agrees with the bones it built', (id) => {

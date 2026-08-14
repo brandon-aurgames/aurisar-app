@@ -493,8 +493,8 @@ describe('ActorRig — the posed mesh fits inside the box the culler tests', () 
       escapes[`${id}:${stage}`] = Number(worst.toFixed(4));
     }
     expect(escapes).toEqual({
-      'unbound:0': 0.3068, 'unbound:1': 0.3265,
-      'legion:0': 0.1559, 'legion:1': 0.1657,
+      'unbound:0': 0.3145, 'unbound:1': 0.3381,
+      'legion:0': 0.1747, 'legion:1': 0.1846,
       'magistari:0': 0, 'magistari:1': 0,
       'orghon:0': 0.035, 'orghon:1': 0.0519,
     });

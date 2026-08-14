@@ -162,9 +162,9 @@ describe('2. no ray crosses an actor without meeting a triangle', () => {
     expect(perMass).toBe(51);
     expect(DIRECTIONS.length).toBe(26);
     const masses = ARCHETYPES.reduce((n, a) => n + a.masses.length, 0);
-    expect(masses).toBe(45); // 11 unbound + 14 legion + 9 magistari + 11 orghon
+    expect(masses).toBe(49); // 13 unbound + 16 legion + 9 magistari + 11 orghon (P9 leg split: +2 hips each biped)
     // 59,670 rays per stage, 119,340 across both — measured at 1.3 s.
-    expect(masses * perMass * DIRECTIONS.length).toBe(59670);
+    expect(masses * perMass * DIRECTIONS.length).toBe(64974);
   });
 });
 

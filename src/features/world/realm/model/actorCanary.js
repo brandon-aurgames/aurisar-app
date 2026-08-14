@@ -92,12 +92,35 @@ import { ARCHETYPES, archetypeById } from './actorMasses.js';
 import { buildActorRig } from './actorRig.js';
 
 /**
- * Distinct, non-multiple canary angles in DEGREES. Seven entries because the
- * roster's deepest rig (unbound) has seven non-root bones; a fifth archetype
- * with more runs off the end, which `canaryPoseFor` refuses loudly rather than
- * wrapping the ladder and quietly duplicating an angle.
+ * Distinct, non-multiple canary angles in DEGREES. Nine entries because the
+ * roster's deepest rig (unbound, after P9's leg split) has nine non-root
+ * bones; a future archetype with more runs off the end, which `canaryPoseFor`
+ * refuses loudly rather than wrapping the ladder and quietly duplicating an
+ * angle.
+ *
+ * THE ORDER IS AN ASSIGNMENT BY LEVER, NOT A SORT. Through P8 the ladder ran
+ * ascending by bone index ("shallow bones carry the long lever arms"), and
+ * P9's leg split broke both ends of that reasoning at once, measured:
+ *
+ *   - The new hip-cluster bone lands at index 1 on the SHORTEST lever in the
+ *     roster and drew the smallest angle: legion's hipL surface moved
+ *     0.0153 m against the 0.02 m vacuity floor. An inert canary is the
+ *     exact failure this table exists to prevent.
+ *   - The graft chain slid DEEPER (indices 6/8/9), so ascending handed its
+ *     longest levers the biggest angles: worst endpoint travel 0.692 m
+ *     against the 0.6 m sealed-envelope ceiling — and pushing the pose
+ *     envelope re-opens ACTOR_POSE_MARGIN_M's frustum AND shadow budgets.
+ *
+ * So the SAME angle set is now placed by hand: big angles on short levers
+ * (hips 13°, head 29°), small angles on long ones (legs 7°/17°, graft chain
+ * 19/23/25 compounding 78° where ascending gave 104°). The properties the
+ * gates actually assert are untouched: distinct, ≤ 30°, pairwise
+ * non-integer-multiple (25 and 27 are composite — primality was never the
+ * property, non-aliasing is). Per-index, for the deepest rig (unbound):
+ * [b1 hips, b2 shoulders, b3 legL, b4 legR, b5 armL, b6 graftUpper, b7 head,
+ *  b8 graftFore, b9 fist].
  */
-export const CANARY_LADDER_DEG = Object.freeze([7, 11, 13, 17, 19, 23, 29]);
+export const CANARY_LADDER_DEG = Object.freeze([13, 11, 7, 17, 27, 19, 29, 23, 25]);
 
 const DEG = Math.PI / 180;
 
