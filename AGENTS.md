@@ -56,6 +56,17 @@ credential never reaches the client bundle. Non-obvious behavior:
 
 Standard scripts live in `package.json`. Non-obvious notes:
 
+- **Node version:** CI pins Node 20 in both workflows (`ci.yml`,
+  `spacetime-publish.yml`). Node 22 LTS is verified to produce byte-identical
+  generator output — every `*:check` gate and the `verify:worldgen` determinism
+  snapshot pass unchanged on 22 with an empty `git status --porcelain` — so local
+  work on either is safe. Node 20 reached EOL on 2026-04-30; the CI pin moves to
+  22 alongside the package-manager migration.
+- **Windows checkouts:** generated outputs that a `*:check` gate byte-compares are
+  pinned `text eol=lf` in `.gitattributes`. If you add a new generated artifact
+  with its own check gate, pin it there too — otherwise `core.autocrlf=true`
+  rewrites it to CRLF on Windows and the gate fails with no real drift. CI runs
+  ubuntu-latest and cannot catch this.
 - `npm run lint` currently reports many pre-existing errors on `main` and is
   **not** run by CI — do not treat a red lint run as a regression you caused.
 - CI (`.github/workflows/ci.yml`) gates on the freshness/determinism checks
