@@ -12,8 +12,16 @@ import { createClient } from '@supabase/supabase-js';
 // Dev keeps the fallback (the repo has never shipped a .env and every local
 // workflow depends on it) but says so on every boot.
 const DEV_FALLBACK_URL = "https://tczqtwxrnptgajxwynmg.supabase.co";
-const DEV_FALLBACK_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjenF0d3hybnB0Z2FqeHd5bm1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MjQxNjIsImV4cCI6MjA4OTAwMDE2Mn0.TqguHLUutoE2wbytDZ6xWFlp7Mk1W_ZMPYdXJkuCYjo";
+// Publishable key (`sb_publishable_*`), not a legacy anon JWT. Publishable keys
+// are public by design — this exact value ships inside the browser bundle on
+// every deploy, and RLS remains the real security boundary — so committing it
+// is safe in a way a service/secret key never would be.
+//
+// This replaced a legacy anon JWT on 2026-08-17. Legacy JWT keys cannot be
+// rotated any more, only migrated away from and then deactivated; a deactivated
+// key sitting here would break every local dev boot that has no .env, which per
+// the note above is the normal case for this repo.
+const DEV_FALLBACK_ANON_KEY = "sb_publishable_PnBNQnLU0MkqVbjGz--q8Q_WoURGrmf";
 
 const PLACEHOLDERS = new Set(["https://your-project.supabase.co", "your-anon-key"]);
 
