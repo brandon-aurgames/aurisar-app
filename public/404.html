@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Not found — Aurisar</title>
+    <!--
+      Deliberately self-contained: no external fonts, scripts, styles or images.
+      The CSP in netlify.toml is strict (default-src 'self'), and this page must
+      render correctly even when it is served for a failed asset request.
+
+      This file exists primarily as the `to` target for the /assets/* 404 rule in
+      netlify.toml. Netlify rejects a redirect rule with no `to` field and drops
+      it silently, so the rule needs a real destination. Deleting this file
+      re-breaks that rule.
+    -->
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: #12160f;
+        color: #e8e6df;
+        text-align: center;
+        padding: 1.5rem;
+      }
+      main { max-width: 30rem; }
+      h1 { font-size: 1.5rem; font-weight: 650; margin: 0 0 0.75rem; }
+      p { margin: 0 0 1.25rem; line-height: 1.6; color: #a8b09c; }
+      a {
+        color: #cbb26a;
+        text-decoration: none;
+        border-bottom: 1px solid currentColor;
+        padding-bottom: 1px;
+      }
+      a:focus-visible { outline: 2px solid #cbb26a; outline-offset: 3px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>That page isn&rsquo;t here</h1>
+      <p>
+        The link may be out of date, or the page may have moved. If you reached
+        this after an update, reloading usually fixes it.
+      </p>
+      <p><a href="/">Return to Aurisar</a></p>
+    </main>
+  </body>
+</html>

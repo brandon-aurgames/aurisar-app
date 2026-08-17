@@ -23,7 +23,7 @@ export async function createGithubIssue({ type, message, cleanAcct }) {
     escapeMarkdown(message),
   ].join("\n");
 
-  const res = await fetch("https://api.github.com/repos/brandonla3/aurisar-app/issues", {
+  const res = await fetch("https://api.github.com/repos/brandon-aurgames/aurisar-app/issues", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${GITHUB_TOKEN}`,
@@ -34,7 +34,12 @@ export async function createGithubIssue({ type, message, cleanAcct }) {
       title,
       body: issueBody,
       labels: [label],
-      assignees: ["brandonla3"],
+      // Case-sensitive. GitHub's can-be-assigned check 404s on "brandonla3"
+      // but succeeds on "Brandonla3", and issue creation drops a
+      // non-assignable user SILENTLY — the issue is still created, just
+      // unassigned. Verify with:
+      //   gh api repos/brandon-aurgames/aurisar-app/assignees/<login>
+      assignees: ["Brandonla3"],
     }),
   });
 
