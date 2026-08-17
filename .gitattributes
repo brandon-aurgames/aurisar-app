@@ -12,3 +12,20 @@ config/terrain-assets.lock.json text eol=lf
 # The generated textures are hashed too; mark them binary explicitly so no
 # client config (e.g. a global `* text=auto`) can ever rewrite their bytes.
 public/assets/terrain/generated/** binary
+
+# Everything below is generated output that a `*:check` gate compares
+# byte-for-byte against the committed bytes. Without an explicit eol=lf pin,
+# core.autocrlf=true rewrites them to CRLF on Windows checkout while the
+# generators keep emitting LF, so the gates fail on a pristine clone with no
+# actual drift. CI runs ubuntu-latest (LF everywhere) and therefore cannot
+# detect this — `main` was green while a Windows clone failed four gates.
+#
+# emit-castle-manifest.mjs --check
+public/assets/castle/** text eol=lf
+spacetimedb/src/castle/** text eol=lf
+spacetimedb/src/manifests/** text eol=lf
+# assets_pipeline.mjs --check (manifests + the generated ATTRIBUTION block)
+public/assets/manifest/** text eol=lf
+public/assets/ATTRIBUTION.md text eol=lf
+# vendor_meshopt_decoder.mjs --check (compares against node_modules copy)
+public/babylon/** text eol=lf
