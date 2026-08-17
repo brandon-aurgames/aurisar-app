@@ -19,8 +19,17 @@
 # and rejects the dynamic import with a MIME-type error. Default
 # shadowing (no `force`) means real, existing assets still serve
 # normally; this rule only fires when the file is gone.
+#
+# `to` is REQUIRED. Without it Netlify rejects the rule as invalid and
+# silently drops it — the deploy still succeeds, the "Redirect rules"
+# check reports "1 out of 2 redirect rules could not be processed", and
+# the protection described above never actually exists. That was the
+# state of this file until 2026-08-17: missing chunks fell through to
+# the SPA catch-all and returned index.html for .js requests, producing
+# exactly the MIME-type failure this rule was written to prevent.
 [[redirects]]
   from = "/assets/*"
+  to = "/404.html"
   status = 404
 
 [[redirects]]
