@@ -44,7 +44,8 @@
     "verify:worldgen": "node scripts/verify_worldgen.mjs",
     "emit:db-contract": "node scripts/check_db_contract.mjs",
     "emit:db-contract:check": "node scripts/check_db_contract.mjs --check",
-    "lint:undef": "node scripts/check_no_undef.mjs"
+    "lint:undef": "node scripts/check_no_undef.mjs",
+    "unity-mcp:install": "node scripts/unity-mcp/install-relay.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

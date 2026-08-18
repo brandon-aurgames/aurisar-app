@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "unity-mcp": {
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/scripts/unity-mcp/launch-relay.mjs"
+      ]
+    }
+  }
+}
