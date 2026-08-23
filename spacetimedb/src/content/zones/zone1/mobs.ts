@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/content/zones/zone1/mobs.ts
-// Regenerate with: npm run sync:content
+// Regenerate with: node scripts/sync_world_content.mjs
 
 /**
  * zone1/mobs.ts — zone-1 mob roster + camp spawns, modeled on the

@@ -1,13 +1,13 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/content/types.ts
-// Regenerate with: npm run sync:content
+// Regenerate with: node scripts/sync_world_content.mjs
 
 /**
  * types.ts — shared type contract for all world game content.
  *
  * CANONICAL LOCATION: src/features/world/content/ (edit here).
  * A verbatim copy lives in spacetimedb/src/content/ so the server module
- * can bundle the same data into its WASM — run `npm run sync:content`
+ * can bundle the same data into its WASM — run `node scripts/sync_world_content.mjs`
  * after editing anything in this directory.
  *
  * Rules for files in content/:

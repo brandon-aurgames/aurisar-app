@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/content/classes/alchemist.ts
-// Regenerate with: npm run sync:content
+// Regenerate with: node scripts/sync_world_content.mjs
 
 /**
  * Alchemist — Warlock-style kit reflavor: DoTs and drains as poisons and

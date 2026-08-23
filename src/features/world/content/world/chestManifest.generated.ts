@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: scripts/emit_world_chests.mjs (zone1_world.json worldgen)
-// Regenerate with: npm run emit:world-chests
+// Regenerate with: node scripts/emit_world_chests.mjs
 
 export interface WorldChestDef {
   id: number;

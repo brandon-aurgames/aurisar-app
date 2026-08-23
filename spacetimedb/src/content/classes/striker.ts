@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/content/classes/striker.ts
-// Regenerate with: npm run sync:content
+// Regenerate with: node scripts/sync_world_content.mjs
 
 /**
  * Striker — derived Rogue-burst variant: unarmed combo brawler (plan §6).

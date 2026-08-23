@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/content/items/index.ts
-// Regenerate with: npm run sync:content
+// Regenerate with: node scripts/sync_world_content.mjs
 
 /**
  * items/index.ts — full item catalog keyed by id.

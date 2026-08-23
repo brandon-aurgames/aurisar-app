@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/content/classes/index.ts
-// Regenerate with: npm run sync:content
+// Regenerate with: node scripts/sync_world_content.mjs
 
 /**
  * classes/index.ts — aggregates all 11 class kits + their abilities.

@@ -11,8 +11,8 @@
  * by design (see the regression guard in sync_terrain_assets.mjs).
  *
  * Usage:
- *   npm run fetch:terrain-source -- overworld-meadow-grass-01
- *   npm run check:terrain-source -- overworld-meadow-grass-01
+ *   node scripts/fetch_terrain_source_set.mjs overworld-meadow-grass-01
+ *   node scripts/fetch_terrain_source_set.mjs --check overworld-meadow-grass-01
  */
 
 import { createHash } from 'node:crypto';

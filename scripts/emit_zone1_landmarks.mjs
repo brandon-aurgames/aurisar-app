@@ -24,8 +24,8 @@
  * Output:
  *   src/features/world/content/zones/zone1/landmarks.generated.ts
  *
- *   npm run emit:landmarks
- *   npm run emit:landmarks:check
+ *   node scripts/emit_zone1_landmarks.mjs
+ *   node scripts/emit_zone1_landmarks.mjs --check
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -171,7 +171,7 @@ const body = all
 
 const ts = `// GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/config/zone1_world.json (anchors) + castle/castlePlan.js
-// Regenerate with: npm run emit:landmarks
+// Regenerate with: node scripts/emit_zone1_landmarks.mjs
 
 /**
  * Shared Zone 1 world positions — the single authored copy.
@@ -220,7 +220,7 @@ function writeOrCheck(path, content, label) {
 const stale = writeOrCheck(OUT_TS, ts, OUT_TS.replace(repoRoot + '/', ''));
 
 if (CHECK && stale) {
-  console.error('\nLandmarks out of date — run `npm run emit:landmarks` and commit.');
+  console.error('\nLandmarks out of date — run `node scripts/emit_zone1_landmarks.mjs` and commit.');
   process.exit(1);
 }
 if (CHECK) console.log(`Landmarks up to date (${all.length}).`);

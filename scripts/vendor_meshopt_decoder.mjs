@@ -53,7 +53,7 @@ const expected = header + code;
 if (CHECK) {
   const current = existsSync(outFile) ? await readFile(outFile, 'utf8') : '';
   if (current !== expected) {
-    console.error(`✗ ${outFile} is stale vs meshoptimizer@${pkg.version} — run \`npm run vendor:meshopt\`.`);
+    console.error(`✗ ${outFile} is stale vs meshoptimizer@${pkg.version} — run \`node scripts/vendor_meshopt_decoder.mjs\`.`);
     process.exit(1);
   }
   console.log(`✓ vendored meshopt decoder matches meshoptimizer@${pkg.version}.`);

@@ -12,7 +12,7 @@
  * yet (slice 5b is server-driven seeding), but the URL contract stays
  * honored — slice 5c+ will likely add a client-side consumer.
  *
- * Re-run with: npm run build:gameplay
+ * Re-run with: node scripts/copy_gameplay_to_public.mjs
  *
  * Idempotent: re-running with no source changes is a no-op (same bytes
  * written).

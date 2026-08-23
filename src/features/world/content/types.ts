@@ -3,7 +3,7 @@
  *
  * CANONICAL LOCATION: src/features/world/content/ (edit here).
  * A verbatim copy lives in spacetimedb/src/content/ so the server module
- * can bundle the same data into its WASM — run `npm run sync:content`
+ * can bundle the same data into its WASM — run `node scripts/sync_world_content.mjs`
  * after editing anything in this directory.
  *
  * Rules for files in content/:

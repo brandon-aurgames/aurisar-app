@@ -7,8 +7,8 @@
  * scripts/security/ declares. Fully offline — no database, no credentials — so
  * it runs on every PR including forks.
  *
- *   npm run emit:db-contract
- *   npm run emit:db-contract:check
+ *   node scripts/check_db_contract.mjs
+ *   node scripts/check_db_contract.mjs --check
  *
  * ── WHAT THIS DOES AND DOES NOT PROVE ───────────────────────────────────────
  * DOES: catch code that references a table/RPC which NO tracked SQL file
@@ -213,7 +213,7 @@ const contract = {
   generatedBy: 'scripts/check_db_contract.mjs',
   note:
     'Derived from code. Do not hand-edit `tables`/`functions`/`declared*` — run ' +
-    '`npm run emit:db-contract`. `knownUndeclared` IS hand-edited: it is the ' +
+    '`node scripts/check_db_contract.mjs`. `knownUndeclared` IS hand-edited: it is the ' +
     'accepted baseline of objects the tracked SQL does not declare (mostly ' +
     'pre-dating scripts/security/). Each entry needs a real reason. Emit will ' +
     'NOT invent entries — a new undeclared object must get a migration or a ' +
@@ -304,14 +304,14 @@ if (!CHECK) {
 const problems = [];
 
 if (!prev) {
-  problems.push('config/db-contract.json is missing — run `npm run emit:db-contract`.');
+  problems.push('config/db-contract.json is missing — run `node scripts/check_db_contract.mjs`.');
 } else {
   for (const key of ['tables', 'functions', 'declaredTables', 'declaredFunctions']) {
     if (JSON.stringify(prev[key] ?? []) !== JSON.stringify(contract[key])) {
       const added = contract[key].filter(x => !(prev[key] ?? []).includes(x));
       const removed = (prev[key] ?? []).filter(x => !contract[key].includes(x));
       problems.push(
-        `${key} is stale — run \`npm run emit:db-contract\`.` +
+        `${key} is stale — run \`node scripts/check_db_contract.mjs\`.` +
         (added.length ? `\n    + ${added.join(', ')}` : '') +
         (removed.length ? `\n    - ${removed.join(', ')}` : '')
       );
@@ -343,9 +343,9 @@ for (const key of Object.keys(knownUndeclared)) {
   const isDeclared = kind === 'table' ? declared.tables.has(name) : declared.functions.has(name);
   const stillNeeded = (kind === 'table' ? needs.tables : needs.functions).has(name);
   if (isDeclared) {
-    problems.push(`knownUndeclared["${key}"] is now declared in tracked SQL — remove it (\`npm run emit:db-contract\`).`);
+    problems.push(`knownUndeclared["${key}"] is now declared in tracked SQL — remove it (\`node scripts/check_db_contract.mjs\`).`);
   } else if (!stillNeeded) {
-    problems.push(`knownUndeclared["${key}"] is no longer referenced by any code — remove it (\`npm run emit:db-contract\`).`);
+    problems.push(`knownUndeclared["${key}"] is no longer referenced by any code — remove it (\`node scripts/check_db_contract.mjs\`).`);
   }
 }
 

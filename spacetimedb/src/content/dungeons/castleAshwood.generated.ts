@@ -1,9 +1,9 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/content/dungeons/castleAshwood.generated.ts
-// Regenerate with: npm run sync:content
+// Regenerate with: node scripts/sync_world_content.mjs
 
 // GENERATED FILE — DO NOT EDIT.
-// Regenerate with: npm run emit:castle
+// Regenerate with: node scripts/emit-castle-manifest.mjs
 
 export const CASTLE_ASHWOOD_ENTRY = {
   "spawnLocal": {

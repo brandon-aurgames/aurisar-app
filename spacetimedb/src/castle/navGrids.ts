@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/castle/castlePlan.js + castleNav.js + nav blockers
-// Regenerate with: npm run emit:castle
+// Regenerate with: node scripts/emit-castle-manifest.mjs
 
 export const CASTLE_NAV_META = {
   anchor: {"x":840,"z":0},

@@ -1,5 +1,5 @@
 // GENERATED FILE — DO NOT EDIT.
-// Regenerate with: npm run emit:castle
+// Regenerate with: node scripts/emit-castle-manifest.mjs
 
 export const CASTLE_ASHWOOD_ENTRY = {
   "spawnLocal": {

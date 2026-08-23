@@ -10,8 +10,8 @@
  * pattern as spacetimedb/src/gameplay/*.json (see
  * scripts/copy_gameplay_to_public.mjs).
  *
- *   npm run sync:content          # write/refresh the mirror (prunes orphans)
- *   npm run sync:content:check    # exit 1 if the mirror is stale (CI guard)
+ *   node scripts/sync_world_content.mjs           # write/refresh the mirror (prunes orphans)
+ *   node scripts/sync_world_content.mjs --check   # exit 1 if the mirror is stale (CI guard)
  *
  * Test files (__tests__/, *.test.ts) are excluded — they exercise
  * client-side cross-checks (e.g. against src/data/exercises.js) that the
@@ -36,7 +36,7 @@ const GENERATED_MARKER = '// GENERATED FILE — DO NOT EDIT.';
 const HEADER = (rel) =>
   `${GENERATED_MARKER}\n` +
   `// Source: src/features/world/content/${rel.split(sep).join('/')}\n` +
-  `// Regenerate with: npm run sync:content\n\n`;
+  `// Regenerate with: node scripts/sync_world_content.mjs\n\n`;
 
 // Everything is compared and written LF-normalized so core.autocrlf=true
 // Windows checkouts can't produce false STALE results or mixed-EOL files
@@ -124,7 +124,7 @@ if (CHECK) {
   if (stale.length || orphans.length) {
     for (const f of stale) console.error(`STALE:  spacetimedb/src/content/${f.split(sep).join('/')}`);
     for (const f of orphans) console.error(`ORPHAN: spacetimedb/src/content/${f.split(sep).join('/')}`);
-    console.error('\nMirror out of date — run `npm run sync:content` and commit the result.');
+    console.error('\nMirror out of date — run `node scripts/sync_world_content.mjs` and commit the result.');
     process.exit(1);
   }
   console.log(`Mirror up to date (${srcFiles.length} files).`);

@@ -292,7 +292,7 @@ async function refreshAttribution() {
   }
   if (MODE === 'check') {
     const cur = existsSync(path) ? await readFile(path, 'utf8') : '';
-    if (!cur.includes(block)) fail('ATTRIBUTION.md generated block is stale — run `npm run assets:pipeline`');
+    if (!cur.includes(block)) fail('ATTRIBUTION.md generated block is stale — run `node scripts/assets_pipeline.mjs`');
   } else {
     await writeFile(path, text);
   }
@@ -329,7 +329,7 @@ async function main() {
     const json = JSON.stringify(manifest, null, 2) + '\n';
     if (MODE === 'check') {
       const cur = existsSync(outPath) ? await readFile(outPath, 'utf8') : '';
-      if (cur !== json) fail(`${pack.category}.manifest.json is stale — run \`npm run assets:pipeline\``);
+      if (cur !== json) fail(`${pack.category}.manifest.json is stale — run \`node scripts/assets_pipeline.mjs\``);
       for (const [key, a] of Object.entries(manifest.assets)) {
         if (!existsSync(join(ROOT, pack.dir, a.file))) fail(`${pack.category}/${key}: file ${a.file} missing`);
       }
