@@ -14,7 +14,7 @@
  * Because every source shares the same node ORDER (verified below), animation
  * channels are retargeted by node index — no name lookup or fuzzy matching.
  *
- * Run: npm run build:sentinel
+ * Run: node scripts/build_gilded_sentinel.mjs
  */
 
 import { NodeIO } from '@gltf-transform/core';

@@ -115,7 +115,7 @@ async function main() {
     const path = join(OUT, `${name}.wav`);
     if (CHECK) {
       const cur = existsSync(path) ? await readFile(path) : Buffer.alloc(0);
-      if (!wavsEquivalent(cur, bytes)) { console.error(`✗ ${name}.wav stale — run \`npm run build:audio\``); stale++; }
+      if (!wavsEquivalent(cur, bytes)) { console.error(`✗ ${name}.wav stale — run \`node scripts/build_audio_sfx.mjs\``); stale++; }
     } else {
       await writeFile(path, bytes);
       console.log(`  ${name}.wav (${(bytes.length / 1024).toFixed(1)} KB)`);

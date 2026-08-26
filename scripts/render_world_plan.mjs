@@ -15,10 +15,10 @@
  * PropsSystem's footprint table), so the drawing cannot drift from the world.
  *
  * Usage:
- *   npm run plan                        # whole zone
- *   npm run plan -- --view hub          # the settlement, close in
- *   npm run plan -- --center 76,-76 --radius 60 --name gallows
- *   npm run plan -- --no-png            # skip rasterizing
+ *   node scripts/render_world_plan.mjs                  # whole zone
+ *   node scripts/render_world_plan.mjs --view hub       # the settlement, close in
+ *   node scripts/render_world_plan.mjs --center 76,-76 --radius 60 --name gallows
+ *   node scripts/render_world_plan.mjs --no-png         # skip rasterizing
  *
  * Views are named presets; --center/--radius override.
  */

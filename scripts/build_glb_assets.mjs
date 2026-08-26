@@ -15,7 +15,7 @@
  * snappy). The runtime loader is `LoadAssetContainerAsync` in MobAssetLibrary
  * (mobs) and GlbTileProvider (tiles).
  *
- * Re-run with:  npm run build:glb
+ * Re-run with:  node scripts/build_glb_assets.mjs
  */
 
 import { Document, NodeIO } from '@gltf-transform/core';

@@ -7,8 +7,8 @@
  *   spacetimedb/src/manifests/castle_ashwood.json
  *   spacetimedb/src/castle/navGrids.ts (server nav validation bitmaps)
  *
- *   npm run emit:castle
- *   npm run emit:castle:check
+ *   node scripts/emit-castle-manifest.mjs
+ *   node scripts/emit-castle-manifest.mjs --check
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -94,7 +94,7 @@ const payload = `${JSON.stringify(manifest, null, 2)}\n`;
 
 const navGridsTs = `// GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/castle/castlePlan.js + castleNav.js + nav blockers
-// Regenerate with: npm run emit:castle
+// Regenerate with: node scripts/emit-castle-manifest.mjs
 
 export const CASTLE_NAV_META = {
   anchor: ${JSON.stringify(INTERIOR_ANCHOR)},
@@ -125,7 +125,7 @@ export const CASTLE_ROOM_FLOOR_Y = ${JSON.stringify(
 `;
 
 const dungeonSpawnsTs = `// GENERATED FILE — DO NOT EDIT.
-// Regenerate with: npm run emit:castle
+// Regenerate with: node scripts/emit-castle-manifest.mjs
 
 export const CASTLE_ASHWOOD_ENTRY = ${JSON.stringify(CASTLE_PLAN.entry, null, 2)} as const;
 
@@ -153,7 +153,7 @@ stale = writeOrCheck(NAV_GRIDS_TS, navGridsTs, NAV_GRIDS_TS.replace(repoRoot + '
 stale = writeOrCheck(DUNGEON_SPAWNS_TS, dungeonSpawnsTs, DUNGEON_SPAWNS_TS.replace(repoRoot + '/', '')) || stale;
 
 if (CHECK && stale) {
-  console.error('\nCastle manifest out of date — run `npm run emit:castle` and commit.');
+  console.error('\nCastle manifest out of date — run `node scripts/emit-castle-manifest.mjs` and commit.');
   process.exit(1);
 }
 if (CHECK) console.log('Castle manifest up to date.');

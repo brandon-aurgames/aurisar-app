@@ -6,8 +6,8 @@
  *   spacetimedb/src/manifests/world_chests.json
  *   src/features/world/content/world/chestManifest.generated.ts
  *
- *   npm run emit:world-chests
- *   npm run emit:world-chests:check
+ *   node scripts/emit_world_chests.mjs
+ *   node scripts/emit_world_chests.mjs --check
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -55,7 +55,7 @@ const TS_PATH = join(repoRoot, 'src/features/world/content/world/chestManifest.g
 const tsBody =
   '// GENERATED FILE — DO NOT EDIT.\n' +
   '// Source: scripts/emit_world_chests.mjs (zone1_world.json worldgen)\n' +
-  '// Regenerate with: npm run emit:world-chests\n\n' +
+  '// Regenerate with: node scripts/emit_world_chests.mjs\n\n' +
   'export interface WorldChestDef {\n' +
   '  id: number;\n' +
   '  x: number;\n' +
@@ -73,7 +73,7 @@ if (CHECK) {
   const jsonOk = checkFile(JSON_PATH, json);
   const tsOk = checkFile(TS_PATH, tsBody);
   if (!jsonOk || !tsOk) {
-    console.error('STALE: world chest manifest is out of date. Run: npm run emit:world-chests');
+    console.error('STALE: world chest manifest is out of date. Run: node scripts/emit_world_chests.mjs');
     process.exit(1);
   }
   console.log(`OK: ${chests.length} world chests`);

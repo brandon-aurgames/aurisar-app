@@ -7,8 +7,8 @@
  * checklist documenting expected map names, license metadata and art notes.
  *
  * Usage:
- *   npm run prepare:terrain-sources
- *   npm run check:terrain-sources
+ *   node scripts/prepare_terrain_sources.mjs
+ *   node scripts/prepare_terrain_sources.mjs --check
  */
 
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
@@ -58,7 +58,7 @@ function expectedSourceDoc(id, def) {
     `2. Confirm albedo/basecolor has no baked directional lighting or harsh shadows.\n` +
     `3. Confirm normal map is tangent-space and matches Babylon's expected handedness.\n` +
     `4. Confirm AO, roughness and height are linear grayscale maps.\n` +
-    `5. Run \`npm run build:terrain-assets\` and inspect \`public/assets/terrain/generated/${id}/\`.\n` +
+    `5. Run \`node scripts/build_terrain_assets.mjs\` and inspect \`public/assets/terrain/generated/${id}/\`.\n` +
     `6. Set \`enabled: true\` and assign the set to the intended profile slot only after visual QA.\n`;
 }
 
@@ -74,9 +74,9 @@ async function main() {
     const doc = expectedSourceDoc(id, def);
 
     if (checkOnly) {
-      if (!await exists(docPath)) fail(`${id}: missing ${docPath}; run npm run prepare:terrain-sources`);
+      if (!await exists(docPath)) fail(`${id}: missing ${docPath}; run node scripts/prepare_terrain_sources.mjs`);
       const current = await readFile(docPath, 'utf8');
-      if (current !== doc) fail(`${id}: SOURCE.md is stale; run npm run prepare:terrain-sources`);
+      if (current !== doc) fail(`${id}: SOURCE.md is stale; run node scripts/prepare_terrain_sources.mjs`);
       continue;
     }
 

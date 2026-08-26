@@ -13,7 +13,7 @@
  *     build_terrain_assets.mjs and refresh the lock (still offline);
  *   - outputs stale + sources missing        → fail with instructions.
  *     Sources are only ever downloaded by the explicit
- *     `npm run fetch:terrain-source -- <set-id>`.
+ *     `node scripts/fetch_terrain_source_set.mjs <set-id>`.
  *
  * REGRESSION GUARD — do not reintroduce implicit downloads. This script runs
  * inside `prebuild`/`predev`, i.e. on every Netlify deploy and CI build. On
@@ -27,8 +27,8 @@
  * sync under a kill-net preload.
  *
  * Usage:
- *   npm run sync:terrain-assets          # verify; rebuild locally if stale
- *   npm run sync:terrain-assets:check    # verify only (offline; CI gate)
+ *   node scripts/sync_terrain_assets.mjs           # verify; rebuild locally if stale
+ *   node scripts/sync_terrain_assets.mjs --check   # verify only (offline; CI gate)
  */
 
 import { readFile, stat, writeFile } from 'node:fs/promises';
@@ -136,7 +136,7 @@ async function main() {
 
   if (checkOnly) {
     fail(`committed terrain outputs are stale:\n${staleList}\n` +
-      `Rebuild locally and commit the results: npm run sync:terrain-assets ` +
+      `Rebuild locally and commit the results: node scripts/sync_terrain_assets.mjs ` +
       `(fetch sources first if it asks for them).`);
   }
 
@@ -151,7 +151,7 @@ async function main() {
   if (missingBySet.length) {
     const fetchLines = missingBySet.map(([id, definition, missing]) => {
       const how = definition.acquisition?.download
-        ? `npm run fetch:terrain-source -- ${id}`
+        ? `node scripts/fetch_terrain_source_set.mjs ${id}`
         : `place the source maps in ${definition.sourceDir} (no locked download for this set)`;
       return `  - ${id}: missing ${missing.join(', ')} → ${how}`;
     });
@@ -160,7 +160,7 @@ async function main() {
       `${staleList}\n` +
       `To restore the committed state: git checkout -- public/assets/terrain ${LOCK_RELATIVE_PATH}\n` +
       `To rebuild from sources:\n${fetchLines.join('\n')}\n` +
-      `  then re-run: npm run sync:terrain-assets`,
+      `  then re-run: node scripts/sync_terrain_assets.mjs`,
     );
   }
 

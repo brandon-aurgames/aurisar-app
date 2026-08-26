@@ -14,8 +14,8 @@
  * assets are approved and dropped into assets-source/terrain/.
  *
  * Usage:
- *   npm run build:terrain-assets
- *   npm run check:terrain-assets
+ *   node scripts/build_terrain_assets.mjs
+ *   node scripts/build_terrain_assets.mjs --check
  */
 
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
@@ -253,7 +253,7 @@ async function main() {
   if (checkOnly) {
     if (!await exists(manifestPath)) fail(`runtime manifest is missing: ${manifestPath}`);
     const current = await readFile(manifestPath, 'utf8');
-    if (current !== serialized) fail('runtime manifest is stale; run npm run build:terrain-assets');
+    if (current !== serialized) fail('runtime manifest is stale; run node scripts/build_terrain_assets.mjs');
     console.log(`[terrain-assets] OK — ${enabledEntries.length} enabled set(s), ${Object.keys(config.sets).length} selected candidate(s), manifest is current`);
     return;
   }

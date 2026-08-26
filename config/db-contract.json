@@ -1,7 +1,7 @@
 {
   "version": 1,
   "generatedBy": "scripts/check_db_contract.mjs",
-  "note": "Derived from code. Do not hand-edit `tables`/`functions`/`declared*` — run `npm run emit:db-contract`. `knownUndeclared` IS hand-edited: it is the accepted baseline of objects the tracked SQL does not declare (mostly pre-dating scripts/security/). Each entry needs a real reason. Emit will NOT invent entries — a new undeclared object must get a migration or a deliberate hand-written exception.",
+  "note": "Derived from code. Do not hand-edit `tables`/`functions`/`declared*` — run `node scripts/check_db_contract.mjs`. `knownUndeclared` IS hand-edited: it is the accepted baseline of objects the tracked SQL does not declare (mostly pre-dating scripts/security/). Each entry needs a real reason. Emit will NOT invent entries — a new undeclared object must get a migration or a deliberate hand-written exception.",
   "tables": [
     "exercises",
     "feedback",
@@ -124,15 +124,15 @@
     "table:friend_requests": {
       "reason": "BASELINE: pre-dates scripts/security tracking; verify it exists in the live DB.",
       "sites": [
-        "src/App.jsx:2512",
-        "src/App.jsx:2515",
-        "src/App.jsx:2567"
+        "src/App.jsx:2539",
+        "src/App.jsx:2542",
+        "src/App.jsx:2594"
       ]
     },
     "table:profiles": {
       "reason": "BASELINE: the core user table, created before scripts/security/ tracking began. Confirmed present in the live DB.",
       "sites": [
-        "src/App.jsx:2202",
+        "src/App.jsx:2229",
         "src/features/avatar/useAvatarConfig.js:25",
         "src/features/avatar/useAvatarConfig.js:43"
       ]
@@ -140,15 +140,15 @@
     "table:shared_items": {
       "reason": "BASELINE: pre-dates scripts/security tracking; verify it exists in the live DB.",
       "sites": [
-        "src/App.jsx:2736",
-        "src/App.jsx:2749",
-        "src/App.jsx:2806"
+        "src/App.jsx:2763",
+        "src/App.jsx:2776",
+        "src/App.jsx:2833"
       ]
     },
     "table:whoop_data": {
       "reason": "BASELINE: pre-dates scripts/security tracking; verify it exists in the live DB.",
       "sites": [
-        "src/features/profile/ProfileTab.jsx:359",
+        "src/features/profile/ProfileTab.jsx:360",
         "netlify/functions/whoop-disconnect.js:121",
         "netlify/functions/whoop-fetch-data.js:241"
       ]
@@ -170,19 +170,19 @@
     "function:get_leaderboard": {
       "reason": "BASELINE: pre-dates scripts/security tracking; verify it exists in the live DB.",
       "sites": [
-        "src/App.jsx:2328"
+        "src/App.jsx:2355"
       ]
     },
     "function:get_leaderboard_filters": {
       "reason": "BASELINE: pre-dates scripts/security tracking; verify it exists in the live DB.",
       "sites": [
-        "src/App.jsx:2360"
+        "src/App.jsx:2387"
       ]
     },
     "function:get_world_ranks": {
       "reason": "BASELINE: pre-dates scripts/security tracking; verify it exists in the live DB.",
       "sites": [
-        "src/App.jsx:2347"
+        "src/App.jsx:2374"
       ]
     }
   }

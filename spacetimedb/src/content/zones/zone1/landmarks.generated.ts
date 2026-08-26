@@ -1,10 +1,10 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/content/zones/zone1/landmarks.generated.ts
-// Regenerate with: npm run sync:content
+// Regenerate with: node scripts/sync_world_content.mjs
 
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/config/zone1_world.json (anchors) + castle/castlePlan.js
-// Regenerate with: npm run emit:landmarks
+// Regenerate with: node scripts/emit_zone1_landmarks.mjs
 
 /**
  * Shared Zone 1 world positions — the single authored copy.

@@ -1,14 +1,14 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: src/features/world/content/index.ts
-// Regenerate with: npm run sync:content
+// Regenerate with: node scripts/sync_world_content.mjs
 
 /**
  * content/index.ts — the canonical aggregate of all world game content.
  *
  * This is the file gameplay code (client AND server module) imports from.
  * Editing story/quests/NPCs/items happens in the files this re-exports;
- * after any edit run `npm run sync:content` to refresh the server mirror
- * and `npm test` to re-check referential integrity.
+ * after any edit run `node scripts/sync_world_content.mjs` to refresh the server
+ * mirror and the test suite (`vitest run`) to re-check referential integrity.
  */
 import type {
   AbilityDef,
@@ -75,7 +75,7 @@ export const WAYPOINTS: Record<string, WaypointDef> = Object.fromEntries(
 /**
  * Validates every cross-reference in the content graph. Returns a list of
  * human-readable errors (empty = valid). Run by the vitest integrity test
- * (which CI runs via `npm test`).
+ * (which CI runs as part of the test suite).
  */
 export function validateContent(): string[] {
   const errors: string[] = [];
