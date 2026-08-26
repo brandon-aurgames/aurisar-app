@@ -60,7 +60,7 @@
     "react-window": "^2.3.0",
     "recharts": "^3.10.1",
     "spacetimedb": "^2.8.2",
-    "svix": "^1.99.1"
+    "svix": "^2.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
