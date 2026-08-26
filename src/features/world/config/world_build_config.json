@@ -243,7 +243,7 @@
   },
   "deployment": {
     "netlify": {
-      "site_build_command": "npm run build",
+      "site_build_command": "pnpm run build",
       "publish_dir": "dist",
       "edge_functions_enabled": true
     },

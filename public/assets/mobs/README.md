@@ -44,7 +44,7 @@ GLB files in this directory must satisfy:
 The committed `wolf.glb` is produced by:
 
 ```bash
-npm run build:glb
+pnpm run build:glb
 ```
 
 That script (`scripts/build_glb_assets.mjs`) emits both `wolf.glb` and the

@@ -119,9 +119,9 @@ describe('the ratchet cannot be laundered', () => {
 });
 
 describe('db-contract checker is wired to run', () => {
-  it('is a CI step and an npm script, matching the other *:check guards', () => {
+  it('is a CI step and a pnpm script, matching the other *:check guards', () => {
     expect(read('package.json')).toContain('emit:db-contract:check');
-    expect(read('.github/workflows/ci.yml')).toContain('npm run emit:db-contract:check');
+    expect(read('.github/workflows/ci.yml')).toContain('pnpm run emit:db-contract:check');
   });
 
   it('needs no database credentials, so it runs on forked PRs', () => {

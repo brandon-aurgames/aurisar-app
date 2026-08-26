@@ -16,7 +16,7 @@ database or auth stack is required.
 
 | Service | Required? | Command | Notes |
 |---|---|---|---|
-| Vite dev server (the app) | Required | `npm run dev` | Port `5173`, `strictPort` (fixed). `predev` auto-runs `sync:terrain-assets`. |
+| Vite dev server (the app) | Required | `pnpm run dev` | Port `5173`, `strictPort` (fixed). `predev` auto-runs `sync:terrain-assets`. |
 | Supabase (auth + data) | Remote by default | none | `src/utils/supabase.js` has a hardcoded live project URL + anon key, so login/data work with zero setup. Override with `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. |
 | SpacetimeDB (World multiplayer) | Optional | none (uses remote maincloud) | Client bindings are committed; the World renders against `wss://maincloud.spacetimedb.com`. Only needed locally to modify/publish the module in `spacetimedb/`, which requires the external `spacetime` CLI (not installed by default). |
 | Netlify Functions (`/api/*`) | Optional | `netlify dev` | Powers admin panel, WHOOP OAuth, Resend emails, GitHub issue creation. Needs the Netlify CLI + function secrets. Core logging/XP/leaderboards do not need these. |
@@ -39,7 +39,7 @@ credential never reaches the client bundle. Non-obvious behavior:
 
 - Production and local dev are **never** gated. The deploy context is read at
   runtime from `context.deploy.context` (the build-time `CONTEXT` env var is
-  NOT available to edge functions at runtime), so `npm run dev` is unaffected.
+  NOT available to edge functions at runtime), so `pnpm run dev` is unaffected.
   To exercise the gate locally, run through Netlify's edge runtime with a gated
   context, e.g. `netlify dev --context deploy-preview`, with both credential
   vars set.
@@ -56,33 +56,39 @@ credential never reaches the client bundle. Non-obvious behavior:
 
 Standard scripts live in `package.json`. Non-obvious notes:
 
-- **Node version:** CI pins Node 20 in both workflows (`ci.yml`,
-  `spacetime-publish.yml`). Node 22 LTS is verified to produce byte-identical
-  generator output — every `*:check` gate and the `verify:worldgen` determinism
-  snapshot pass unchanged on 22 with an empty `git status --porcelain` — so local
-  work on either is safe. Node 20 reached EOL on 2026-04-30; the CI pin moves to
-  22 alongside the package-manager migration.
+- **Package manager: pnpm.** Pinned by the `packageManager` field in
+  `package.json` (root) and `spacetimedb/package.json` (a fully separate
+  install with its own lockfile — not a shared workspace). Use `pnpm install`,
+  never `npm install`; do not commit a `package-lock.json`.
+- **Node version:** CI pins Node 22 in both workflows (`ci.yml`,
+  `spacetime-publish.yml`).
 - **Windows checkouts:** generated outputs that a `*:check` gate byte-compares are
-  pinned `text eol=lf` in `.gitattributes`. If you add a new generated artifact
-  with its own check gate, pin it there too — otherwise `core.autocrlf=true`
-  rewrites it to CRLF on Windows and the gate fails with no real drift. CI runs
-  ubuntu-latest and cannot catch this.
-- `npm run lint` currently reports many pre-existing errors on `main` and is
+  pinned `text eol=lf` in `.gitattributes` (this now includes both
+  `pnpm-lock.yaml` files). If you add a new generated artifact with its own
+  check gate, pin it there too — otherwise `core.autocrlf=true` rewrites it to
+  CRLF on Windows and the gate fails with no real drift. CI runs ubuntu-latest
+  and cannot catch this.
+- `pnpm run lint` currently reports many pre-existing errors on `main` and is
   **not** run by CI — do not treat a red lint run as a regression you caused.
 - CI (`.github/workflows/ci.yml`) gates on the freshness/determinism checks
   (`sync:content:check`, `emit:*:check`, `check:assets`, `vendor:meshopt:check`,
-  `check:audio`, `sync:terrain-assets:check`, `verify:worldgen`), then `npm test`
-  (Vitest) and `npm run build`. If you touch world/asset/content generators, run
-  the matching `*:check` script and regenerate committed outputs, or CI will
-  fail on drift.
+  `check:audio`, `sync:terrain-assets:check`, `verify:worldgen`), then
+  `pnpm test` (Vitest) and `pnpm run build`. If you touch world/asset/content
+  generators, run the matching `*:check` script and regenerate committed
+  outputs, or CI will fail on drift.
 - The build path is OFFLINE by design: terrain runtime maps are committed and
   `sync:terrain-assets` only verifies them against
   `config/terrain-assets.lock.json`. Terrain sources are downloaded solely via
-  the explicit `npm run fetch:terrain-source -- <set-id>` (needed only when
+  the explicit `pnpm run fetch:terrain-source <set-id>` (needed only when
   changing `config/terrain-assets.json`); commit the regenerated outputs + lock.
-- `npm run build` can be memory-hungry; CI sets `NODE_OPTIONS=--max-old-space-size=4096`.
-- `.npmrc` sets `legacy-peer-deps=true` (required so `eslint-plugin-jsx-a11y`
-  installs against ESLint 10). Keep it; `npm install` relies on it.
+- `pnpm run build` can be memory-hungry; CI sets `NODE_OPTIONS=--max-old-space-size=4096`.
+- There is no `.npmrc`. The one peer-dependency exception it used to carry
+  (`eslint-plugin-jsx-a11y` vs ESLint 10) is now `peerDependencyRules` in
+  `pnpm-workspace.yaml` — pnpm 11 reads project-level settings (peer rules,
+  which build scripts run, supported platforms) from that file instead of
+  `package.json`'s `pnpm` field. `spacetimedb/pnpm-workspace.yaml` carries no
+  settings; it exists only to keep that install's workspace root from being
+  discovered as this one's.
 
 ### Reviewing pull requests
 

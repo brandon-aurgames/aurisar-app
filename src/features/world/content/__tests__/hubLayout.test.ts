@@ -5,7 +5,7 @@
  * here so a future placement edit cannot silently regress them. Everything
  * reads the LIVE content — the worldgen config for roads, ZONE1_PROPS for
  * footprints, ALL_NPCS for positions — so this suite is the arbiter for any
- * "move X a bit" change, and `npm run plan -- --view hub` is how to look at
+ * "move X a bit" change, and `pnpm run plan --view hub` is how to look at
  * what it is checking.
  */
 import { describe, expect, it } from 'vitest';

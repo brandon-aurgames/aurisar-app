@@ -2,7 +2,7 @@
  * kill_net.mjs — preload hook (node --import) that turns any outbound network
  * attempt into a crash. Used by terrain_sync_state.test.mjs to prove the
  * build-path terrain sync stays fully offline, and manually via
- *   NODE_OPTIONS="--import <file-url-to-this-file>" npm run build
+ *   NODE_OPTIONS="--import <file-url-to-this-file>" pnpm run build
  * to simulate a network-blocked CI/deploy environment.
  *
  * SCOPE: this patches the fetch/http(s) API surface only — NOT net.Socket,

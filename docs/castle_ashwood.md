@@ -7,7 +7,7 @@ A machine-readable export is generated at build time:
 - [`public/assets/castle/castle_ashwood.json`](../public/assets/castle/castle_ashwood.json)
 - [`spacetimedb/src/manifests/castle_ashwood.json`](../spacetimedb/src/manifests/castle_ashwood.json)
 
-Regenerate with `npm run emit:castle`.
+Regenerate with `pnpm run emit:castle`.
 
 ## Server validation
 

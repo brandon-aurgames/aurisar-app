@@ -2,7 +2,7 @@
  * check_no_undef.mjs — fail the build on a reference to something that does
  * not exist in scope.
  *
- * Why this is its own gate rather than `npm run lint`: the repo carries ~590
+ * Why this is its own gate rather than `pnpm run lint`: the repo carries ~590
  * pre-existing lint findings (hook deps, unused vars, a11y), so turning the
  * whole linter into a required check is not currently possible. `no-undef` is
  * the one rule whose violations are always a runtime crash, never a matter of

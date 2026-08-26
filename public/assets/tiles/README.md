@@ -56,7 +56,7 @@ GLB files in this directory must satisfy:
 The committed `T_03_03_render.glb` is produced by:
 
 ```bash
-npm run build:glb
+pnpm run build:glb
 ```
 
 That script (`scripts/build_glb_assets.mjs`) emits the sample tile alongside

@@ -1,7 +1,7 @@
 /**
  * devWorldViewer — standalone Ashwood world viewer (dev only).
  *
- *   npm run dev → http://localhost:5173/world-viewer.html
+ *   pnpm run dev → http://localhost:5173/world-viewer.html
  *
  * Mounts BabylonWorldScene directly with no auth, no SpacetimeDB and no
  * React, for fast terrain/texture/render iteration and side-by-side

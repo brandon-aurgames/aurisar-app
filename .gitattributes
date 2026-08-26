@@ -29,3 +29,13 @@ public/assets/manifest/** text eol=lf
 public/assets/ATTRIBUTION.md text eol=lf
 # vendor_meshopt_decoder.mjs --check (compares against node_modules copy)
 public/babylon/** text eol=lf
+# check_db_contract.mjs --check compares config/db-contract.json's parsed
+# JSON keys, not raw bytes, so CRLF has never broken this gate — pinned
+# anyway so the file's history stays consistent with everything else this
+# section protects, and in case the check ever tightens to a byte-compare.
+config/db-contract.json text eol=lf
+
+# pnpm-lock.yaml is YAML that pnpm rewrites on every install; pin both
+# copies (this repo has two fully separate installs, root and spacetimedb/)
+# to LF for the same core.autocrlf=true Windows-checkout reason as above.
+pnpm-lock.yaml text eol=lf

@@ -30,13 +30,13 @@ regression guard in `scripts/sync_terrain_assets.mjs`).
 ## Standard commands
 
 ```bash
-npm run sync:terrain-assets
-npm run sync:terrain-assets:check
-npm run dev
-npm run build
+pnpm run sync:terrain-assets
+pnpm run sync:terrain-assets:check
+pnpm run dev
+pnpm run build
 ```
 
-`npm run dev` and `npm run build` invoke the terrain sync automatically through
+`pnpm run dev` and `pnpm run build` invoke the terrain sync automatically through
 `predev` and `prebuild`.
 
 The sync step is offline:
@@ -48,12 +48,12 @@ The sync step is offline:
 4. when stale with local sources present: renormalizes through
    `build_terrain_assets.mjs`, regenerates the manifest, refreshes the lock;
 5. when stale without sources: fails and prints the explicit
-   `npm run fetch:terrain-source -- <set-id>` command — it never downloads.
+   `pnpm run fetch:terrain-source <set-id>` command — it never downloads.
 
 Check mode is the offline freshness gate CI runs:
 
 ```bash
-npm run sync:terrain-assets:check
+pnpm run sync:terrain-assets:check
 ```
 
 ## Adding a scanned material
@@ -61,17 +61,17 @@ npm run sync:terrain-assets:check
 1. Add a candidate set to `config/terrain-assets.json` with `enabled: false`.
 2. Record role, source directory, source filenames, author, license, original
    source URL, acquisition status, and download metadata when available.
-3. Run `npm run prepare:terrain-sources` to generate local source folders and
+3. Run `pnpm run prepare:terrain-sources` to generate local source folders and
    per-set `SOURCE.md` instructions.
 4. For a locked downloadable set, run:
 
 ```bash
-npm run fetch:terrain-source -- <set-id>
-npm run check:terrain-source -- <set-id>
+pnpm run fetch:terrain-source <set-id>
+pnpm run check:terrain-source <set-id>
 ```
 
 5. For manually acquired sources, place maps in the configured source directory.
-6. Run `npm run sync:terrain-assets` and inspect the generated output.
+6. Run `pnpm run sync:terrain-assets` and inspect the generated output.
 7. Enable the candidate and assign it to a profile slot only after review.
 
 Candidate metadata is validated even while disabled, but disabled candidates are
