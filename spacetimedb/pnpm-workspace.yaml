@@ -1,0 +1,11 @@
+# Marks this directory as its own pnpm workspace root, independent of the
+# parent aurisar-app install. Without this file, `pnpm install` run inside
+# spacetimedb/ walks up, finds the PARENT's pnpm-workspace.yaml, and treats
+# spacetimedb/ as living inside that workspace instead of installing here —
+# it silently no-ops instead of creating spacetimedb/pnpm-lock.yaml. This
+# repo deliberately uses two fully separate installs (no shared workspace);
+# see the parent pnpm-workspace.yaml's own comment.
+#
+# No settings needed here: spacetimedb/'s lockfile has zero packages with
+# install scripts and zero peer-dependency conflicts (verified against
+# spacetimedb/package-lock.json before migration).

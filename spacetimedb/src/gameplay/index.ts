@@ -11,7 +11,7 @@
  * — they get consumed when slice 5c+ AI / encounter logic lands.
  *
  * Mirrored to `public/assets/tiles/<tile_id>_gameplay.json` by
- * `npm run build:gameplay` so external tooling (validators, the testing
+ * `pnpm run build:gameplay` so external tooling (validators, the testing
  * HUD, future client-side waypoint rendering) can fetch them at runtime.
  */
 

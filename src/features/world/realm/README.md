@@ -62,7 +62,7 @@ The payoff is that most of the Realm is testable in plain node — no GPU, no js
 
 ## Verification
 
-`npm test` covers the pure layers, which is most of the code.
+`pnpm test` covers the pure layers, which is most of the code.
 
 Two things have **no headless test path** and must be checked in a browser:
 
@@ -73,7 +73,7 @@ Two things have **no headless test path** and must be checked in a browser:
    into a pure presenter (what should the bar read; did the value change) and a thin ADT
    writer.
 
-`realm-spike.html` is the real-GPU surface for both. Run `npm run dev` and open
+`realm-spike.html` is the real-GPU surface for both. Run `pnpm run dev` and open
 `/realm-spike.html`; add `?renderer=webgpu` to exercise the WebGPU path.
 
 ## Backends

@@ -32,5 +32,5 @@ assets-source/terrain/**
 # sources from third-party hosts. Do not re-ignore it — see the regression
 # guard in scripts/sync_terrain_assets.mjs.
 
-# Generated world plan vectors (regenerate with `npm run plan`); PNGs are kept.
+# Generated world plan vectors (regenerate with `pnpm run plan`); PNGs are kept.
 docs/world-plans/*.svg

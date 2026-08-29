@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "SpacetimeDB server module for the Aurisar 2D multiplayer world",
   "main": "src/index.ts",
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "build": "spacetime build",
     "publish:dev": "spacetime publish --server testnet aurisar-world-dev",
@@ -12,7 +13,7 @@
     "sql": "spacetime sql aurisar-world"
   },
   "dependencies": {
-    "spacetimedb": "^2.2.0"
+    "spacetimedb": "2.2.0"
   },
   "devDependencies": {
     "typescript": "^5.6.0"

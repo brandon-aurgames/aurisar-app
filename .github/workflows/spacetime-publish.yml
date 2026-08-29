@@ -63,6 +63,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+
       - name: Set up Node.js
         # `spacetime publish` compiles TypeScript with `tsc` from the
         # module's local node_modules and resolves runtime imports (the
@@ -74,15 +78,17 @@ jobs:
         #   [UNRESOLVED_IMPORT] Could not resolve 'spacetimedb/server'
         #   [UNRESOLVED_IMPORT] Could not resolve 'spacetimedb'
         #
-        # Matching the main CI workflow's Node 20 + npm cache, with the
+        # Matching the main CI workflow's Node 22 + pnpm cache, with the
         # cache-dependency-path targeting the spacetimedb subproject's
         # lockfile so the cache key fingerprint actually represents
-        # what we install.
+        # what we install. spacetimedb/ has its own pnpm-workspace.yaml
+        # (a workspace-root marker, not a shared workspace) so this install
+        # stays fully independent of the root aurisar-app install.
         uses: actions/setup-node@v7
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: spacetimedb/package-lock.json
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: spacetimedb/pnpm-lock.yaml
 
       - name: Generate castle nav grids
         # validate.ts imports spacetimedb/src/castle/navGrids.ts (emitted from
@@ -91,10 +97,10 @@ jobs:
         run: node scripts/emit-castle-manifest.mjs
 
       - name: Install module dependencies
-        # `npm ci` (not `npm install`) so the lockfile is the source of
-        # truth — fails if package.json and package-lock.json drift.
+        # `--frozen-lockfile` (not a plain install) so the lockfile is the
+        # source of truth — fails if package.json and pnpm-lock.yaml drift.
         working-directory: spacetimedb
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Sanity-check the auth token is present
         # Fail fast with a clear message if the secret is missing.
@@ -133,7 +139,7 @@ jobs:
         # same job without 200 lines of shim.
         #
         # Version choice — the CLI must be >= the `spacetimedb` npm runtime
-        # the module is BUILT against (spacetimedb/package-lock.json), because
+        # the module is BUILT against (spacetimedb/pnpm-lock.yaml), because
         # publish/generate extract the schema by running the built module and
         # parsing its module def. An older CLI against a newer runtime fails
         # hard and unhelpfully:
@@ -142,12 +148,29 @@ jobs:
         #   Caused by: unknown tag 0xd for sum type RawModuleDefV10Section
         #
         # (reproduced locally with CLI 2.2.0 against runtime 2.6.1). The
-        # reverse — newer CLI, older runtime — is fine. The old v2.2.0 pin
-        # here sat exactly on that edge: `spacetimedb` is declared as ^2.2.0,
-        # so any lockfile refresh inside the caret would have silently broken
-        # publishing. Pinning the CLI ahead of the runtime removes that.
+        # reverse — newer CLI, older runtime — is fine. `spacetimedb` used to
+        # be declared as ^2.2.0, so any lockfile refresh inside the caret
+        # would have silently floated the runtime past this CLI pin — that is
+        # exactly what the pnpm migration's lockfile regeneration risked. As
+        # of the pnpm migration, spacetimedb/package.json pins the EXACT
+        # version `2.2.0` (no caret), so a plain `pnpm install` or `pnpm
+        # update` cannot float it — the range-based edge this comment used to
+        # warn about is closed.
         #
-        # 2.7.x also matches what `npm run generate` uses (CLI 2.7 dropped
+        # NOT closed: `pnpm update --latest` (or `-L`) explicitly ignores the
+        # declared specifier and rewrites both package.json and the lockfile
+        # to the newest published version regardless of the pin — and nothing
+        # downstream would catch it before a bad publish. This workflow only
+        # triggers on push to `main` (not pull_request), so the "invalid
+        # bsatn module def" failure this comment describes would surface
+        # *after* merge, not during review. Dependabot does not watch
+        # spacetimedb/ (see .github/dependabot.yml — one `npm`-ecosystem
+        # entry, directory "/") so it will not propose or flag a bump here
+        # either. The only real guard is a human noticing a diff to
+        # spacetimedb/package.json in PR review — treat any such diff as a
+        # reason to re-check this CLI pin before approving.
+        #
+        # 2.7.x also matches what `pnpm run generate` uses (CLI 2.7 dropped
         # --server/--database and reads local module source), so the schema CI
         # publishes and the schema the committed bindings describe come from
         # one toolchain. Verified before bumping: bindings generated at 2.2.0

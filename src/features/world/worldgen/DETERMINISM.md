@@ -6,7 +6,7 @@ shifts the RNG stream therefore moves every ruin, cave and chest in the live
 world for every player at once, and silently remaps anything keyed by array
 index.
 
-`npm run verify:worldgen` (CI: **Worldgen determinism (GOLDEN)**) is the gate.
+`pnpm run verify:worldgen` (CI: **Worldgen determinism (GOLDEN)**) is the gate.
 It pins realized plateau heights, per-category site counts, and an FNV-1a digest
 over every site position.
 
@@ -78,11 +78,11 @@ pattern for anything new that needs a stable identity.
 Only after confirming the reshuffle is intended.
 
 1. Make the full set of reshuffle-class edits in one working tree.
-2. Run `npm run verify:worldgen`. It prints realized plateau heights, the
+2. Run `pnpm run verify:worldgen`. It prints realized plateau heights, the
    per-category site counts, and `got <digest>`.
 3. Copy those into the `GOLDEN` block in `scripts/verify_worldgen.mjs`, keyed by
    seed.
 4. Re-run until green, then regenerate every derived manifest:
-   `npm run emit:world-chests && npm run emit:landmarks && npm run sync:content`.
+   `pnpm run emit:world-chests && pnpm run emit:landmarks && pnpm run sync:content`.
 5. Note the reshuffle and any player-visible consequence (a chest reset, moved
    landmarks) in `docs/world-design-plan.md`.

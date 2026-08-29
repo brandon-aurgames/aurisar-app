@@ -1,0 +1,36 @@
+# Settings-only file — this project is NOT a pnpm workspace/monorepo.
+# Deliberately no `packages:` key: pnpm 11 moved dependency-config settings
+# (peerDependencyRules, allowBuilds, supportedArchitectures) out of
+# package.json's "pnpm" field into this file even for a single package, but
+# adding `packages:` globs here would turn spacetimedb/ into a linked
+# workspace member of THIS install — spacetimedb/ must stay a fully separate
+# install with its own lockfile (see spacetimedb/pnpm-lock.yaml).
+
+# eslint-plugin-jsx-a11y@6.10.2 declares its peer-dep range as `eslint ^3..^9`,
+# but this project is on ESLint 10.9.1. The plugin's runtime API is fully
+# compatible with ESLint 10 (standard rule-context API, unchanged) — the
+# declared range is just conservative. Narrowly excuses this one known-good
+# edge; every other peer mismatch stays loud. Remove this entry once jsx-a11y
+# ships a 6.10.3+ that includes ESLint 10 in its peer range.
+peerDependencyRules:
+  allowedVersions:
+    eslint-plugin-jsx-a11y>eslint: "10"
+
+# babylonjs's postinstall only prints two advisory console.log lines
+# (recommending the @babylonjs/core ES6 package) — verified in
+# node_modules/babylonjs/scripts/postinstall.js. Explicitly denied rather
+# than left pending so `pnpm install` doesn't block on an approval prompt.
+# fsevents is a macOS-only optional native binding (file-watching); it is
+# never fetched on Windows or Linux, so this only matters if someone
+# develops on macOS.
+allowBuilds:
+  babylonjs: false
+  fsevents: true
+
+# Windows dev machine, Linux CI + Netlify. Without this, a lockfile
+# generated on Windows omits the Linux binaries that sharp/rolldown ship as
+# platform-gated optionalDependencies, and `pnpm install --frozen-lockfile`
+# on Ubuntu would fail to find them.
+supportedArchitectures:
+  os: [win32, linux, darwin]
+  cpu: [x64, arm64]

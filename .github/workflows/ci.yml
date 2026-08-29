@@ -15,47 +15,80 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
+
+      # spacetimedb/ is a fully separate pnpm install (its own lockfile, its
+      # own pnpm-workspace.yaml boundary marker) that root CI never touches
+      # otherwise — the only other place it gets installed is
+      # spacetime-publish.yml, which runs on push to `main`, after merge.
+      # Without this, a drifted spacetimedb/pnpm-lock.yaml (package.json and
+      # the lockfile disagreeing) could merge with a green Build & audit and
+      # only be caught at publish time.
+      - name: SpacetimeDB module lockfile fresh (frozen install)
+        working-directory: spacetimedb
+        run: pnpm install --frozen-lockfile
+
+      # A frozen-lockfile install alone would not catch a DELIBERATE version
+      # bump that keeps package.json and the lockfile consistent with each
+      # other — e.g. `pnpm update --latest` run inside spacetimedb/. That
+      # matters because spacetime-publish.yml pins the SpacetimeDB CLI at a
+      # fixed version (SPACETIMEDB_VERSION), and a runtime newer than the CLI
+      # breaks `spacetime publish` with "invalid bsatn module def" (see the
+      # comment on that workflow's CLI-install step for the full story). This
+      # is the PR-time backstop: if you are bumping this deliberately, raise
+      # SPACETIMEDB_VERSION in spacetime-publish.yml FIRST, verify
+      # compatibility, then update the expected value below in the same PR.
+      - name: SpacetimeDB dependency pin unchanged (guards the CLI version pin)
+        run: |
+          actual=$(node -p "require('./spacetimedb/package.json').dependencies.spacetimedb")
+          if [ "$actual" != "2.2.0" ]; then
+            echo "::error::spacetimedb/package.json dependencies.spacetimedb is '$actual', expected the exact pin '2.2.0'. See the comment on this step in ci.yml before changing it — it must move together with spacetime-publish.yml's SPACETIMEDB_VERSION."
+            exit 1
+          fi
 
       - name: Vulnerability audit (fail on high+)
-        run: npm audit --audit-level=high --omit=dev
+        run: pnpm audit --audit-level=high --prod
 
       - name: World content mirror up to date
-        run: npm run sync:content:check
+        run: pnpm run sync:content:check
 
       - name: Castle manifest up to date
-        run: npm run emit:castle:check
+        run: pnpm run emit:castle:check
 
       - name: World chest manifest up to date
-        run: npm run emit:world-chests:check
+        run: pnpm run emit:world-chests:check
 
       # Shared world positions are authored once (zone1_world.json `anchors`,
       # or derived from the lake/plateaus/castlePlan truth that already owns
       # them). This step also cross-checks the remaining hand-copies — the
       # castle keep-out and interior anchor — against castlePlan.js.
       - name: Zone 1 landmarks up to date
-        run: npm run emit:landmarks:check
+        run: pnpm run emit:landmarks:check
 
       # Asset manifests fresh + every runtime GLB within its per-class budget
       # (config/asset-budgets.json), files present, ATTRIBUTION block current.
       # See docs/ART_DIRECTION.md and scripts/assets_pipeline.mjs.
       - name: Asset manifests + budgets
-        run: npm run check:assets
+        run: pnpm run check:assets
 
       # The self-hosted meshopt decoder must match the installed meshoptimizer
       # (a dep bump without re-vendoring ships a mismatched decoder).
       - name: Vendored meshopt decoder fresh
-        run: npm run vendor:meshopt:check
+        run: pnpm run vendor:meshopt:check
 
       # Synthesized SFX WAVs are generated (scripts/build_audio_sfx.mjs) and
       # committed — fail if the committed bytes drift from the generator.
       - name: Audio SFX fresh
-        run: npm run check:audio
+        run: pnpm run check:audio
 
       # Terrain runtime maps are committed; this OFFLINE gate fails on drift
       # between config/terrain-assets.json, config/terrain-assets.lock.json,
@@ -63,7 +96,7 @@ jobs:
       # must stay independent of third-party hosts (ambientCG outage killed a
       # Netlify deploy on 2026-08-02); see scripts/sync_terrain_assets.mjs.
       - name: Terrain assets fresh (offline)
-        run: npm run sync:terrain-assets:check
+        run: pnpm run sync:terrain-assets:check
 
       # Determinism gate: the worldgen GOLDEN snapshot (realized plateau
       # heights + site counts + a site-position digest) must match. Any PR
@@ -71,7 +104,7 @@ jobs:
       # pillar "One reshuffle, then frozen ground") fails here instead of
       # silently moving every ruin/cave/chest in the live world.
       - name: Worldgen determinism (GOLDEN)
-        run: npm run verify:worldgen
+        run: pnpm run verify:worldgen
 
       # Every database object the code references (sb.from/sb.rpc + the raw
       # PostgREST paths the Netlify functions fetch) must be declared by a
@@ -87,21 +120,21 @@ jobs:
       # It also does not validate the bodies of tracked SQL functions, so a
       # declared function calling a dropped helper still passes here.
       - name: DB contract (code ↔ tracked schema, offline)
-        run: npm run emit:db-contract:check
+        run: pnpm run emit:db-contract:check
 
-      # `npm run lint` cannot gate yet (~590 pre-existing findings), but
+      # `pnpm run lint` cannot gate yet (~590 pre-existing findings), but
       # no-undef is never a matter of taste — every violation is a runtime
       # ReferenceError. PR #321 shipped one that broke sign-in, sign-out,
       # password change and password reset; the build passed and 1233 tests
       # passed, because none of them execute the wiring.
       - name: No undefined references (runtime ReferenceErrors)
-        run: npm run lint:undef
+        run: pnpm run lint:undef
 
       - name: Tests
-        run: npm test
+        run: pnpm test
 
       - name: Build
-        run: npm run build
+        run: pnpm run build
         env:
           NODE_OPTIONS: --max-old-space-size=4096
 
