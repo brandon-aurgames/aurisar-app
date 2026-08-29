@@ -88,7 +88,10 @@ Standard scripts live in `package.json`. Non-obvious notes:
   which build scripts run, supported platforms) from that file instead of
   `package.json`'s `pnpm` field. `spacetimedb/pnpm-workspace.yaml` carries no
   settings; it exists only to keep that install's workspace root from being
-  discovered as this one's.
+  discovered as this one's. **Neither file may ever gain a `packages:` key** —
+  that would fold `spacetimedb/` into a shared workspace with the root
+  install and silently break the two-separate-lockfiles design. Treat adding
+  one as a review-blocking change, not a routine edit.
 
 ### Reviewing pull requests
 

@@ -26,6 +26,35 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # spacetimedb/ is a fully separate pnpm install (its own lockfile, its
+      # own pnpm-workspace.yaml boundary marker) that root CI never touches
+      # otherwise — the only other place it gets installed is
+      # spacetime-publish.yml, which runs on push to `main`, after merge.
+      # Without this, a drifted spacetimedb/pnpm-lock.yaml (package.json and
+      # the lockfile disagreeing) could merge with a green Build & audit and
+      # only be caught at publish time.
+      - name: SpacetimeDB module lockfile fresh (frozen install)
+        working-directory: spacetimedb
+        run: pnpm install --frozen-lockfile
+
+      # A frozen-lockfile install alone would not catch a DELIBERATE version
+      # bump that keeps package.json and the lockfile consistent with each
+      # other — e.g. `pnpm update --latest` run inside spacetimedb/. That
+      # matters because spacetime-publish.yml pins the SpacetimeDB CLI at a
+      # fixed version (SPACETIMEDB_VERSION), and a runtime newer than the CLI
+      # breaks `spacetime publish` with "invalid bsatn module def" (see the
+      # comment on that workflow's CLI-install step for the full story). This
+      # is the PR-time backstop: if you are bumping this deliberately, raise
+      # SPACETIMEDB_VERSION in spacetime-publish.yml FIRST, verify
+      # compatibility, then update the expected value below in the same PR.
+      - name: SpacetimeDB dependency pin unchanged (guards the CLI version pin)
+        run: |
+          actual=$(node -p "require('./spacetimedb/package.json').dependencies.spacetimedb")
+          if [ "$actual" != "2.2.0" ]; then
+            echo "::error::spacetimedb/package.json dependencies.spacetimedb is '$actual', expected the exact pin '2.2.0'. See the comment on this step in ci.yml before changing it — it must move together with spacetime-publish.yml's SPACETIMEDB_VERSION."
+            exit 1
+          fi
+
       - name: Vulnerability audit (fail on high+)
         run: pnpm audit --audit-level=high --prod
 
