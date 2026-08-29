@@ -1,6 +1,6 @@
 # Performance Audit & App.jsx Decomposition Plan
 
-**Status:** ✅ Complete — all six findings remediated.
+**Status:** 🔄 Reopened — findings 1–6 remediated; finding #7 (workout-builder picker) added 2026-08.
 **Scope:** Application-wide performance — focused on mobile scrolling, workout completion latency, and `src/App.jsx` decomposition.
 **Outcome:** A single source of truth for the audit findings and a checklist of remediation PRs that will land incrementally. This document is updated as work progresses.
 
@@ -55,6 +55,14 @@ Tick each box as the corresponding PR merges. Each remediation should reference 
   - [x] RetroEditModal + MapOverlay — PR [#143](https://github.com/Brandonla3/aurisar-app/pull/143)
   - [ ] Shell / layout pieces: HUD, nav, background, toast, XP flash _(deferred — diminishing returns; App.jsx now 7,079 lines, −56% from 16,204)_
   - PRs: [#118](https://github.com/Brandonla3/aurisar-app/pull/118), [#121](https://github.com/Brandonla3/aurisar-app/pull/121)–[#143](https://github.com/Brandonla3/aurisar-app/pull/143)
+
+- [x] **7. Workout-builder picker: broken virtualization, blur regression, render churn**
+  - [x] Bound the picker `List`'s box so react-window actually virtualizes (was rendering all ~1,543 rows)
+  - [x] Extend touch perf overrides to the ui-sheet-era surfaces (`.ui-sheet-backdrop`, `.inp`, `.btn-gold`, `.btn-ghost`, `.wb-footer`, `.wo-sticky-filters`); pause `.pt` particles while a sheet is open
+  - [x] Stabilize `WorkoutsTabContainer` handler identities; drop the dead `wbExPickerOpen` prop
+  - [x] Memoize picker derived data (`filtered`, `selIds`, `rowProps`); defer search-driven recomputes via `useDeferredValue`
+  - [x] Cache `ExIcon` name lookup, memo the component, preconnect to the icon CDN
+  - [x] Stabilize App-level function props (`openExEditor`, `quickLogSoloEx`, `startLiveWorkout`, `openScheduleEx`) via `useStableCallback`
 
 **Already landed (prior to this audit):**
 
@@ -298,6 +306,22 @@ src/
 5. Gradually move feature state into hooks once components are stable.
 
 The lowest-risk first PRs (and good warm-ups before #3) are **finding #1 (particle positions)** and **finding #2 (mobile CSS overrides)** — small surface area, no behavior change. ✅ PR [#117](https://github.com/Brandonla3/aurisar-app/pull/117)
+
+---
+
+### 7. Workout-builder picker: broken virtualization, Sheet blur regression, render churn
+
+**Symptom:** choosing "+ Add Exercise" in the workout builder makes the whole app lag, "as if it's rendering many things at once."
+
+**Locations:** [src/features/workouts/WorkoutExercisePicker.jsx](../src/features/workouts/WorkoutExercisePicker.jsx), [src/features/workouts/WorkoutsTabContainer.jsx](../src/features/workouts/WorkoutsTabContainer.jsx), [src/styles/app.css](../src/styles/app.css), [src/components/ExIcon.jsx](../src/components/ExIcon.jsx)
+
+Three stacked causes, worst first:
+
+1. **The virtualized list wasn't virtualizing.** The react-window `List` was styled `height:100%` inside a `flex:1 1 auto` wrapper whose height is content-driven (the bottom sheet sizes to content up to `max-height`), so the percentage resolved as `auto`: the List element inflated to full content height (~92,580px), its ResizeObserver reported that as the viewport, and **all ~1,543 exercise rows (plus ~1,543 icon `<img>` fetches) rendered on every open and re-rendered on every keystroke**. Because the sheet body is `overflow:hidden`, the inflated list also couldn't be user-scrolled. Measured at 4× CPU throttle (Pixel-7 emulation, dev build): open ≈ 4.7s of long tasks; typing "bench press" ≈ 89s of long tasks with a worst single task of 65s. Fix: give the wrapper `position:relative` and the List `position:absolute; inset:0` so it measures the bounded box, virtualizes (~a dozen rows), and becomes the scroller.
+2. **Finding #2 regressed for the ui-sheet era.** The Sheet primitive's `.ui-sheet-backdrop` applies a full-viewport `backdrop-filter: blur(4px)` and was missing from the touch perf override block, as were `.inp`, `.btn-gold`, `.btn-ghost`, `.wb-footer`, and `.wo-sticky-filters`. On desktop, the infinite `.pt` particle animation behind the backdrop forced continuous blur recompositing for as long as any sheet stayed open. Fix: extend the override block; pause `.pt` while a sheet is open.
+3. **Render churn multipliers.** `WorkoutsTabContainer` passed freshly-created handler functions to the memo'd `WorkoutsTab` (plus the dead `wbExPickerOpen` prop that the tab never reads), so every picker keystroke/toggle re-rendered the entire tab; the picker recomputed `filtered`/`selIds`/facet counts inline on every render, churning `rowProps` identity for every visible row; `ExIcon` re-ran an ~57-regex scan per row render; App.jsx passed four unstable function props (`openExEditor`, `quickLogSoloEx`, `startLiveWorkout`, `openScheduleEx`) that defeated the container's memo on unrelated App re-renders. Fixes: `useCallback` (named function expressions), `useMemo` + `useDeferredValue`, an icon-name cache, and a `useStableCallback` util for the live-state App handlers.
+
+**Deferred follow-ups:** async-loading the `exercise-data` chunk (tracked in vite.config.js); vendoring the 40 iconify SVGs locally (`scripts/vendor_exercise_icons.mjs` pattern); deferring the picker search `autoFocus` until `animationend` (behavior change — keyboard appears ~300ms later); removing the dead duplicate ExIcon code in `constants.js`; auditing library-tab blur surfaces (`.lib-sticky-search`, `.lib-glass-card`) on touch.
 
 ---
 
