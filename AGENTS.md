@@ -93,6 +93,18 @@ Standard scripts live in `package.json`. Non-obvious notes:
   install and silently break the two-separate-lockfiles design. Treat adding
   one as a review-blocking change, not a routine edit.
 
+### Unity MCP (optional, Editor control)
+
+Official Unity MCP (`com.unity.ai.assistant`) is a local stdio relay that talks
+to a running Unity 6 Editor over IPC. It is not a hosted MCP and cannot drive
+Unity from this Cloud Agent unless that Editor is running on the same machine.
+
+- Install / refresh the relay: `npm run unity-mcp:install` (downloads the
+  official Assistant package and copies the platform binary to `~/.unity/relay/`).
+- Cursor config: `.cursor/mcp.json` launches `scripts/unity-mcp/launch-relay.mjs`.
+- After Unity is open with the Assistant package, Accept the pending Cursor
+  connection under Edit > Project Settings > AI > Unity MCP Server.
+
 ### Reviewing pull requests
 
 When asked to review a PR, always **post the review as a comment on that PR**
