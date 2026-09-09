@@ -33,7 +33,7 @@ export function terrainPaths() {
 }
 
 /** Read back LE bytes, never the analytic heights used to create them. */
-function gridHeight(files, x, z) {
+export function gridHeight(files, x, z) {
   const ix = Math.min(TILE_COUNT - 1, Math.floor((x - ORIGIN) / TILE_SIZE));
   const iz = Math.min(TILE_COUNT - 1, Math.floor((z - ORIGIN) / TILE_SIZE));
   const localX = x - (ORIGIN + ix * TILE_SIZE);
