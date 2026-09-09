@@ -1,0 +1,773 @@
+{
+  "schemaVersion": 1,
+  "classes": [
+    {
+      "classId": "warrior",
+      "resource": "rage",
+      "usesComboPoints": false,
+      "baseHp": 60,
+      "hpPerLevel": 12,
+      "baseResource": 100,
+      "resourcePerLevel": 0,
+      "abilityIds": [
+        "warrior_heroic_strike",
+        "warrior_battle_shout"
+      ]
+    },
+    {
+      "classId": "gladiator",
+      "resource": "mana",
+      "usesComboPoints": false,
+      "baseHp": 55,
+      "hpPerLevel": 11,
+      "baseResource": 70,
+      "resourcePerLevel": 12,
+      "abilityIds": [
+        "gladiator_judgement_strike",
+        "gladiator_iron_presence"
+      ]
+    },
+    {
+      "classId": "warden",
+      "resource": "mana",
+      "usesComboPoints": false,
+      "baseHp": 50,
+      "hpPerLevel": 10,
+      "baseResource": 70,
+      "resourcePerLevel": 12,
+      "abilityIds": [
+        "warden_aimed_shot",
+        "warden_snare_trap"
+      ]
+    },
+    {
+      "classId": "phantom",
+      "resource": "energy",
+      "usesComboPoints": true,
+      "baseHp": 50,
+      "hpPerLevel": 10,
+      "baseResource": 100,
+      "resourcePerLevel": 0,
+      "abilityIds": [
+        "phantom_shadow_strike",
+        "phantom_eviscerate"
+      ]
+    },
+    {
+      "classId": "tempest",
+      "resource": "mana",
+      "usesComboPoints": false,
+      "baseHp": 48,
+      "hpPerLevel": 9,
+      "baseResource": 80,
+      "resourcePerLevel": 14,
+      "abilityIds": [
+        "tempest_storm_bolt",
+        "tempest_renewing_tide"
+      ]
+    },
+    {
+      "classId": "warlord",
+      "resource": "mana",
+      "usesComboPoints": false,
+      "baseHp": 48,
+      "hpPerLevel": 9,
+      "baseResource": 85,
+      "resourcePerLevel": 15,
+      "abilityIds": [
+        "warlord_rally",
+        "warlord_war_banner"
+      ]
+    },
+    {
+      "classId": "druid",
+      "resource": "mana",
+      "usesComboPoints": false,
+      "baseHp": 50,
+      "hpPerLevel": 10,
+      "baseResource": 80,
+      "resourcePerLevel": 14,
+      "abilityIds": [
+        "druid_thornlash",
+        "druid_regrowth"
+      ]
+    },
+    {
+      "classId": "oracle",
+      "resource": "mana",
+      "usesComboPoints": false,
+      "baseHp": 45,
+      "hpPerLevel": 8,
+      "baseResource": 90,
+      "resourcePerLevel": 16,
+      "abilityIds": [
+        "oracle_arcane_lance",
+        "oracle_frost_ward"
+      ]
+    },
+    {
+      "classId": "alchemist",
+      "resource": "mana",
+      "usesComboPoints": false,
+      "baseHp": 47,
+      "hpPerLevel": 9,
+      "baseResource": 85,
+      "resourcePerLevel": 15,
+      "abilityIds": [
+        "alchemist_corrosive_vial",
+        "alchemist_siphon_draught"
+      ]
+    },
+    {
+      "classId": "titan",
+      "resource": "rage",
+      "usesComboPoints": false,
+      "baseHp": 65,
+      "hpPerLevel": 13,
+      "baseResource": 100,
+      "resourcePerLevel": 0,
+      "abilityIds": [
+        "titan_crushing_blow",
+        "titan_immovable"
+      ]
+    },
+    {
+      "classId": "striker",
+      "resource": "energy",
+      "usesComboPoints": true,
+      "baseHp": 52,
+      "hpPerLevel": 10,
+      "baseResource": 100,
+      "resourcePerLevel": 0,
+      "abilityIds": [
+        "striker_jab",
+        "striker_haymaker"
+      ]
+    }
+  ],
+  "abilities": [
+    {
+      "id": "warrior_heroic_strike",
+      "classId": "warrior",
+      "name": "Heroic Strike",
+      "school": "physical",
+      "cost": 15,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 3,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "weaponStrike",
+          "bonusDamage": 6
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "A strong attack that adds damage to your next swing."
+    },
+    {
+      "id": "warrior_battle_shout",
+      "classId": "warrior",
+      "name": "Battle Shout",
+      "school": "physical",
+      "cost": 10,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 0,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "selfBuff",
+          "stat": "attackPower",
+          "amount": 10,
+          "durationSec": 120
+        }
+      ],
+      "minLevel": 4,
+      "description": "A rallying shout that increases your attack power."
+    },
+    {
+      "id": "gladiator_judgement_strike",
+      "classId": "gladiator",
+      "name": "Judgement Strike",
+      "school": "holy",
+      "cost": 12,
+      "castTimeSec": 0,
+      "cooldownSec": 6,
+      "rangeM": 3,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "weaponStrike",
+          "bonusDamage": 5
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "An arena-honed strike charged with conviction."
+    },
+    {
+      "id": "gladiator_iron_presence",
+      "classId": "gladiator",
+      "name": "Iron Presence",
+      "school": "holy",
+      "cost": 15,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 0,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "selfBuff",
+          "stat": "armor",
+          "amount": 30,
+          "durationSec": 300
+        }
+      ],
+      "minLevel": 4,
+      "description": "Your commanding presence hardens you against blows."
+    },
+    {
+      "id": "warden_aimed_shot",
+      "classId": "warden",
+      "name": "Aimed Shot",
+      "school": "physical",
+      "cost": 10,
+      "castTimeSec": 0,
+      "cooldownSec": 6,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "directDamage",
+          "min": 8,
+          "max": 12
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "A carefully aimed shot at a distant target."
+    },
+    {
+      "id": "warden_snare_trap",
+      "classId": "warden",
+      "name": "Snare Trap",
+      "school": "nature",
+      "cost": 12,
+      "castTimeSec": 0,
+      "cooldownSec": 15,
+      "rangeM": 20,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "slow",
+          "pct": 50,
+          "durationSec": 8
+        }
+      ],
+      "minLevel": 4,
+      "description": "Snares the target, slowing its movement."
+    },
+    {
+      "id": "phantom_shadow_strike",
+      "classId": "phantom",
+      "name": "Shadow Strike",
+      "school": "physical",
+      "cost": 40,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 3,
+      "triggersGcd": true,
+      "combo": {
+        "builds": 1
+      },
+      "effects": [
+        {
+          "kind": "weaponStrike",
+          "bonusDamage": 4
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "A precise strike from the shadows. Awards 1 combo point."
+    },
+    {
+      "id": "phantom_eviscerate",
+      "classId": "phantom",
+      "name": "Eviscerate",
+      "school": "physical",
+      "cost": 35,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 3,
+      "triggersGcd": true,
+      "combo": {
+        "spendsAll": true
+      },
+      "effects": [
+        {
+          "kind": "directDamage",
+          "min": 6,
+          "max": 10
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 4,
+      "description": "A vicious finisher — damage scales with combo points spent."
+    },
+    {
+      "id": "tempest_storm_bolt",
+      "classId": "tempest",
+      "name": "Storm Bolt",
+      "school": "nature",
+      "cost": 14,
+      "castTimeSec": 2,
+      "cooldownSec": 0,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "directDamage",
+          "min": 7,
+          "max": 11
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "Hurls a crackling bolt of storm energy."
+    },
+    {
+      "id": "tempest_renewing_tide",
+      "classId": "tempest",
+      "name": "Renewing Tide",
+      "school": "nature",
+      "cost": 18,
+      "castTimeSec": 2.5,
+      "cooldownSec": 0,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "heal",
+          "min": 12,
+          "max": 18
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 4,
+      "description": "A wave of restoring water mends the target."
+    },
+    {
+      "id": "warlord_rally",
+      "classId": "warlord",
+      "name": "Rally",
+      "school": "holy",
+      "cost": 16,
+      "castTimeSec": 2,
+      "cooldownSec": 0,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "heal",
+          "min": 10,
+          "max": 16
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "A commanding rally that restores an ally’s strength."
+    },
+    {
+      "id": "warlord_war_banner",
+      "classId": "warlord",
+      "name": "War Banner",
+      "school": "holy",
+      "cost": 14,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "buffTarget",
+          "stat": "attackPower",
+          "amount": 8,
+          "durationSec": 300
+        }
+      ],
+      "minLevel": 4,
+      "description": "Plants your banner in an ally’s spirit, raising their attack power."
+    },
+    {
+      "id": "druid_thornlash",
+      "classId": "druid",
+      "name": "Thornlash",
+      "school": "nature",
+      "cost": 12,
+      "castTimeSec": 1.5,
+      "cooldownSec": 0,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "directDamage",
+          "min": 6,
+          "max": 10
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "Lashes the target with conjured thorns."
+    },
+    {
+      "id": "druid_regrowth",
+      "classId": "druid",
+      "name": "Regrowth",
+      "school": "nature",
+      "cost": 18,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "hot",
+          "totalHeal": 30,
+          "durationSec": 12,
+          "tickSec": 3
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 4,
+      "description": "Living energy knits the target’s wounds over time."
+    },
+    {
+      "id": "oracle_arcane_lance",
+      "classId": "oracle",
+      "name": "Arcane Lance",
+      "school": "arcane",
+      "cost": 14,
+      "castTimeSec": 1.5,
+      "cooldownSec": 0,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "directDamage",
+          "min": 8,
+          "max": 13
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "A calculated lance of arcane force."
+    },
+    {
+      "id": "oracle_frost_ward",
+      "classId": "oracle",
+      "name": "Frost Ward",
+      "school": "frost",
+      "cost": 16,
+      "castTimeSec": 0,
+      "cooldownSec": 30,
+      "rangeM": 0,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "absorb",
+          "amount": 25,
+          "durationSec": 30
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 4,
+      "description": "A predictive ward of frost absorbs incoming damage."
+    },
+    {
+      "id": "alchemist_corrosive_vial",
+      "classId": "alchemist",
+      "name": "Corrosive Vial",
+      "school": "shadow",
+      "cost": 14,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "dot",
+          "totalDamage": 24,
+          "durationSec": 12,
+          "tickSec": 3
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "Shatters a vial of corrosive reagent on the target."
+    },
+    {
+      "id": "alchemist_siphon_draught",
+      "classId": "alchemist",
+      "name": "Siphon Draught",
+      "school": "shadow",
+      "cost": 12,
+      "castTimeSec": 2,
+      "cooldownSec": 0,
+      "rangeM": 30,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "directDamage",
+          "min": 5,
+          "max": 8
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 4,
+      "description": "Draws vitality from the target into a volatile draught."
+    },
+    {
+      "id": "titan_crushing_blow",
+      "classId": "titan",
+      "name": "Crushing Blow",
+      "school": "physical",
+      "cost": 20,
+      "castTimeSec": 0,
+      "cooldownSec": 6,
+      "rangeM": 3,
+      "triggersGcd": true,
+      "effects": [
+        {
+          "kind": "weaponStrike",
+          "bonusDamage": 8
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "An immense blow that staggers the target."
+    },
+    {
+      "id": "titan_immovable",
+      "classId": "titan",
+      "name": "Immovable",
+      "school": "physical",
+      "cost": 10,
+      "castTimeSec": 0,
+      "cooldownSec": 120,
+      "rangeM": 0,
+      "triggersGcd": false,
+      "effects": [
+        {
+          "kind": "selfBuff",
+          "stat": "armor",
+          "amount": 60,
+          "durationSec": 12
+        }
+      ],
+      "minLevel": 4,
+      "description": "Plant your feet — briefly become a fortress."
+    },
+    {
+      "id": "striker_jab",
+      "classId": "striker",
+      "name": "Jab",
+      "school": "physical",
+      "cost": 30,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 3,
+      "triggersGcd": true,
+      "combo": {
+        "builds": 1
+      },
+      "effects": [
+        {
+          "kind": "weaponStrike",
+          "bonusDamage": 3
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 1,
+      "description": "A lightning-fast jab. Awards 1 combo point."
+    },
+    {
+      "id": "striker_haymaker",
+      "classId": "striker",
+      "name": "Haymaker",
+      "school": "physical",
+      "cost": 35,
+      "castTimeSec": 0,
+      "cooldownSec": 0,
+      "rangeM": 3,
+      "triggersGcd": true,
+      "combo": {
+        "spendsAll": true
+      },
+      "effects": [
+        {
+          "kind": "directDamage",
+          "min": 10,
+          "max": 16
+        }
+      ],
+      "ranks": [
+        {
+          "level": 8,
+          "magnitudeMult": 1.6
+        },
+        {
+          "level": 16,
+          "magnitudeMult": 2.4
+        }
+      ],
+      "minLevel": 4,
+      "description": "An explosive finisher — damage scales with combo points spent."
+    }
+  ]
+}

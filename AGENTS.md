@@ -67,15 +67,24 @@ Standard scripts live in `package.json`. Non-obvious notes:
   `pnpm-lock.yaml` files). If you add a new generated artifact with its own
   check gate, pin it there too — otherwise `core.autocrlf=true` rewrites it to
   CRLF on Windows and the gate fails with no real drift. CI runs ubuntu-latest
-  and cannot catch this.
+  and cannot catch this. The one exception is raw binary output: the Zone 1
+  heightmap tiles `export/unity-content/terrain/*.r16` carry a later `binary`
+  line so the `text eol=lf` pin above them does not corrupt uint16 data.
 - `pnpm run lint` currently reports many pre-existing errors on `main` and is
   **not** run by CI — do not treat a red lint run as a regression you caused.
 - CI (`.github/workflows/ci.yml`) gates on the freshness/determinism checks
-  (`sync:content:check`, `emit:*:check`, `check:assets`, `vendor:meshopt:check`,
-  `check:audio`, `sync:terrain-assets:check`, `verify:worldgen`), then
+  (`sync:content:check`, `emit:*:check`, `export:unity:check`, `check:assets`,
+  `vendor:meshopt:check`, `check:audio`, `sync:terrain-assets:check`,
+  `verify:worldgen`), then
   `pnpm test` (Vitest) and `pnpm run build`. If you touch world/asset/content
   generators, run the matching `*:check` script and regenerate committed
   outputs, or CI will fail on drift.
+- **Unity content export** (`scripts/export_unity_content.mjs`, output committed
+  under `export/unity-content/`): a one-way feed of the world content, realized
+  worldgen sites and Zone 1 heightmap tiles for the separate Unity game client.
+  `pnpm run export:unity` regenerates it (add `:terrain` to re-bake tiles),
+  `export:unity:check` is the CI gate, `test:export:unity` runs its acceptance
+  test (manual; it re-bakes terrain twice). Nothing flows back from Unity.
 - The build path is OFFLINE by design: terrain runtime maps are committed and
   `sync:terrain-assets` only verifies them against
   `config/terrain-assets.lock.json`. Terrain sources are downloaded solely via
