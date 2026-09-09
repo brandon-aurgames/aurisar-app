@@ -294,7 +294,7 @@ const WorkoutsTab = memo(function WorkoutsTab({
   wbTotalCal, setWbTotalCal,
   wbCopySource, setWbCopySource,
   wbIconPickerOpen, setWbIconPickerOpen,
-  wbExPickerOpen, setWbExPickerOpen,
+  setWbExPickerOpen,
   wbTotalXP,
   collapsedWbEx, setCollapsedWbEx,
   ssChecked, setSsChecked,

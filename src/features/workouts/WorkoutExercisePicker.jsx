@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useCallback, useDeferredValue, useMemo } from 'react';
 import { List } from 'react-window';
 import { UI_COLORS } from '../../data/constants';
 import { getMuscleColor, getTypeColor } from '../../utils/xp';
@@ -11,6 +11,9 @@ import { matchesAll, facetCounts as countFacet, NO_FACET, muscleKeys, typeKeys, 
 import {
   TYPE_OPTS, TYPE_LABELS, MUSCLE_OPTS, EQUIP_OPTS, muscleLabel, equipLabel,
 } from '../exercises/exerciseFilterOptions';
+
+// Module scope so the memo'd FilterDropdown sees a stable optionLabel.
+const typeLabel = v => TYPE_LABELS[v];
 
 /**
  * Workout exercise picker modal — extracted from the inline block in App.jsx
@@ -67,17 +70,33 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
   pickerToggleEx,
   commitPickerToWorkout,
 }) {
-  const closeDrops = () => setPickerOpenDrop(null);
+  const closeDrops = useCallback(() => setPickerOpenDrop(null), [setPickerOpenDrop]);
+  const toggleMuscle = useCallback(v => toggleFilter(setPickerMuscle, v), [setPickerMuscle]);
+  const toggleType = useCallback(v => toggleFilter(setPickerTypeFilter, v), [setPickerTypeFilter]);
+  const toggleEquip = useCallback(v => toggleFilter(setPickerEquipFilter, v), [setPickerEquipFilter]);
 
-  const q = pickerSearch;
-  const matches = (e, mF, tF, eF) => matchesAll(e, q, mF, tF, eF);
+  // The input stays bound to pickerSearch (urgent) while the full-catalog
+  // scans below run against the deferred value, so a keystroke never waits
+  // on three facet passes plus the filter pass over ~1,500 exercises.
+  const deferredQ = useDeferredValue(pickerSearch);
 
   const facetCounts = useMemo(() => ({
-    muscle: countFacet(allExercises, muscleKeys, e => matches(e, NO_FACET, pickerTypeFilter, pickerEquipFilter)),
-    type: countFacet(allExercises, typeKeys, e => matches(e, pickerMuscle, NO_FACET, pickerEquipFilter)),
-    equip: countFacet(allExercises, equipKeys, e => matches(e, pickerMuscle, pickerTypeFilter, NO_FACET)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [allExercises, q, pickerMuscle, pickerTypeFilter, pickerEquipFilter]);
+    muscle: countFacet(allExercises, muscleKeys, e => matchesAll(e, deferredQ, NO_FACET, pickerTypeFilter, pickerEquipFilter)),
+    type: countFacet(allExercises, typeKeys, e => matchesAll(e, deferredQ, pickerMuscle, NO_FACET, pickerEquipFilter)),
+    equip: countFacet(allExercises, equipKeys, e => matchesAll(e, deferredQ, pickerMuscle, pickerTypeFilter, NO_FACET)),
+  }), [allExercises, deferredQ, pickerMuscle, pickerTypeFilter, pickerEquipFilter]);
+
+  const filtered = useMemo(
+    () => allExercises.filter(e => matchesAll(e, deferredQ, pickerMuscle, pickerTypeFilter, pickerEquipFilter)),
+    [allExercises, deferredQ, pickerMuscle, pickerTypeFilter, pickerEquipFilter]
+  );
+  const selIds = useMemo(() => new Set(pickerSelected.map(e => e.exId)), [pickerSelected]);
+  // Stable rowProps identity so the memo'd rows only re-render when the data
+  // they show actually changes.
+  const rowProps = useMemo(
+    () => ({ exercises: filtered, selIds, onToggle: pickerToggleEx }),
+    [filtered, selIds, pickerToggleEx]
+  );
 
   return (
     // onClose is closePicker — the FULL teardown (search, facets, selection),
@@ -88,6 +107,11 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
       layer={"picker"}
       tall
       scroll={"none"}
+      // Explicit height (the tall cap): the list no longer stretches the
+      // sheet to the cap by inflating to content height, and the absolute
+      // List needs the flex chain above it to be definite. Also keeps the
+      // sheet stable when a search has zero matches.
+      style={{ height: '92dvh' }}
       title={pickerSelected.length > 0 ? `Add to Workout · ${pickerSelected.length} selected` : "Add to Workout"}
       ariaLabel={"Add exercises to workout"}
       headerRight={
@@ -128,7 +152,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
               optionLabel={muscleLabel}
               selected={pickerMuscle}
               counts={facetCounts.muscle}
-              onToggle={v => toggleFilter(setPickerMuscle, v)}
+              onToggle={toggleMuscle}
               open={pickerOpenDrop === "wb-muscle"}
               setOpen={setPickerOpenDrop}
               accent="#7A8F8B"
@@ -140,10 +164,10 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
               label="Type"
               shortLabel="Type"
               options={TYPE_OPTS}
-              optionLabel={v => TYPE_LABELS[v]}
+              optionLabel={typeLabel}
               selected={pickerTypeFilter}
               counts={facetCounts.type}
-              onToggle={v => toggleFilter(setPickerTypeFilter, v)}
+              onToggle={toggleType}
               open={pickerOpenDrop === "wb-type"}
               setOpen={setPickerOpenDrop}
               accent="#C4A044"
@@ -158,7 +182,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
               optionLabel={equipLabel}
               selected={pickerEquipFilter}
               counts={facetCounts.equip}
-              onToggle={v => toggleFilter(setPickerEquipFilter, v)}
+              onToggle={toggleEquip}
               open={pickerOpenDrop === "wb-equip"}
               setOpen={setPickerOpenDrop}
               accent={UI_COLORS.accent}
@@ -168,30 +192,33 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
         </div>
 
         {/* ── Exercise list (virtualized) ── */}
-        {(() => {
-          const filtered = allExercises.filter(e => matches(e, pickerMuscle, pickerTypeFilter, pickerEquipFilter));
-
-          if (filtered.length === 0) return <div className={"empty"} style={{ padding: "20px 0" }}>{"No exercises found."}</div>;
-          const selIds = new Set(pickerSelected.map(e => e.exId));
-          return (
-            <>
-              <div style={{ fontSize: FS.fs62, color: "#8a8478", marginBottom: S.s6, textAlign: "right", flexShrink: 0 }}>
-                {filtered.length + " match" + (filtered.length !== 1 ? "es" : "")}
-              </div>
-              {/* The virtualized list is the sheet's ONLY scroller (the
-                  Sheet body is scroll="none") — no more scroll-in-scroll. */}
-              <div style={{ flex: "1 1 auto", minHeight: 120 }}>
-                <List
-                  rowCount={filtered.length}
-                  rowHeight={60}
-                  rowComponent={WbExPickerRow}
-                  rowProps={{ exercises: filtered, selIds, onToggle: pickerToggleEx }}
-                  style={{ height: '100%', width: '100%' }}
-                />
-              </div>
-            </>
-          );
-        })()}
+        {filtered.length === 0 ? (
+          <div className={"empty"} style={{ padding: "20px 0" }}>{"No exercises found."}</div>
+        ) : (
+          <>
+            <div style={{ fontSize: FS.fs62, color: "#8a8478", marginBottom: S.s6, textAlign: "right", flexShrink: 0 }}>
+              {filtered.length + " match" + (filtered.length !== 1 ? "es" : "")}
+            </div>
+            {/* The virtualized list is the sheet's ONLY scroller (the Sheet
+                body is scroll="none") — no more scroll-in-scroll. The List is
+                absolutely inset in a position:relative wrapper because it
+                needs a DEFINITE height: height:100% resolved against this
+                content-sized flex chain as auto, so the List element inflated
+                to full content height, react-window measured that as its
+                viewport, and every one of ~1,500 rows rendered on open
+                (audit finding #7). */}
+            <div style={{ flex: "1 1 auto", minHeight: 120, position: "relative" }}>
+              <List
+                rowCount={filtered.length}
+                rowHeight={60}
+                rowComponent={WbExPickerRow}
+                rowProps={rowProps}
+                overscanCount={6}
+                style={{ position: "absolute", inset: 0, width: "100%", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
+              />
+            </div>
+          </>
+        )}
     </Sheet>
   );
 });

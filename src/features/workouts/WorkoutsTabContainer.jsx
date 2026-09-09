@@ -94,7 +94,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
   // keep-alive (display:none), so any path that opens a fresh builder must go
   // through here first — otherwise a prior draft's duration/calories/labels/
   // copy-source/superset state leaks into the new workout and is saved with it.
-  function resetBuilderFields() {
+  const resetBuilderFields = useCallback(function resetBuilderFields() {
     setWbName("");
     setWbIcon("💪");
     setWbIconPickerOpen(false);
@@ -113,9 +113,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setSsChecked(new Set());
     setSsAccordion({});
     setDragWbExIdx(null);
-  }
+  }, []);
 
-  function initWorkoutBuilder(base) {
+  const initWorkoutBuilder = useCallback(function initWorkoutBuilder(base) {
     resetBuilderFields();
     if (base) {
       setWbName(base.name);
@@ -131,9 +131,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       setWbLabels(base.labels || []);
     }
     setWorkoutView("builder");
-  }
+  }, [resetBuilderFields]);
 
-  function resetBuilderMeta() {
+  const resetBuilderMeta = useCallback(function resetBuilderMeta() {
     setWorkoutView("list");
     setActiveWorkout(null);
     setWbEditId(null);
@@ -144,9 +144,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setWbTotalCal("");
     setWbLabels([]);
     setNewLabelInput("");
-  }
+  }, []);
 
-  function saveBuiltWorkout() {
+  const saveBuiltWorkout = useCallback(function saveBuiltWorkout() {
     if (!wbName.trim()) {
       showToast("Name your workout first!");
       return;
@@ -181,9 +181,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       showToast("Workout created! 💪");
     }
     resetBuilderMeta();
-  }
+  }, [wbName, wbIcon, wbDesc, wbExercises, wbEditId, wbDuration, wbDurSec, wbActiveCal, wbTotalCal, wbLabels, setProfile, showToast, resetBuilderMeta]);
 
-  function saveAsNewWorkout() {
+  const saveAsNewWorkout = useCallback(function saveAsNewWorkout() {
     if (!wbName.trim()) {
       showToast("Name your workout first!");
       return;
@@ -209,9 +209,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     }));
     showToast("Saved as new workout! 💪");
     resetBuilderMeta();
-  }
+  }, [wbName, wbIcon, wbDesc, wbExercises, wbDuration, wbDurSec, wbActiveCal, wbTotalCal, wbLabels, setProfile, showToast, resetBuilderMeta]);
 
-  function copyWorkout(wo) {
+  const copyWorkout = useCallback(function copyWorkout(wo) {
     setWbName("Copy of " + wo.name);
     setWbIcon(wo.icon);
     setWbDesc(wo.desc || "");
@@ -221,9 +221,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setWbLabels(wo.labels || []);
     setNewLabelInput("");
     setWorkoutView("builder");
-  }
+  }, []);
 
-  function deleteWorkout(id) {
+  const deleteWorkout = useCallback(function deleteWorkout(id) {
     const wo = (profile.workouts || []).find(w => w.id === id);
     setConfirmDelete({
       type: "workout",
@@ -231,9 +231,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       name: wo ? wo.name : "this workout",
       icon: wo ? wo.icon : "💪"
     });
-  }
+  }, [profile.workouts, setConfirmDelete]);
 
-  function _doDeleteWorkout(id) {
+  const _doDeleteWorkout = useCallback(function _doDeleteWorkout(id) {
     const wo = (profile.workouts || []).find(w => w.id === id);
     if (!wo) return;
     setProfile(p => ({
@@ -249,10 +249,10 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setWorkoutView("list");
     setActiveWorkout(null);
     showToast("Workout moved to Deleted — recoverable for 7 days.");
-  }
+  }, [profile.workouts, setProfile, showToast]);
 
   // ── Picker ──
-  function closePicker() {
+  const closePicker = useCallback(function closePicker() {
     setWbExPickerOpen(false);
     setPickerSearch("");
     setPickerMuscle(new Set());
@@ -260,9 +260,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setPickerEquipFilter(new Set());
     setPickerOpenDrop(null);
     setPickerSelected([]);
-  }
+  }, []);
 
-  function pickerToggleEx(exId) {
+  const pickerToggleEx = useCallback(function pickerToggleEx(exId) {
     setPickerSelected(prev => {
       const exists = prev.find(e => e.exId === exId);
       if (exists) return prev.filter(e => e.exId !== exId);
@@ -277,9 +277,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         hrZone: null
       }];
     });
-  }
+  }, []);
 
-  function commitPickerToWorkout() {
+  const commitPickerToWorkout = useCallback(function commitPickerToWorkout() {
     if (pickerSelected.length === 0) return;
     setWbExercises(ex => [...ex, ...pickerSelected.map(e => ({
       ...e,
@@ -290,10 +290,10 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       distanceMi: e.distanceMi || null
     }))]);
     closePicker();
-  }
+  }, [pickerSelected, closePicker]);
 
   // ── Reorder (bodies relocated verbatim from App.jsx) ──
-  function reorderSupersetPair(anchorIdx, partnerIdx, direction) {
+  const reorderSupersetPair = useCallback(function reorderSupersetPair(anchorIdx, partnerIdx, direction) {
     setWbExercises(exs => {
       const arr = [...exs];
       const minI = Math.min(anchorIdx, partnerIdx);
@@ -339,9 +339,9 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       }
       return arr;
     });
-  }
+  }, []);
 
-  function reorderWbEx(fromIdx, toIdx) {
+  const reorderWbEx = useCallback(function reorderWbEx(fromIdx, toIdx) {
     if (fromIdx === toIdx) return;
     setWbExercises(exs => {
       const arr = [...exs];
@@ -361,7 +361,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         return e;
       });
     });
-  }
+  }, []);
 
   // ── The external write surface ──
   useImperativeHandle(ref, () => ({
@@ -438,7 +438,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         setWbCopySource={setWbCopySource}
         wbIconPickerOpen={wbIconPickerOpen}
         setWbIconPickerOpen={setWbIconPickerOpen}
-        wbExPickerOpen={wbExPickerOpen}
         setWbExPickerOpen={setWbExPickerOpen}
         wbTotalXP={wbTotalXP}
         collapsedWbEx={collapsedWbEx}

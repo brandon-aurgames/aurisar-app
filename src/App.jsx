@@ -6,6 +6,7 @@ import { EX_BY_ID, CAT_ICON_COLORS, NAME_ICON_MAP, MUSCLE_ICON_MAP, CAT_ICON_FAL
 import { _nullishCoalesce, _optionalChain, uid, clone, todayStr } from './utils/helpers';
 import { loadSave, doSave, flushSave, setPreviewMode, loadAdminFlags } from './utils/storage';
 import { lazyWithRetry } from './utils/lazyWithRetry';
+import { useStableCallback } from './utils/useStableCallback';
 import { isMetric, lbsToKg, kgToLbs, miToKm, ftInToCm, cmToFtIn, weightLabel, distLabel, displayWt, displayDist, pctToSlider, sliderToPct } from './utils/units';
 import { buildXPTable, XP_TABLE, xpToLevel, xpForLevel, xpForNext, calcBMI, detectClassFromAnswers, detectClass, calcExXP, calcPlanXP, calcDayXP, calcExercisePBs, calcDecisionTreeBonus, calcCharStats, checkQuestCompletion, hrRange, scaleWeight, scaleDur } from './utils/xp';
 import { perkAward, applyStoredPerk } from './utils/gearPerks';
@@ -3282,11 +3283,15 @@ function App() {
       defaultHrZone: base ? base.defaultHrZone || null : null
     };
   }
-  function openExEditor(mode, baseEx) {
+  // Stable identity: passed into the memo'd tab containers, where a fresh
+  // function each App render would defeat their React.memo on every toast /
+  // XP flash / live-workout tick. useStableCallback (not useCallback([]))
+  // because these read live state.
+  const openExEditor = useStableCallback(function openExEditor(mode, baseEx) {
     setExEditorMode(mode);
     setExEditorDraft(newExDraft(mode === "create" ? null : baseEx));
     setExEditorOpen(true);
-  }
+  });
   function saveExEditor() {
     const d = exEditorDraft;
     if (!d.name.trim()) {
@@ -3536,7 +3541,7 @@ function App() {
   }
 
   // Log a scheduled solo exercise with default values and remove it from schedule (shows stats popup first)
-  function quickLogSoloEx(sw) {
+  const quickLogSoloEx = useStableCallback(function quickLogSoloEx(sw) {
     const ex = allExById[sw.exId];
     if (!ex) return;
     const noSetsEx = NO_SETS_EX_IDS.has(ex.id);
@@ -3633,7 +3638,7 @@ function App() {
       setTimeout(() => setXpFlash(null), 2000);
       showToast((travelActive && regionBoost > 1 ? `+${finalEarned} XP (+10% travel, +7% ${myRegion.boost.label}) ⚔️` : travelActive ? `+${finalEarned} XP (+10% travel bonus) ⚔️` : regionBoost > 1 ? `+${finalEarned} XP (+7% ${myRegion.boost.label} boost) ${myRegion.icon}` : `+${finalEarned} XP earned!`) + ciSuffix);
     });
-  }
+  });
 
   // Save a set of log entries (from history) as a custom plan template
   // Open "Save To Plan" wizard from history (renamed from Save as Plan)
@@ -3829,13 +3834,13 @@ function App() {
     });
   }
 
-  function startLiveWorkout(wo) {
+  const startLiveWorkout = useStableCallback(function startLiveWorkout(wo) {
     if (liveWorkout && liveWorkout.workoutId !== wo.id) {
       setPendingLiveWorkout(wo);
       return;
     }
     setLiveWorkout({ workoutId: wo.id, name: wo.name, icon: wo.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(wo), userId: authUser?.id || null });
-  }
+  });
 
   function confirmReplaceLiveWorkout() {
     setLiveWorkout({ workoutId: pendingLiveWorkout.id, name: pendingLiveWorkout.name, icon: pendingLiveWorkout.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(pendingLiveWorkout), userId: authUser?.id || null });
@@ -4135,7 +4140,7 @@ function App() {
     setSpDate(plan.scheduledDate || "");
     setSpNotes(plan.scheduleNotes || "");
   }, []);
-  function openScheduleEx(exId, existingId) {
+  const openScheduleEx = useStableCallback(function openScheduleEx(exId, existingId) {
     const ex = allExById[exId];
     if (!ex) return;
     const existing = existingId ? (profile.scheduledWorkouts || []).find(s => s.id === existingId) : null;
@@ -4148,7 +4153,7 @@ function App() {
     });
     setSpDate(_optionalChain([existing, 'optionalAccess', _65 => _65.scheduledDate]) || "");
     setSpNotes(_optionalChain([existing, 'optionalAccess', _66 => _66.notes]) || "");
-  }
+  });
   function confirmSchedule() {
     if (!spDate) {
       showToast("Pick a date first!");
