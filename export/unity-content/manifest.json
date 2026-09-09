@@ -7,6 +7,7 @@
     "formulas.json": "086e3f46a47b0f08f6fc185129f155bb9ba30e2d94fb1eaf547d4360bdd73365",
     "items.json": "5110bcf3c587341f4e4ec53ab1b7c5f2c55f5384b54d4310f6fede6cc98bbccf",
     "quests.json": "8332268870b01fc016dccb8faed5cd4ddefa9c5971f445c2465d1fa995ccb8f0",
+    "terrain/zone1_splat.json": "222feaf6d1fb42b386303f0c7c1f64e2c565b7af33ee9f8c4a0629645672b160",
     "terrain/zone1_terrain.json": "84fed7816f4306769c9d24cd3394186b6f3cc5f3473e34a78fbcc86e4247b2c4",
     "terrain/zone1_tile_0_0.r16": "4c6aa61520bd835c9d4eb46dee2d27a94da549c7fb4a19804ad32935b4a99448",
     "terrain/zone1_tile_0_1.r16": "98cd4224cc033f1854b54e2caf1d52c107def7c9b9cdb81440dc7c4903b70a6a",
@@ -24,6 +25,7 @@
     "terrain/zone1_tile_3_1.r16": "2d21ca311f0f18498a9c55a35933bf8a07a21295455d7b714119898325be0058",
     "terrain/zone1_tile_3_2.r16": "2d21ca311f0f18498a9c55a35933bf8a07a21295455d7b714119898325be0058",
     "terrain/zone1_tile_3_3.r16": "2d21ca311f0f18498a9c55a35933bf8a07a21295455d7b714119898325be0058",
+    "worldgen/zone1_world.json": "18d5c870bd903ac6ea102b1a5d166ccff90fa59e0304f3e68da4888aac68b3e7",
     "zones.json": "4d907ef76fdd04de8a3c5667e7cc22be908b28fc8f9eada96621ce6b95dbb9df"
   }
 }

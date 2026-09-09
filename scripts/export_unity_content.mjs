@@ -12,6 +12,7 @@ import { loadValidatedContent } from './lib/unity_export/loader.mjs';
 import { exportContent } from './lib/unity_export/content.mjs';
 import { exportWorldgen, SITE_KINDS } from './lib/unity_export/worldgen.mjs';
 import { exportTerrain, terrainPaths } from './lib/unity_export/terrain.mjs';
+import { exportSplat } from './lib/unity_export/splat.mjs';
 import { addManifest, retainTerrain, writeOrCheck } from './lib/unity_export/manifest.mjs';
 
 async function main() {
@@ -36,6 +37,8 @@ async function main() {
     console.log(`Terrain: measured height [${terrain.minMeters}, ${terrain.maxMeters}] m; ` +
       `max |analytic - grid| = ${terrain.maxAnalyticGridErrorM} m (1000 samples, limit 8 m).`);
   }
+  // Re-evaluate visual config even with --no-terrain; heights use verified tiles.
+  files.set('terrain/zone1_splat.json', exportSplat(wg, files));
   addManifest(files);
   const check = args.includes('--check');
   if (!writeOrCheck(outputRoot, files, check)) {

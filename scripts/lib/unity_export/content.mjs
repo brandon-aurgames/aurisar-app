@@ -77,6 +77,10 @@ export async function exportContent(content, realized, repoRoot) {
     ['dungeons.json', jsonBytes({ schemaVersion: 1, dungeons: c.DUNGEONS })],
     ['formulas.json', jsonBytes(await formulas())],
   ]);
+  // D50: preserve authored JSON formatting; only normalize Windows line endings.
+  files.set('worldgen/zone1_world.json', normalizeText(
+    readFileSync(join(repoRoot, 'src/features/world/config/zone1_world.json')),
+  ));
   for (const dungeon of c.DUNGEONS) {
     // M1 has one layout source. Fail on new layouts rather than guess their location.
     if (dungeon.layoutManifest !== 'castle_ashwood.json') {

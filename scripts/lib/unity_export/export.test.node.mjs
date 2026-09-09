@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import './splat.test.node.mjs';
 import { mulberry32 } from '../../../src/features/world/worldgen/rng.js';
 import { loadValidatedContent } from './loader.mjs';
 import { exportContent } from './content.mjs';
@@ -133,7 +134,10 @@ test('committed pack hashes, raw castle copy, tile edges, all grid samples, and 
     assert.equal(sha256(bytes), hash, path);
     if (!path.endsWith('.r16')) {
       assert.deepEqual(bytes, normalizeText(bytes), path);
-      assert.equal(bytes.toString(), JSON.stringify(JSON.parse(bytes), null, 2) + '\n', path);
+      // The world config is a verbatim authored document, not reserialized JSON.
+      if (path !== 'worldgen/zone1_world.json') {
+        assert.equal(bytes.toString(), JSON.stringify(JSON.parse(bytes), null, 2) + '\n', path);
+      }
     }
   }
   assert.deepEqual(readFileSync(join(outputRoot, 'dungeons/castle_ashwood.json')),
