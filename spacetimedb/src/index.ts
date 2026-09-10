@@ -889,8 +889,8 @@ export const movePlayer = spacetimedb.reducer(
         // Unclamped claims keep the strict all-or-nothing check: the client
         // already wall-slides locally, so a blocked point here is spoofed or
         // desynced and should be refused rather than quietly slid.
-        const strict = castleInteriorSurfaceAt(worldXM, worldZM, refY);
-        let surface = strict ?? recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
+        let surface = castleInteriorSurfaceAt(worldXM, worldZM, refY)
+          ?? recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
         if (!surface) return;
         if (floorYM > 0 && Math.abs(floorYM - surface.y) > CASTLE_STEP_UP) {
           surface = recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
