@@ -2068,6 +2068,10 @@ function insertMobFromSpawn(
     respawnSec:    mobDef.respawnSec,
     lastAttackAt:  0n,
     dungeonInstanceId: 0n,
+    floorYM:       0,
+    spawnedAt:     0n,
+    lastAoeAt:     0n,
+    enraged:       false,
   });
 }
 
