@@ -39,3 +39,9 @@ config/db-contract.json text eol=lf
 # copies (this repo has two fully separate installs, root and spacetimedb/)
 # to LF for the same core.autocrlf=true Windows-checkout reason as above.
 pnpm-lock.yaml text eol=lf
+
+# export/unity-content/** is byte-compared by export_unity_content.mjs --check
+# (LF text); the .r16 heightmap tiles are raw uint16 and must never be
+# EOL-converted. Order matters: last match wins.
+export/unity-content/** text eol=lf
+export/unity-content/terrain/*.r16 binary

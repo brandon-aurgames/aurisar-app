@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "files": {
+    "classes.json": "5d82eb9c5b1f3a21d734ed8b75e2d87a0da5cac59fe32a6f68c4807434a0ecdb",
+    "dungeons.json": "1393cbe498199b4d7b13f48f85224c58e2298fd381c13a900de6ef483aa51507",
+    "dungeons/castle_ashwood.json": "cb9a0155cf96868f51d2f103389917727939eb81ad0cfc36e3d39bea6eb49cbc",
+    "formulas.json": "086e3f46a47b0f08f6fc185129f155bb9ba30e2d94fb1eaf547d4360bdd73365",
+    "items.json": "5110bcf3c587341f4e4ec53ab1b7c5f2c55f5384b54d4310f6fede6cc98bbccf",
+    "quests.json": "8332268870b01fc016dccb8faed5cd4ddefa9c5971f445c2465d1fa995ccb8f0",
+    "terrain/zone1_splat.json": "222feaf6d1fb42b386303f0c7c1f64e2c565b7af33ee9f8c4a0629645672b160",
+    "terrain/zone1_terrain.json": "84fed7816f4306769c9d24cd3394186b6f3cc5f3473e34a78fbcc86e4247b2c4",
+    "terrain/zone1_tile_0_0.r16": "4c6aa61520bd835c9d4eb46dee2d27a94da549c7fb4a19804ad32935b4a99448",
+    "terrain/zone1_tile_0_1.r16": "98cd4224cc033f1854b54e2caf1d52c107def7c9b9cdb81440dc7c4903b70a6a",
+    "terrain/zone1_tile_0_2.r16": "49e90daf4bd08ee9d537c2876200273a2e180e700f34cbfea47f4f6815b443e9",
+    "terrain/zone1_tile_0_3.r16": "9e0f079fd4e01894d8ef8c8fbd0870cca2bcf5c9365903febfa4d5e0865024a9",
+    "terrain/zone1_tile_1_0.r16": "87d549314c6aed3c252ff7a0b0ed9b94e6769c35cd33059f5566ff0a570d4a89",
+    "terrain/zone1_tile_1_1.r16": "a1f9f71a16338848e071deec7f25c50187abe474f3cacf341f1595266e3eb3e5",
+    "terrain/zone1_tile_1_2.r16": "54ede82ebe23ee4c8fc75892160297c044fb1195613a01c18d390e78b37e8f88",
+    "terrain/zone1_tile_1_3.r16": "405a6bdbb2b486a0e2ec83067bf125b780c7fa7e290991a35ed789d87e149987",
+    "terrain/zone1_tile_2_0.r16": "4edf59eea9fcd1cc849a0bae9ccb24350ace7e18d9fc9c2668d5aa200b961066",
+    "terrain/zone1_tile_2_1.r16": "a1c04efcf5d009ff105e94676fb253074ec10901f6dad25084381a7640413c7a",
+    "terrain/zone1_tile_2_2.r16": "ef6759b7ca71c6cc37f98eb46170a7286f3b370ea57b4c891d82cccc91e60621",
+    "terrain/zone1_tile_2_3.r16": "b6842f3acc4d4e9d9571ac5e019953614ba933624d17f667a76d839afd0a7c99",
+    "terrain/zone1_tile_3_0.r16": "2d21ca311f0f18498a9c55a35933bf8a07a21295455d7b714119898325be0058",
+    "terrain/zone1_tile_3_1.r16": "2d21ca311f0f18498a9c55a35933bf8a07a21295455d7b714119898325be0058",
+    "terrain/zone1_tile_3_2.r16": "2d21ca311f0f18498a9c55a35933bf8a07a21295455d7b714119898325be0058",
+    "terrain/zone1_tile_3_3.r16": "2d21ca311f0f18498a9c55a35933bf8a07a21295455d7b714119898325be0058",
+    "worldgen/zone1_world.json": "18d5c870bd903ac6ea102b1a5d166ccff90fa59e0304f3e68da4888aac68b3e7",
+    "zones.json": "4d907ef76fdd04de8a3c5667e7cc22be908b28fc8f9eada96621ce6b95dbb9df"
+  }
+}

@@ -17,7 +17,8 @@ coverage/
 .vite/
 __pycache__/
 *.pyc
-export/
+export/*
+!export/unity-content/
 # Locally-installed agent skill packs (dev-machine tooling, not app code).
 .claude/skills/
 

@@ -74,6 +74,12 @@ jobs:
       - name: Zone 1 landmarks up to date
         run: pnpm run emit:landmarks:check
 
+      # Unity content export (export/unity-content/**) regenerated and byte-
+      # compared, terrain tiles included. The Unity game repo pulls this
+      # folder one-way; see scripts/export_unity_content.mjs.
+      - name: Unity content export up to date
+        run: pnpm run export:unity:check
+
       # Asset manifests fresh + every runtime GLB within its per-class budget
       # (config/asset-budgets.json), files present, ATTRIBUTION block current.
       # See docs/ART_DIRECTION.md and scripts/assets_pipeline.mjs.
