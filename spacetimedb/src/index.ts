@@ -59,6 +59,7 @@ import {
   getBossMechanicsForMob,
   shouldBossAoePulse,
 } from './dungeon/bossMechanics.js';
+import { castleInteriorRecoverSurface } from './castle/surface.js';
 import {
   castleInteriorResolveMove,
   castleInteriorSurfaceAt,
@@ -842,9 +843,12 @@ export const movePlayer = spacetimedb.reducer(
     const worldZM = pxToWorldM(clampedY);
     let nextFloorYM = existing.floorYM;
 
-    if (isInCastleInterior(worldXM, worldZM) || existing.dungeonInstanceId > 0n) {
-      // Server-stored floor is authoritative — never use client floorYM as
-      // surfaceAt refY (prevents spoofed jumps to upper floors / boss rooms).
+    // Interior rules apply only inside an instance (D65 puts the interior at world coordinates
+    // 782..898 × -44..44, which the overworld also covers; an outdoor player crossing that
+    // footprint must not be resolved against the castle grids).
+    if (existing.dungeonInstanceId > 0n) {
+      // Strict resolution starts at the stored floor. D92 recovery is considered
+      // only after rejection, and still requires a real surface at the guarded XZ.
       const refY = existing.floorYM > 0 ? existing.floorYM : CASTLE_LEVELS[1].y;
 
       if (guarded.clamped) {
@@ -859,19 +863,27 @@ export const movePlayer = spacetimedb.reducer(
         const resolved = castleInteriorResolveMove(
           pxToWorldM(existing.x), pxToWorldM(existing.y), worldXM, worldZM, refY,
         );
-        if (!resolved.surface) return;
-        if (floorYM > 0 && Math.abs(floorYM - resolved.floorYM) > CASTLE_STEP_UP) return;
-        clampedX = worldMToPx(resolved.x);
-        clampedY = worldMToPx(resolved.z);
-        nextFloorYM = resolved.floorYM;
+        if (!resolved.surface || (floorYM > 0 && Math.abs(floorYM - resolved.floorYM) > CASTLE_STEP_UP)) {
+          const recovered = castleInteriorRecoverSurface(worldXM, worldZM, floorYM);
+          if (!recovered) return;
+          // Keep the upstream speed-clamped endpoint, never the unguarded claim.
+          nextFloorYM = recovered.y;
+        } else {
+          clampedX = worldMToPx(resolved.x);
+          clampedY = worldMToPx(resolved.z);
+          nextFloorYM = resolved.floorYM;
+        }
       } else {
         // Unclamped claims keep the strict all-or-nothing check: the client
         // already wall-slides locally, so a blocked point here is spoofed or
         // desynced and should be refused rather than quietly slid.
-        const surface = castleInteriorSurfaceAt(worldXM, worldZM, refY);
+        const strict = castleInteriorSurfaceAt(worldXM, worldZM, refY);
+        let surface = strict ?? castleInteriorRecoverSurface(worldXM, worldZM, floorYM);
         if (!surface) return;
-        // Reject moves whose client-claimed floor is far from the resolved surface.
-        if (floorYM > 0 && Math.abs(floorYM - surface.y) > CASTLE_STEP_UP) return;
+        if (floorYM > 0 && Math.abs(floorYM - surface.y) > CASTLE_STEP_UP) {
+          surface = castleInteriorRecoverSurface(worldXM, worldZM, floorYM);
+          if (!surface) return;
+        }
         nextFloorYM = surface.y;
       }
     } else if (existing.floorYM !== 0) {
