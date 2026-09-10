@@ -4,6 +4,8 @@
     "classes.json": "5d82eb9c5b1f3a21d734ed8b75e2d87a0da5cac59fe32a6f68c4807434a0ecdb",
     "dungeons.json": "1393cbe498199b4d7b13f48f85224c58e2298fd381c13a900de6ef483aa51507",
     "dungeons/castle_ashwood.json": "cb9a0155cf96868f51d2f103389917727939eb81ad0cfc36e3d39bea6eb49cbc",
+    "dungeons/castle_ashwood_blockers.json": "53764fc2675381f6a3093b4adef7c496e512bf04d24b02bd9efbf9e9830a8748",
+    "dungeons/castle_ashwood_nav.bin": "a1a64be969905e204b1c067c6288d27f92925b4b4dee92a908d6b280861ad469",
     "formulas.json": "086e3f46a47b0f08f6fc185129f155bb9ba30e2d94fb1eaf547d4360bdd73365",
     "items.json": "5110bcf3c587341f4e4ec53ab1b7c5f2c55f5384b54d4310f6fede6cc98bbccf",
     "quests.json": "8332268870b01fc016dccb8faed5cd4ddefa9c5971f445c2465d1fa995ccb8f0",

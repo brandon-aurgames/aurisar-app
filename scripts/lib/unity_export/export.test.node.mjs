@@ -8,6 +8,7 @@ import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import './splat.test.node.mjs';
+import './castle.test.node.mjs';
 import { mulberry32 } from '../../../src/features/world/worldgen/rng.js';
 import { loadValidatedContent } from './loader.mjs';
 import { exportContent } from './content.mjs';
@@ -132,7 +133,7 @@ test('committed pack hashes, raw castle copy, tile edges, all grid samples, and 
   for (const [path, hash] of Object.entries(manifest.files)) {
     const bytes = readFileSync(join(outputRoot, path));
     assert.equal(sha256(bytes), hash, path);
-    if (!path.endsWith('.r16')) {
+    if (!path.endsWith('.r16') && !path.endsWith('.bin')) {
       assert.deepEqual(bytes, normalizeText(bytes), path);
       // The world config is a verbatim authored document, not reserialized JSON.
       if (path !== 'worldgen/zone1_world.json') {

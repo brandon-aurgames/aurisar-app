@@ -41,7 +41,8 @@ config/db-contract.json text eol=lf
 pnpm-lock.yaml text eol=lf
 
 # export/unity-content/** is byte-compared by export_unity_content.mjs --check
-# (LF text); the .r16 heightmap tiles are raw uint16 and must never be
+# (LF text); the .r16 heightmap tiles and .bin nav grids must never be
 # EOL-converted. Order matters: last match wins.
 export/unity-content/** text eol=lf
 export/unity-content/terrain/*.r16 binary
+export/unity-content/**/*.bin binary
