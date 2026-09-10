@@ -59,15 +59,15 @@ import {
   getBossMechanicsForMob,
   shouldBossAoePulse,
 } from './dungeon/bossMechanics.js';
+import { castleInteriorRecoverSurface } from './castle/surface.js';
 import {
   castleInteriorResolveMove,
   castleInteriorSurfaceAt,
-  isInCastleInterior,
   pxToWorldM,
   sameInteriorFloor,
   worldMToPx,
 } from './castle/validate.js';
-import { CASTLE_LEVELS, CASTLE_STEP_UP } from './castle/navGrids.js';
+import { CASTLE_LEVELS, CASTLE_STEP_DOWN, CASTLE_STEP_UP } from './castle/navGrids.js';
 import {
   addCopper,
   addItemStack,
@@ -771,6 +771,18 @@ export const setAvatarConfig = spacetimedb.reducer(
  * Slice 5c: dead players cannot move. Their `playerRespawnQueue` row will
  * teleport them to origin when the timer fires.
  */
+/**
+ * D92 recovery, bounded by the STORED floor: the claimed floorYM is client-controlled, so a
+ * recovered surface must also lie within CASTLE_STEP_DOWN of the row's own floor. A freeze only
+ * ever accumulates in sub-0.55 m steps (the strict window), so every real freeze is within reach,
+ * while a spoofed claim of another level (floors are >= 9.6 m apart) is refused.
+ */
+function recoverNearStoredFloor(wx: number, wz: number, claimedY: number, storedY: number) {
+  const recovered = castleInteriorRecoverSurface(wx, wz, claimedY);
+  if (!recovered || Math.abs(recovered.y - storedY) > CASTLE_STEP_DOWN) return null;
+  return recovered;
+}
+
 export const movePlayer = spacetimedb.reducer(
   {
     x:         t.f32(),
@@ -830,7 +842,8 @@ export const movePlayer = spacetimedb.reducer(
     // post-computation dead-band below still catches zoneId/floor no-ops.)
     if (
       existing.x === clampedX && existing.y === clampedY &&
-      existing.direction === direction % 4 && existing.isMoving === isMoving
+      existing.direction === direction % 4 && existing.isMoving === isMoving &&
+      (existing.dungeonInstanceId === 0n || existing.floorYM === floorYM)
     ) {
       return;
     }
@@ -842,9 +855,12 @@ export const movePlayer = spacetimedb.reducer(
     const worldZM = pxToWorldM(clampedY);
     let nextFloorYM = existing.floorYM;
 
-    if (isInCastleInterior(worldXM, worldZM) || existing.dungeonInstanceId > 0n) {
-      // Server-stored floor is authoritative — never use client floorYM as
-      // surfaceAt refY (prevents spoofed jumps to upper floors / boss rooms).
+    // Interior rules apply only inside an instance (D65 puts the interior at world coordinates
+    // 782..898 × -44..44, which the overworld also covers; an outdoor player crossing that
+    // footprint must not be resolved against the castle grids).
+    if (existing.dungeonInstanceId > 0n) {
+      // Strict resolution starts at the stored floor. D92 recovery is considered
+      // only after rejection, and still requires a real surface at the guarded XZ.
       const refY = existing.floorYM > 0 ? existing.floorYM : CASTLE_LEVELS[1].y;
 
       if (guarded.clamped) {
@@ -859,19 +875,27 @@ export const movePlayer = spacetimedb.reducer(
         const resolved = castleInteriorResolveMove(
           pxToWorldM(existing.x), pxToWorldM(existing.y), worldXM, worldZM, refY,
         );
-        if (!resolved.surface) return;
-        if (floorYM > 0 && Math.abs(floorYM - resolved.floorYM) > CASTLE_STEP_UP) return;
-        clampedX = worldMToPx(resolved.x);
-        clampedY = worldMToPx(resolved.z);
-        nextFloorYM = resolved.floorYM;
+        if (!resolved.surface || (floorYM > 0 && Math.abs(floorYM - resolved.floorYM) > CASTLE_STEP_UP)) {
+          const recovered = recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
+          if (!recovered) return;
+          // Keep the upstream speed-clamped endpoint, never the unguarded claim.
+          nextFloorYM = recovered.y;
+        } else {
+          clampedX = worldMToPx(resolved.x);
+          clampedY = worldMToPx(resolved.z);
+          nextFloorYM = resolved.floorYM;
+        }
       } else {
         // Unclamped claims keep the strict all-or-nothing check: the client
         // already wall-slides locally, so a blocked point here is spoofed or
         // desynced and should be refused rather than quietly slid.
-        const surface = castleInteriorSurfaceAt(worldXM, worldZM, refY);
+        let surface = castleInteriorSurfaceAt(worldXM, worldZM, refY)
+          ?? recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
         if (!surface) return;
-        // Reject moves whose client-claimed floor is far from the resolved surface.
-        if (floorYM > 0 && Math.abs(floorYM - surface.y) > CASTLE_STEP_UP) return;
+        if (floorYM > 0 && Math.abs(floorYM - surface.y) > CASTLE_STEP_UP) {
+          surface = recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
+          if (!surface) return;
+        }
         nextFloorYM = surface.y;
       }
     } else if (existing.floorYM !== 0) {
