@@ -26,7 +26,7 @@ export function addManifest(files) {
 
 function readOutput(root, path) {
   const bytes = readFileSync(join(root, path));
-  return path.endsWith('.r16') ? bytes : normalizeText(bytes);
+  return path.endsWith('.r16') || path.endsWith('.bin') ? bytes : normalizeText(bytes);
 }
 
 /** Do not follow symlinks/junctions while comparing, overwriting, or pruning. */

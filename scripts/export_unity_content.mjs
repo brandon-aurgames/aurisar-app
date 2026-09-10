@@ -13,6 +13,7 @@ import { exportContent } from './lib/unity_export/content.mjs';
 import { exportWorldgen, SITE_KINDS } from './lib/unity_export/worldgen.mjs';
 import { exportTerrain, terrainPaths } from './lib/unity_export/terrain.mjs';
 import { exportSplat } from './lib/unity_export/splat.mjs';
+import { exportCastle, assertCastleNavParity, CASTLE_NAV_PATH } from './lib/unity_export/castle.mjs';
 import { addManifest, retainTerrain, writeOrCheck } from './lib/unity_export/manifest.mjs';
 
 async function main() {
@@ -26,6 +27,8 @@ async function main() {
   const content = await loadValidatedContent(); // Before worldgen, serialization, or any writes.
   const { wg, realized } = exportWorldgen(repoRoot);
   const files = await exportContent(content, realized, repoRoot);
+  for (const [path, bytes] of exportCastle()) files.set(path, bytes);
+  if (args.includes('--check')) assertCastleNavParity(files.get(CASTLE_NAV_PATH), repoRoot);
   console.log(`Realized: ${SITE_KINDS.map((kind) => `${kind}=${realized[kind].length}`).join(', ')}`);
 
   if (args.includes('--no-terrain')) {
