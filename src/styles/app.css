@@ -1372,7 +1372,7 @@
       z-index:var(--z-fixed-bar);
       width:48px;height:48px;padding:0;border:none;background:transparent;
       cursor:pointer;-webkit-tap-highlight-color:transparent;
-      transform:translateX(calc(-100% + 20px));
+      transform:translateX(-6px);
       transition:transform var(--dur-slow) var(--ease-out);
     }
     .wb-details-peek:hover,.wb-details-peek:focus-visible{
@@ -1429,11 +1429,19 @@
       .wb-details-peek{transform:translateX(8px)}
       .wb-details-peek-ribbon{opacity:1;transform:translate(0,-50%) scaleX(1)}
     }
+    /* Narrow HUD-width windows still report pointer:fine in desktop Chrome.
+       Keep the seal fully on-canvas so it isn't a 20px sliver. */
+    @media (max-width:560px){
+      .wb-details-peek{transform:translateX(8px)}
+      .wb-details-peek-ribbon{opacity:1;transform:translate(0,-50%) scaleX(1)}
+    }
     @keyframes wb-peek-spin{to{transform:rotate(360deg)}}
     @keyframes wb-peek-pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
     @keyframes wb-peek-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
-    .wb-details-sheet .wb-stats-row{flex-wrap:wrap}
-    .wb-details-sheet .wb-stats-row .field:first-child{flex:1 1 100%}
+    .wb-details-sheet .wb-stats-row{flex-direction:column;gap:10px}
+    .wb-details-sheet .wb-stats-row .field{flex:none;width:100%}
+    .wb-details-sheet .wb-cal-fields{display:flex;gap:8px;width:100%}
+    .wb-details-sheet .wb-cal-fields .field{flex:1;min-width:0}
     .wb-details-sheet label{color:#d4cec4}
 
     /* Builder save/complete bar — sticky in normal flow instead of a fixed

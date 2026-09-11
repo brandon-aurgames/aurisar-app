@@ -261,7 +261,7 @@ function WbDetailsPeek({ open, filled, onOpen }) {
       aria-haspopup="dialog"
       aria-expanded={false}
       aria-controls="wb-details-sheet"
-      title="Session notes"
+      aria-label="Session notes"
     >
       <span className="wb-details-peek-orb" aria-hidden="true">
         <span className="wb-details-peek-ring" />
@@ -1007,7 +1007,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
           }
           if (!wbLabels.includes(lbl)) setWbLabels(prev => [...prev, lbl]);
           setNewLabelInput("");
-        }}>{"+"}</button></span></div><div className={"wb-section-divider"} /><div className={"wb-sub-hdr"}><span className={"wb-sub-hdr-icon"}>{"⏱"}</span>{"Session Stats"}<span style={{color:"#8a8478",fontWeight:"normal",letterSpacing:".05em",marginLeft:S.s6,textTransform:"none"}}>{"(optional)"}</span></div><div className={"wb-stats-row"}><div className={"field"} style={{flex:2,marginBottom:S.s0}}><label>{"Duration"}</label><input className={"inp"} type={"text"} inputMode={"numeric"} value={wbDuration} onChange={e => setWbDuration(e.target.value)} onBlur={e => {
+        }}>{"+"}</button></span></div><div className={"wb-section-divider"} /><div className={"wb-sub-hdr"}><span className={"wb-sub-hdr-icon"}>{"⏱"}</span>{"Session Stats"}<span style={{color:"#8a8478",fontWeight:"normal",letterSpacing:".05em",marginLeft:S.s6,textTransform:"none"}}>{"(optional)"}</span></div><div className={"wb-stats-row"}><div className={"field"} style={{marginBottom:S.s0}}><label>{"Duration"}</label><input className={"inp"} type={"text"} inputMode={"numeric"} value={wbDuration} onChange={e => setWbDuration(e.target.value)} onBlur={e => {
         const val = e.target.value.trim();
         if (!val) { setWbDuration(""); setWbDurSec(""); return; }
         const hms = val.match(/^(\d+):(\d{1,2}):(\d{1,2})$/);
@@ -1020,7 +1020,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
           setWbDuration(normalizeHHMM(val));
           setWbDurSec("");
         }
-      }} placeholder={"HH:MM or HH:MM:SS"} style={{textAlign:"center"}} /><div className={"wb-dur-hint"}>{"90 = 1h30m · include :SS for seconds"}</div></div><div className={"field"} style={{flex:1.3,marginBottom:S.s0}}><label>{"Active Cal"}</label><input className={"inp"} type={"number"} min={"0"} max={"9999"} value={wbActiveCal} onChange={e => setWbActiveCal(e.target.value)} /></div><div className={"field"} style={{flex:1.3,marginBottom:S.s0}}><label>{"Total Cal"}</label><input className={"inp"} type={"number"} min={"0"} max={"9999"} value={wbTotalCal} onChange={e => setWbTotalCal(e.target.value)} /></div></div></Sheet>
+      }} placeholder={"HH:MM[:SS]"} style={{textAlign:"center"}} /><div className={"wb-dur-hint"}>{"90 = 1h30m · include :SS for seconds"}</div></div><div className={"wb-cal-fields"}><div className={"field"} style={{marginBottom:S.s0}}><label>{"Active Cal"}</label><input className={"inp"} type={"number"} min={"0"} max={"9999"} value={wbActiveCal} onChange={e => setWbActiveCal(e.target.value)} /></div><div className={"field"} style={{marginBottom:S.s0}}><label>{"Total Cal"}</label><input className={"inp"} type={"number"} min={"0"} max={"9999"} value={wbTotalCal} onChange={e => setWbTotalCal(e.target.value)} /></div></div></div></Sheet>
   {
     /* Exercise list */
   }<div className={"wo-section-hdr"} style={{
