@@ -6,6 +6,7 @@ import { todayStr } from '../../utils/helpers';
 import { secToHMS } from '../../utils/time';
 import { S, R, FS } from '../../utils/tokens';
 import { UI_COLORS } from '../../data/constants';
+import { groupedExIds } from '../workouts/supersetModel';
 
 /**
  * Calendar tab — extracted from the inline IIFE in App.jsx as part of
@@ -313,10 +314,14 @@ return <><div className={"rpg-sec-header rpg-sec-header-center"} style={{
                 byExId[e.exId].push(e);
               });
               const consolidated = Object.values(byExId);
+              const srcWo = (profile.workouts || []).find(w => w.id === first.sourceWorkoutId);
+              const srcPlan = !srcWo && (profile.plans || []).find(p => p.id === first.sourcePlanId);
+              const srcExs = srcWo ? srcWo.exercises : srcPlan ? (srcPlan.days || []).flatMap(d => d.exercises) : [];
+              const ssSet = groupedExIds(srcExs);
               return <div className={"log-group-body"}>{consolidated.map((exEntries, ci) => {
                   const ef = exEntries[0];
                   const exXP = exEntries.reduce((s, e) => s + e.xp, 0);
-                  const isSuperset = exEntries.some(e => entries.some((o, oi) => o.exId !== e.exId && o.sourceGroupId === e.sourceGroupId && (o.supersetWith != null || e.supersetWith != null)));
+                  const isSuperset = ssSet.has(ef.exId);
                   const efData = allExById[ef.exId];
                   const efMgColor = getMuscleColor(efData && efData.muscleGroup);
                   return <div key={ci} className={"h-entry"} style={{

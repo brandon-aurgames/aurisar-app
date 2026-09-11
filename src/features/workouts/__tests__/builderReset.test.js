@@ -35,9 +35,9 @@ describe('builder fresh-start reset (P2c)', () => {
     const body = src.slice(src.indexOf('openBuilderWithExercises:'));
     const fn = body.slice(0, body.indexOf('},') + 2);
     expect(fn).toContain('resetBuilderFields()');
-    expect(fn).toContain('setWbExercises(entries)');
+    expect(fn).toContain('setWbExercises(normalizeSupersetGroups(entries))');
     // reset must precede the seed
-    expect(fn.indexOf('resetBuilderFields()')).toBeLessThan(fn.indexOf('setWbExercises(entries)'));
+    expect(fn.indexOf('resetBuilderFields()')).toBeLessThan(fn.indexOf('setWbExercises(normalizeSupersetGroups(entries))'));
   });
 
   it('initWorkoutBuilder also starts from the shared reset', () => {

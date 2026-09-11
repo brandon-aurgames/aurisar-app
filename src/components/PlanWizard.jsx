@@ -7,6 +7,14 @@ import { isMetric, weightLabel, distLabel, lbsToKg, kgToLbs, miToKm, kmToMi } fr
 import { normalizeHHMM, combineHHMMSec, secToHHMMSplit } from '../utils/time';
 import { _optionalChain, uid, clone } from '../utils/helpers';
 import { bDaysReducer, initBDays, A } from './planWizardReducer';
+import {
+  SS_MAX,
+  adjacentGroupId,
+  eachRun,
+  groupLetter,
+  memberBadge,
+  normalizeSupersetGroups,
+} from '../features/workouts/supersetModel';
 import { NO_SETS_EX_IDS, RUNNING_EX_ID, HR_ZONES, UI_COLORS } from '../data/constants';
 import { FS, R, S } from '../utils/tokens';
 import { CLASSES } from '../data/exercises';
@@ -72,7 +80,7 @@ const PickerRow = React.memo(function PickerRow({ ariaAttributes, index, style, 
   );
 });
 
-const PlanExCard = React.memo(function PlanExCard({ ex, i, exData, bDayIdx, xp, collapsed, profile, allExById, dispatch, setCollapsedPlanEx, ssCheckedPlan, setSsCheckedPlan, planExCount, onOpenExEditor }) {
+const PlanExCard = React.memo(function PlanExCard({ ex, i, exData, bDayIdx, xp, collapsed, profile, allExById, dispatch, setCollapsedPlanEx, ssCheckedPlan, setSsCheckedPlan, planExCount, onOpenExEditor, canMoveUp, canMoveDown, grouped, orderBadge, inSs, isLast }) {
   function updateField(field, val) { React.startTransition(()=>{ dispatch({ type: A.UPDATE_EX_FIELD, dayIdx: bDayIdx, exIdx: i, field, val }); }); }
   function updateFieldBatch(fields) { React.startTransition(()=>{ dispatch({ type: A.UPDATE_EX_FIELD_BATCH, dayIdx: bDayIdx, exIdx: i, fields }); }); }
   function updateFieldNow(field, val) { dispatch({ type: A.UPDATE_EX_FIELD, dayIdx: bDayIdx, exIdx: i, field, val }); }
@@ -107,23 +115,24 @@ const PlanExCard = React.memo(function PlanExCard({ ex, i, exData, bDayIdx, xp, 
   const catColorPlan=getTypeColor(exData.category);
 
   return (
-    <div className="builder-ex-row" style={{flexDirection:"column",alignItems:"stretch",gap:S.s0,"--cat-color":catColorPlan}}>
+    <div className={"builder-ex-row" + (inSs ? " in-ss" : "") + (isLast ? " ss-last" : "")} style={{flexDirection:"column",alignItems:"stretch",gap:S.s0,"--cat-color":catColorPlan}}>
       {/* Header row */}
       <div className="wb-ex-hdr" style={{display:"flex",alignItems:"center",gap:S.s4,marginBottom:collapsed?0:8,cursor:"pointer"}} onClick={toggleCollapse}>
         <div style={{display:"flex",flexDirection:"column",gap:S.s2,flexShrink:0}}>
-          <button className="btn btn-ghost btn-xs" style={{padding:"2px 6px",fontSize:FS.fs65,lineHeight:1,minWidth:0,opacity:i===0?.3:1}} disabled={i===0} onClick={e=>{e.stopPropagation();moveUp();}}>{"▲"}</button>
-          <button className="btn btn-ghost btn-xs" style={{padding:"2px 6px",fontSize:FS.fs65,lineHeight:1,minWidth:0,opacity:i===planExCount-1?.3:1}} disabled={i===planExCount-1} onClick={e=>{e.stopPropagation();moveDown();}}>{"▼"}</button>
+          <button className="btn btn-ghost btn-xs" style={{padding:"2px 6px",fontSize:FS.fs65,lineHeight:1,minWidth:0,opacity:canMoveUp?1:.3}} disabled={!canMoveUp} onClick={e=>{e.stopPropagation();moveUp();}}>{"▲"}</button>
+          <button className="btn btn-ghost btn-xs" style={{padding:"2px 6px",fontSize:FS.fs65,lineHeight:1,minWidth:0,opacity:canMoveDown?1:.3}} disabled={!canMoveDown} onClick={e=>{e.stopPropagation();moveDown();}}>{"▼"}</button>
         </div>
-        {ex.supersetWith==null && planExCount>=2 && (
+        {!grouped && planExCount>=2 && (
           <div
             style={{display:"flex",alignItems:"center",gap:S.s4,cursor:"pointer",flexShrink:0}}
             title="Select for superset"
-            onClick={e=>{e.stopPropagation();setSsCheckedPlan(prev=>{const n=new Set(prev);if(n.has(i))n.delete(i);else{if(n.size>=2){const oldest=[...n][0];n.delete(oldest);}n.add(i);}return n;});}}
+            onClick={e=>{e.stopPropagation();setSsCheckedPlan(prev=>{const n=new Set(prev);if(n.has(i))n.delete(i);else{if(n.size>=SS_MAX){const oldest=[...n][0];n.delete(oldest);}n.add(i);}return n;});}}
           >
             <div className={`ss-cb ${ssCheckedPlan.has(i)?"on":""}`} />
             <span style={{fontSize:FS.fs55,color:ssCheckedPlan.has(i)?"#b0b8c0":"#8a8f96",fontWeight:600,letterSpacing:".03em",userSelect:"none"}}>Superset</span>
           </div>
         )}
+        {grouped && orderBadge && <span className="ss-badge">{orderBadge}</span>}
         {exData.custom && <div className="ex-edit-btn" style={{position:"static",marginRight:S.s2}} onClick={e=>{e.stopPropagation();onOpenExEditor("edit",exData);}}>{"✎"}</div>}
         <div className="builder-ex-orb" style={{"--cat-color":catColorPlan}}>{exData.icon}</div>
         <span className="builder-ex-name-styled" style={{flex:1}}>{exData.name}</span>
@@ -320,7 +329,6 @@ function PlanWizard(props) {
   const [planWizardOpen, setPlanWizardOpen] = useState(false);
   const [reorderMode, setReorderMode] = useState(false);
   const [collapsedPlanEx, setCollapsedPlanEx] = useState({});
-  const [ssAccordion, setSsAccordion] = useState({});
   const [ssCheckedPlan, setSsCheckedPlan] = useState(()=>new Set());
 
   // ── Picker state ──
@@ -435,83 +443,13 @@ function PlanWizard(props) {
 
   function updateDayLabel(idx,val){ startTransition(()=>{ dispatch({ type: A.UPDATE_DAY_LABEL, dayIdx: idx, val }); }); }
 
-  function planGroupSuperset(dayIdx, idxA, idxB) {
-    startTransition(()=>{ dispatch({ type: A.GROUP_SUPERSET, dayIdx, idxA, idxB }); });
+  function planGroupSuperset(dayIdx, indices, joinGid) {
+    startTransition(()=>{ dispatch({ type: A.GROUP_SUPERSET, dayIdx, indices, joinGid }); });
     setSsCheckedPlan(new Set());
   }
 
-  function planUngroupSuperset(dayIdx, idxA, idxB) {
-    startTransition(()=>{ dispatch({ type: A.UNGROUP_SUPERSET, dayIdx, idxA, idxB }); });
-  }
-
-  function renderPlanSsSection(ex, dayIdx, exIdx, exData, label, sectionKey) {
-    const collapsed = !!ssAccordion[sectionKey];
-    const _noSets = NO_SETS_EX_IDS.has(exData.id);
-    const _isC = exData.category==="cardio"; const _isF = exData.category==="flexibility";
-    const _hasDur = _isC||_isF; const _hasW = !_isC&&!_isF;
-    const _m = isMetric(profile.units); const _wU = weightLabel(profile.units); const _dU = distLabel(profile.units);
-    const xpVal = wizardExXPs[exIdx]||0;
-    const summaryText = (_noSets?"":ex.sets+"×") + ex.reps + (ex.weightLbs?` · ${_m?lbsToKg(ex.weightLbs):ex.weightLbs}${_wU}`:"");
-    return (
-      <div className="ss-section">
-        <div className="ss-section-hdr" onClick={()=>setSsAccordion(p=>({...p,[sectionKey]:!p[sectionKey]}))}>
-          <div className="ab-badge">{label}</div>
-          <div style={{width:28,height:28,borderRadius:R.r6,flexShrink:0,background:"rgba(45,42,36,.15)",border:"1px solid rgba(180,172,158,.05)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:FS.fs80}}>{exData.icon}</div>
-          <span style={{fontFamily:"'Cinzel',serif",fontSize:FS.fs66,color:"#d8caba",letterSpacing:".02em",flex:1,minWidth:0}}>{exData.name}</span>
-          {collapsed && exData.id!=="rest_day" && <span style={{fontSize:FS.fs55,color:"#8a8478"}}>{summaryText}</span>}
-          <span style={{fontSize:FS.fs60,fontWeight:700,color:"#b4ac9e",flexShrink:0}}>{"+"+xpVal}</span>
-          <span style={{fontSize:FS.fs60,color:"#8a8478",transition:"transform .2s",transform:collapsed?"rotate(0deg)":"rotate(180deg)"}}>{"▼"}</span>
-        </div>
-        {!collapsed && exData.id!=="rest_day" && (
-          <div className="ss-section-body">
-            <div style={{display:"flex",gap:S.s6,marginBottom:S.s6}}>
-              {!_noSets && !_hasDur && (
-                <div style={{flex:1,minWidth:0}}>
-                  <label htmlFor={`${sectionKey}-sets`} style={{fontSize:FS.fs60,color:"#b0a898",marginBottom:S.s4,display:"block"}}>Sets</label>
-                  <input id={`${sectionKey}-sets`} className="builder-ex-input" style={{width:"100%"}} type="text" inputMode="decimal"
-                    defaultValue={ex.sets===0||ex.sets===""?"":ex.sets} onBlur={e=>updateExInDay(dayIdx,exIdx,"sets",e.target.value)} />
-                </div>
-              )}
-              {_hasDur ? (
-                <>
-                  <div style={{flex:1.6,minWidth:0}}>
-                    <label htmlFor={`${sectionKey}-dur`} style={{fontSize:FS.fs60,color:"#b0a898",marginBottom:S.s4,display:"block"}}>Duration</label>
-                    <input id={`${sectionKey}-dur`} className="builder-ex-input" style={{width:"100%"}} type="text" inputMode="numeric"
-                      defaultValue={ex._durHHMM!==undefined?ex._durHHMM:(ex.durationSec?secToHHMMSplit(ex.durationSec).hhmm:ex.reps?"00:"+String(ex.reps).padStart(2,"0"):"")}
-                      onBlur={e=>{const n=normalizeHHMM(e.target.value);const s=combineHHMMSec(n,ex._durSec||"");const batch={_durHHMM:n||undefined,durationSec:s};if(s){batch.reps=Math.max(1,Math.floor(s/60));batch.durationMin=s/60;}updateExInDayBatch(dayIdx,exIdx,batch);}}
-                      placeholder="00:00" />
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <label htmlFor={`${sectionKey}-dist`} style={{fontSize:FS.fs60,color:"#b0a898",marginBottom:S.s4,display:"block"}}>Dist ({_dU})</label>
-                    <input id={`${sectionKey}-dist`} className="builder-ex-input" style={{width:"100%"}} type="text" inputMode="decimal"
-                      defaultValue={ex.distanceMi?(_m?String(parseFloat(miToKm(ex.distanceMi)).toFixed(2)):String(ex.distanceMi)):""}
-                      onBlur={e=>{const v=e.target.value;const mi=v&&_m?kmToMi(v):v;updateExInDay(dayIdx,exIdx,"distanceMi",mi||null);}}
-                      placeholder="0" />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{flex:1,minWidth:0}}>
-                    <label htmlFor={`${sectionKey}-reps`} style={{fontSize:FS.fs60,color:"#b0a898",marginBottom:S.s4,display:"block"}}>Reps</label>
-                    <input id={`${sectionKey}-reps`} className="builder-ex-input" style={{width:"100%"}} type="text" inputMode="decimal"
-                      defaultValue={ex.reps===0||ex.reps===""?"":ex.reps} onBlur={e=>updateExInDay(dayIdx,exIdx,"reps",e.target.value)} />
-                  </div>
-                  {_hasW && (
-                    <div style={{flex:1.2,minWidth:0}}>
-                      <label htmlFor={`${sectionKey}-weight`} style={{fontSize:FS.fs60,color:"#b0a898",marginBottom:S.s4,display:"block"}}>Weight ({_wU})</label>
-                      <input id={`${sectionKey}-weight`} className="builder-ex-input" style={{width:"100%"}} type="text" inputMode="decimal"
-                        defaultValue={ex.weightLbs!=null&&ex.weightLbs!==""?(_m?lbsToKg(ex.weightLbs):String(ex.weightLbs)):""}
-                        onBlur={e=>{const v=e.target.value;const lbs=v&&_m?kgToLbs(v):v;updateExInDay(dayIdx,exIdx,"weightLbs",lbs||null);}}
-                        placeholder={"—"} />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  function planUngroupSuperset(dayIdx, gid) {
+    startTransition(()=>{ dispatch({ type: A.UNGROUP_SUPERSET, dayIdx, gid }); });
   }
 
   function saveBuiltPlan(){
@@ -888,71 +826,79 @@ function PlanWizard(props) {
                 <button className="btn btn-ghost btn-sm" style={{flex:1}} onClick={()=>setExPickerOpen(true)}>{"＋ Add Exercise"}</button>
                 <button className="btn btn-ghost btn-sm" style={{flex:1}} onClick={()=>setBWoPickerOpen(true)}>{"💪 Add Workout"}</button>
               </div>
-              {(()=>{const minSsCheckedPlan = ssCheckedPlan.size>0 ? Math.min(...ssCheckedPlan) : -1; return (_optionalChain([bDays, 'access', _20 => _20[bDayIdx], 'optionalAccess', _21 => _21.exercises])||[]).map((ex,i)=>{
-                const exData=allExById[ex.exId]; if(!exData) return null;
-                /* Plan superset: skip second in pair */
-                const planExs = (_optionalChain([bDays, 'access', _20b => _20b[bDayIdx], 'optionalAccess', _21b => _21b.exercises])||[]);
-                const isPlanSecond = planExs.some((x,xi) => x.supersetWith != null && x.supersetWith === i && xi < i);
-                if (isPlanSecond) return null;
-                const planPartnerIdx = ex.supersetWith != null ? ex.supersetWith : null;
-                const planPartnerEx = planPartnerIdx != null ? planExs[planPartnerIdx] : null;
-                const planPartnerExD = planPartnerEx ? (allExById[planPartnerEx.exId]||null) : null;
-                /* Render accordion card for superset pairs */
-                if (planPartnerIdx != null && planPartnerExD) {
-                  const xpA = wizardExXPs[i]||0;
-                  const xpB = wizardExXPs[planPartnerIdx]||0;
+              {(()=>{
+                const planExs = (_optionalChain([bDays, 'access', _20 => _20[bDayIdx], 'optionalAccess', _21 => _21.exercises])||[]);
+                const minSsCheckedPlan = ssCheckedPlan.size>0 ? Math.min(...ssCheckedPlan) : -1;
+                const joinGid = adjacentGroupId(planExs, [...ssCheckedPlan]);
+                const joinLetter = joinGid ? groupLetter(planExs, joinGid) : "";
+                const nodes = [];
+                const renderPlanCard = (ex, i, inSs, isLast) => {
+                  const exData=allExById[ex.exId]; if(!exData) return null;
+                  const grouped = !!ex.ssGroupId;
+                  const canMoveUp = grouped ? i > 0 && planExs[i - 1].ssGroupId === ex.ssGroupId : i > 0;
+                  const canMoveDown = grouped ? i < planExs.length - 1 && planExs[i + 1].ssGroupId === ex.ssGroupId : i < planExs.length - 1;
                   return (
-                    <div key={i} className="ss-accordion">
-                      <div className="ss-accordion-hdr">
-                        <div style={{display:"flex",flexDirection:"column",gap:S.s2,flexShrink:0}}>
-                          <button className="btn btn-ghost btn-xs" style={{padding:"2px 6px",fontSize:FS.fs65,lineHeight:1,minWidth:0,opacity:Math.min(i,planPartnerIdx)===0?.3:1}}
-                            onClick={e=>{e.stopPropagation();
-                              const minI=Math.min(i,planPartnerIdx);
-                              if(minI<=0) return;
-                              startTransition(()=>{ dispatch({ type: A.MOVE_SUPERSET_UP, dayIdx: bDayIdx, minI }); });
-                            }}>{"▲"}</button>
-                          <button className="btn btn-ghost btn-xs" style={{padding:"2px 6px",fontSize:FS.fs65,lineHeight:1,minWidth:0,opacity:Math.max(i,planPartnerIdx)>=((_optionalChain([bDays, 'access', _22 => _22[bDayIdx], 'optionalAccess', _23 => _23.exercises, 'access', _24 => _24.length])||1)-1)?.3:1}}
-                            onClick={e=>{e.stopPropagation();
-                              const maxI=Math.max(i,planPartnerIdx); const minI=Math.min(i,planPartnerIdx);
-                              const len=(_optionalChain([bDays, 'access', _25 => _25[bDayIdx], 'optionalAccess', _26 => _26.exercises, 'access', _27 => _27.length])||0);
-                              if(maxI>=len-1) return;
-                              startTransition(()=>{ dispatch({ type: A.MOVE_SUPERSET_DOWN, dayIdx: bDayIdx, minI, maxI }); });
-                            }}>{"▼"}</button>
-                        </div>
-                        <span className="ss-accordion-hdr-title">{"🔗 Superset"}</span>
-                        <span className="ss-accordion-xp">{(xpA+xpB)+" XP total"}</span>
-                        <button className="ss-accordion-ungroup"
-                          onClick={()=>planUngroupSuperset(bDayIdx,i,planPartnerIdx)}>{"✕ Ungroup"}</button>
-                      </div>
-                      {renderPlanSsSection(ex, bDayIdx, i, exData, "A", "plan_"+bDayIdx+"_"+i+"_a")}
-                      {renderPlanSsSection(planPartnerEx, bDayIdx, planPartnerIdx, planPartnerExD, "B", "plan_"+bDayIdx+"_"+i+"_b")}
-                    </div>
-                  );
-                }
-                return (
-                  <React.Fragment key={bDayIdx+'_'+i+'_'+ex.exId}>
-                    {i===minSsCheckedPlan && ssCheckedPlan.size>0 && (
-                      <div className="ss-action-bar" style={{marginBottom:S.s8}}>
-                        <span className="ss-action-text">{ssCheckedPlan.size+" selected"}</span>
-                        {ssCheckedPlan.size===2 && <button className="ss-action-btn" onClick={()=>{
-                          const [a,b]=[...ssCheckedPlan]; planGroupSuperset(bDayIdx,a,b);
-                        }}>{"🔗 Group as Superset"}</button>}
-                        <button className="ss-action-cancel" onClick={()=>setSsCheckedPlan(new Set())}>{"✕"}</button>
-                      </div>
-                    )}
                     <PlanExCard
+                      key={bDayIdx+'_'+i+'_'+ex.exId}
                       ex={ex} i={i} exData={exData} bDayIdx={bDayIdx}
                       xp={wizardExXPs[i]||0}
                       collapsed={!!collapsedPlanEx[bDayIdx+'_'+i]}
                       profile={planExCardProfile} allExById={allExById}
                       dispatch={dispatch} setCollapsedPlanEx={setCollapsedPlanEx}
                       ssCheckedPlan={ssCheckedPlan} setSsCheckedPlan={setSsCheckedPlan}
-                      planExCount={planExs.filter(e=>!e.supersetWith).length}
+                      planExCount={planExs.length}
                       onOpenExEditor={onOpenExEditor}
+                      canMoveUp={canMoveUp} canMoveDown={canMoveDown}
+                      grouped={grouped} orderBadge={grouped ? memberBadge(planExs, i) : null}
+                      inSs={inSs} isLast={isLast}
                     />
-                  </React.Fragment>
-                );
-              });})()}
+                  );
+                };
+                eachRun(planExs, (run, gid, start) => {
+                  if (gid) {
+                    const letter = groupLetter(planExs, gid);
+                    const last = start + run.length - 1;
+                    const totalXP = run.reduce((s, _, k) => s + (wizardExXPs[start + k] || 0), 0);
+                    nodes.push(
+                      <div key={gid} className="ss-run" style={{marginBottom: S.s8}}>
+                        <div className="ss-band" aria-label={`Superset ${letter}, ${run.length} exercises`}>
+                          <div className="wb-reorder">
+                            <button className="btn btn-ghost btn-xs" style={{padding:"2px 6px",fontSize:FS.fs65,lineHeight:1,minWidth:0,opacity:start===0?.3:1}} disabled={start===0}
+                              onClick={e=>{e.stopPropagation(); startTransition(()=>{ dispatch({ type: A.MOVE_SUPERSET_UP, dayIdx: bDayIdx, gid }); }); }}>{"▲"}</button>
+                            <button className="btn btn-ghost btn-xs" style={{padding:"2px 6px",fontSize:FS.fs65,lineHeight:1,minWidth:0,opacity:last>=planExs.length-1?.3:1}} disabled={last>=planExs.length-1}
+                              onClick={e=>{e.stopPropagation(); startTransition(()=>{ dispatch({ type: A.MOVE_SUPERSET_DOWN, dayIdx: bDayIdx, gid }); }); }}>{"▼"}</button>
+                          </div>
+                          <span className="ss-band-icon" aria-hidden="true">{"🔗"}</span>
+                          <span className="ss-accordion-hdr-title">{"Superset "}{letter}</span>
+                          <span className="ss-band-spacer" />
+                          <span className="ss-accordion-xp">{totalXP+" XP total"}</span>
+                          <button className="ss-accordion-ungroup" onClick={()=>planUngroupSuperset(bDayIdx,gid)}>{"✕ Ungroup"}</button>
+                        </div>
+                        {run.map((ex, k) => renderPlanCard(ex, start + k, true, k === run.length - 1))}
+                      </div>
+                    );
+                    return;
+                  }
+                  run.forEach((ex, k) => {
+                    const i = start + k;
+                    nodes.push(
+                      <React.Fragment key={bDayIdx+'_'+i+'_'+ex.exId}>
+                        {i===minSsCheckedPlan && ssCheckedPlan.size>0 && (
+                          <div className="ss-action-bar" style={{marginBottom:S.s8}}>
+                            <span className="ss-action-text">{joinLetter ? `Add to Superset ${joinLetter}` : ssCheckedPlan.size===1 ? "Select 1 more to superset" : ssCheckedPlan.size+" selected"}</span>
+                            {(ssCheckedPlan.size>=2 || joinLetter) && <button className="ss-action-btn" onClick={()=>{
+                              planGroupSuperset(bDayIdx, [...ssCheckedPlan], joinGid);
+                            }}>{joinLetter ? `🔗 Add to ${joinLetter}` : "🔗 Group as Superset"}</button>}
+                            <button className="ss-action-cancel" onClick={()=>setSsCheckedPlan(new Set())}>{"✕"}</button>
+                          </div>
+                        )}
+                        {renderPlanCard(ex, i, false, false)}
+                      </React.Fragment>
+                    );
+                  });
+                });
+                return nodes;
+              })()}
               {bEditId && <button className="btn btn-glass-yellow" style={{width:"100%",marginTop:S.s8}}
                 onClick={()=>{
                   const plan=(profile.plans||[]).find(p=>p.id===bEditId); if(!plan) return;
@@ -984,11 +930,14 @@ function PlanWizard(props) {
             {profile.workouts && profile.workouts.length>0 ? profile.workouts.map(wo=>(
               <div key={wo.id} className="ex-pick-item" style={{marginBottom:S.s6,flexDirection:"column",alignItems:"flex-start",gap:S.s4}}
                 onClick={()=>{
-                  const newExs = wo.exercises.map(e=>({
+                  const newExs = normalizeSupersetGroups(wo.exercises.map(e=>({
                     exId:e.exId, sets:e.sets||3, reps:e.reps||10,
                     weightLbs:e.weightLbs||null, durationMin:e.durationMin||null,
-                    distanceMi:null, hrZone:null, weightPct:100,
-                  }));
+                    distanceMi:e.distanceMi||null, hrZone:e.hrZone||null, weightPct:e.weightPct||100,
+                    extraRows:e.extraRows||[],
+                    ssGroupId:e.ssGroupId,
+                    supersetWith:e.supersetWith,
+                  })));
                   startTransition(()=>{ dispatch({ type: A.ADD_EXERCISES, dayIdx: bDayIdx, exercises: newExs }); });
                   setBWoPickerOpen(false);
                   showToast(wo.icon+" "+wo.name+" exercises added!");

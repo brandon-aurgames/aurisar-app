@@ -5,6 +5,7 @@ import { getMuscleColor, calcExercisePBs } from '../../utils/xp';
 import { _optionalChain, uid } from '../../utils/helpers';
 import { S, R, FS } from '../../utils/tokens';
 import { UI_COLORS, HR_ZONES } from '../../data/constants';
+import { groupedExIds } from '../workouts/supersetModel';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 // Lazy TrendsTab — same pattern as App.jsx so recharts stays out of the
@@ -287,14 +288,7 @@ const HistoryTab = memo(function HistoryTab({
             const srcWo = (profile.workouts || []).find(w => w.id === first.sourceWorkoutId);
             const srcPlan = !srcWo && (profile.plans || []).find(p => p.id === first.sourcePlanId);
             const srcExs = srcWo ? srcWo.exercises : srcPlan ? (srcPlan.days || []).flatMap(d => d.exercises) : [];
-            const ssSet = new Set();
-            srcExs.forEach((ex, i) => {
-              if (ex.supersetWith != null) {
-                ssSet.add(ex.exId);
-                const partner = srcExs[ex.supersetWith];
-                if (partner) ssSet.add(partner.exId);
-              }
-            });
+            const ssSet = groupedExIds(srcExs);
             return entries.map((e, i) => <EntryRow key={i} e={e} showSource={false} isSuperset={ssSet.has(e.exId)} />);
           })()}</div>}</div>;
     }

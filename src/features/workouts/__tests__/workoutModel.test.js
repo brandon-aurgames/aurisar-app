@@ -52,13 +52,15 @@ describe('buildWorkoutObject', () => {
     expect('oneOff' in w).toBe(false);
   });
 
-  it('empty-string stats normalize to null exactly like the originals ("" || null)', () => {
+  it('migrates legacy supersetWith pairs onto ssGroupId', () => {
     const w = buildWorkoutObject({
-      name: 'A', icon: 'x', exercises: EXS, createdAt: 'c',
-      durationMin: '', activeCal: '', totalCal: '',
+      name: 'SS', icon: '💪', createdAt: 'c',
+      exercises: [
+        { exId: 'bench', sets: 3, reps: 10, supersetWith: 1 },
+        { exId: 'row', sets: 3, reps: 10, supersetWith: 0 },
+      ],
     });
-    expect(w.durationMin).toBeNull();
-    expect(w.activeCal).toBeNull();
-    expect(w.totalCal).toBeNull();
+    expect(w.exercises[0].ssGroupId).toBe(w.exercises[1].ssGroupId);
+    expect(w.exercises.every(e => !('supersetWith' in e))).toBe(true);
   });
 });
