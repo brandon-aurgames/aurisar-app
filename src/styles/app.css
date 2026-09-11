@@ -477,9 +477,11 @@
     .ui-sheet-backdrop--bottom{align-items:flex-end}
     .ui-sheet-backdrop--nav{padding-bottom:var(--bottom-nav-h)}
     .ui-sheet-backdrop--center{align-items:center;padding:20px}
+    .ui-sheet-backdrop--left{justify-content:flex-start;align-items:stretch}
     .ui-sheet{display:flex;flex-direction:column;width:100%;background:linear-gradient(160deg,#12120e,#0c0c0a);border:1px solid rgba(180,172,158,.08);box-shadow:0 -8px 60px rgba(0,0,0,.6)}
     .ui-sheet--bottom{border-radius:16px 16px 0 0;border-bottom:none;max-height:85dvh;padding:10px 16px calc(16px + env(safe-area-inset-bottom,0px))}
     .ui-sheet--center{border-radius:16px;max-height:85dvh;padding:20px;box-shadow:0 0 60px rgba(0,0,0,.3),0 20px 60px rgba(0,0,0,.7)}
+    .ui-sheet--left{width:min(320px,88vw);height:100%;max-height:none;border-radius:0 20px 20px 0;border-left:none;padding:18px 16px 16px;box-shadow:12px 0 48px rgba(0,0,0,.55)}
     .ui-sheet--tall{max-height:92dvh}
     .ui-sheet:focus{outline:none}
     @keyframes ui-sheet-pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
@@ -1353,12 +1355,86 @@
     .wb-section-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(180,172,158,.12),transparent);margin:11px 0}
     .wb-sub-hdr{font-family:'Inter',sans-serif;font-size:.54rem;color:#d4cec4;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:5px}
     .wb-sub-hdr-icon{font-size:.72rem;color:#d4cec4}
-    .wb-identity-row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+    .wb-identity-row{display:flex;align-items:center;gap:8px;margin-bottom:0}
     .wb-identity-row .inp{flex:1;min-width:0}
     .wb-icon-btn{width:42px;height:42px;border-radius:9px;background:rgba(45,42,36,.25);border:1px solid rgba(180,172,158,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.35rem;flex-shrink:0;transition:background .2s,border-color .2s;position:relative;color:inherit;font-family:inherit;padding:0;line-height:1}
     .wb-icon-btn:hover{background:rgba(45,42,36,.4);border-color:rgba(180,172,158,.2)}
     .wb-icon-btn-caret{position:absolute;bottom:2px;right:3px;font-size:.42rem;color:rgba(180,172,158,.55);line-height:1}
     .wb-icon-picker{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+
+    /* Session-notes peek — rounded seal on the HUD's top-left, not a ridged bar.
+       Idle: most of the orb sits off-canvas; hover/focus unfurls a ribbon.
+       Touch: the seal + label stay fully on-screen so the control is tappable. */
+    .wb-details-peek{
+      position:fixed;
+      top:calc(env(safe-area-inset-top,0px) + 132px);
+      left:max(0px,calc(50% - 260px));
+      z-index:var(--z-fixed-bar);
+      width:48px;height:48px;padding:0;border:none;background:transparent;
+      cursor:pointer;-webkit-tap-highlight-color:transparent;
+      transform:translateX(calc(-100% + 20px));
+      transition:transform var(--dur-slow) var(--ease-out);
+    }
+    .wb-details-peek:hover,.wb-details-peek:focus-visible{
+      transform:translateX(10px);
+    }
+    .wb-details-peek:focus-visible{outline:2px solid var(--cls-color,#c49428);outline-offset:3px;border-radius:50%}
+    .wb-details-peek-orb{
+      position:relative;width:48px;height:48px;border-radius:50%;
+      display:grid;place-items:center;
+      background:radial-gradient(circle at 32% 28%,#4a3f2e 0%,#1a1610 58%,#0c0a08 100%);
+      border:1.5px solid #c49428;
+      box-shadow:0 0 14px rgba(196,148,40,.42),inset 0 1px 0 rgba(255,230,160,.28);
+      transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-base);
+    }
+    .wb-details-peek:active .wb-details-peek-orb{transform:scale(.94)}
+    .wb-details-peek-ring{
+      position:absolute;inset:-7px;border-radius:50%;pointer-events:none;
+      border:1px dashed rgba(196,148,40,.42);
+      animation:wb-peek-spin 14s linear infinite;
+    }
+    .wb-details-peek-spark{
+      position:absolute;inset:5px;border-radius:50%;pointer-events:none;
+      background:radial-gradient(circle,rgba(232,200,112,.4),transparent 68%);
+      animation:wb-peek-pulse 2.6s ease-in-out infinite;
+    }
+    .wb-details-peek-gem{
+      position:relative;color:#e8c870;font-size:1rem;line-height:1;
+      text-shadow:0 0 10px rgba(196,148,40,.7);
+      animation:wb-peek-bob 2.6s ease-in-out infinite;
+    }
+    .wb-details-peek-ribbon{
+      position:absolute;left:40px;top:50%;
+      padding:7px 14px 7px 16px;border-radius:0 999px 999px 0;
+      background:linear-gradient(90deg,rgba(18,16,14,.96),rgba(28,24,18,.92));
+      border:1px solid rgba(196,148,40,.35);border-left:none;
+      white-space:nowrap;pointer-events:none;
+      opacity:0;transform:translate(-8px,-50%) scaleX(.82);
+      transform-origin:left center;
+      transition:opacity var(--dur-slow) var(--ease-out),transform var(--dur-slow) var(--ease-out);
+    }
+    .wb-details-peek:hover .wb-details-peek-ribbon,
+    .wb-details-peek:focus-visible .wb-details-peek-ribbon{
+      opacity:1;transform:translate(0,-50%) scaleX(1);
+    }
+    .wb-details-peek-label{
+      font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.16em;
+      text-transform:uppercase;color:#e8c870;
+    }
+    .wb-details-peek.is-filled .wb-details-peek-orb::after{
+      content:"";position:absolute;top:5px;right:5px;width:8px;height:8px;
+      border-radius:50%;background:#e8c870;box-shadow:0 0 8px #c49428;
+    }
+    @media (pointer:coarse){
+      .wb-details-peek{transform:translateX(8px)}
+      .wb-details-peek-ribbon{opacity:1;transform:translate(0,-50%) scaleX(1)}
+    }
+    @keyframes wb-peek-spin{to{transform:rotate(360deg)}}
+    @keyframes wb-peek-pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+    @keyframes wb-peek-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+    .wb-details-sheet .wb-stats-row{flex-wrap:wrap}
+    .wb-details-sheet .wb-stats-row .field:first-child{flex:1 1 100%}
+    .wb-details-sheet label{color:#d4cec4}
 
     /* Builder save/complete bar — sticky in normal flow instead of a fixed
        overlay with a spacer hack, so it never covers the last exercise. */
@@ -2135,8 +2211,13 @@
         animation: none; opacity: 1; transform: none;
       }
       /* Purely decorative loops — stop outright rather than run 500×/s. */
-      .lib-hero-orb, .lw-dot, .sf-xp-sweep, .wb-drop-line .dl-bar::after, .wb-drag-ghost::after { animation: none; }
+      .lib-hero-orb, .lw-dot, .sf-xp-sweep, .wb-drop-line .dl-bar::after, .wb-drag-ghost::after,
+      .wb-details-peek-ring, .wb-details-peek-spark, .wb-details-peek-gem { animation: none; }
       .pt { display: none; }
+      .wb-details-peek,
+      .wb-details-peek:hover,
+      .wb-details-peek:focus-visible { transform: translateX(8px); }
+      .wb-details-peek-ribbon { opacity: 1; transform: translate(0,-50%) scaleX(1); }
       /* Hover/press displacement reads as motion too. */
       .lib-hero-card:hover, .lib-muscle-tile:hover, .lib-discover-card:hover,
       .picker-ex-row:hover, .lib-hero-card:active, .lib-muscle-tile:active,

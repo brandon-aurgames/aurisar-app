@@ -59,3 +59,20 @@ describe('stats-prompt preference is read live (C1)', () => {
     expect(fn).not.toMatch(/const _bsPrefs = profile\.notificationPrefs/);
   });
 });
+
+describe('builder session-notes peek', () => {
+  it('keeps required name on the canvas and parks optional fields in a left sheet', () => {
+    const src = read('src/features/workouts/WorkoutsTab.jsx');
+    expect(src).toContain('WbDetailsPeek');
+    expect(src).toContain('placement={"left"}');
+    expect(src).toContain('Session notes');
+    expect(src).not.toContain('placeholder={"320"}');
+    expect(src).not.toContain('placeholder={"450"}');
+  });
+
+  it('Sheet supports left placement', () => {
+    const sheet = read('src/components/ui/Sheet.jsx');
+    expect(sheet).toContain("placement === 'left'");
+    expect(sheet).toContain('ui-sheet--left');
+  });
+});
