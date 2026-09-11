@@ -59,15 +59,15 @@ import {
   getBossMechanicsForMob,
   shouldBossAoePulse,
 } from './dungeon/bossMechanics.js';
+import { castleInteriorRecoverSurface } from './castle/surface.js';
 import {
   castleInteriorResolveMove,
   castleInteriorSurfaceAt,
-  isInCastleInterior,
   pxToWorldM,
   sameInteriorFloor,
   worldMToPx,
 } from './castle/validate.js';
-import { CASTLE_LEVELS, CASTLE_STEP_UP } from './castle/navGrids.js';
+import { CASTLE_LEVELS, CASTLE_STEP_DOWN, CASTLE_STEP_UP } from './castle/navGrids.js';
 import {
   addCopper,
   addItemStack,
@@ -75,11 +75,9 @@ import {
   countItemOwned,
   deductCopper,
   getOrCreateWallet,
-  grantMobLoot,
   grantQuestReward,
   grantStartingKit,
   isConsumable,
-  lootSeedFromKill,
   removeItemStack,
   type InventoryCtx,
 } from './inventory/helpers.js';
@@ -110,6 +108,35 @@ import {
   equipItemForPlayer,
   unequipSlotForPlayer,
 } from './equip/helpers.js';
+import { applyMobKill, clearMobAuras } from './combat/kill.js';
+import {
+  COMBAT_EVENT_TTL_MICROS,
+  emitCombatEvent,
+  logCombat,
+  type CombatEventKind,
+} from './combat/events.js';
+import {
+  advanceTick,
+  applyResolvedAuras,
+  AURA_TICK_MICROS,
+  partitionAuraWork,
+} from './combat/auras.js';
+import {
+  abilityById,
+  buildCasterState,
+  buildTargetState,
+  equippedSnapshot,
+  maxResourceFrom,
+  parseCooldowns,
+  regeneratedResource,
+  resourceMaxFor,
+  serializeCooldowns,
+} from './combat/state.js';
+import {
+  resolveCast,
+  validateCast,
+} from './content/formulas/abilityResolve.js';
+import { mulberry32, seedFrom } from './content/formulas/combat.js';
 
 // World bounds in STDB px. Derived from world_build_config — see header.
 const WORLD_HALF_PX = 32000;        // 1000 world units * 32 px/unit
@@ -238,6 +265,19 @@ const campfireExpireQueueRow = t.row('CampfireExpireQueueRow', {
   campfireId:  t.u64(),        // payload — which fire burns out
 });
 
+// ── M6 combat schedules ──────────────────────────────────────────────────────
+// Both are Interval rows: they stay in their table and re-fire forever.
+
+const auraTickScheduleRow = t.row('AuraTickScheduleRow', {
+  id:          t.u64().primaryKey().autoInc(),
+  scheduledAt: t.scheduleAt(),
+});
+
+const combatEventReapScheduleRow = t.row('CombatEventReapScheduleRow', {
+  id:          t.u64().primaryKey().autoInc(),
+  scheduledAt: t.scheduleAt(),
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SCHEMA
 // ─────────────────────────────────────────────────────────────────────────────
@@ -278,6 +318,15 @@ const spacetimedb = schema({
       floorYM:      t.f32().default(0),              // castle interior vertical meters (world Y)
       // ── Batch E additions (appended; ADD COLUMN semantics) ──
       lastMoveAt:   t.u64().default(0n),             // micros of last accepted movePlayer — server-side move-rate floor (movement was the one hot reducer with NO throttle; chat and attack both have one)
+      // ── M6 combat additions (appended; ADD COLUMN semantics, D84) ──
+      // These four MUST remain the last four columns of this table. Anything
+      // inserted above them reorders the live maincloud schema, which
+      // SpacetimeDB treats as a manual migration rather than an ADD COLUMN.
+      resource:     t.f32().default(0),              // current rage / mana / energy; backfills to 0 and is refilled to resourceMax on the next connect
+      resourceMax:  t.f32().default(0),              // deriveStats(...).maxResource — recomputed on connect and on each cast (equip changes it)
+      lastGcdAt:    t.u64().default(0n),             // micros when the global cooldown FREES (not the last cast time — matches CasterState.lastGcdAtMicros)
+      abilityCooldowns: t.string().default(''),      // compact JSON {abilityId: microsWhenReady}; '' = nothing on cooldown. See combat/state.ts for why this is a field and not a table.
+      lastRegenAt:  t.u64().default(0n),             // micros of the last resource settlement; regen is computed lazily from this on the next cast (D94). MUST stay the last column.
     }
   ),
 
@@ -498,6 +547,81 @@ const spacetimedb = schema({
     }
   ),
 
+  /**
+   * M6 — timed effects on a player (D86). New tables are additive, so unlike
+   * the `player` append they carry no column-order migration risk.
+   *
+   * `magnitude` units depend on `effectKind` — per-tick HP for dot/hot, an HP
+   * pool for absorb, a flat stat delta for buffs, and a PERCENT (0-90) for
+   * slow. See combat/auras.ts, which is the only writer.
+   */
+  playerAura: table(
+    { public: true },
+    {
+      id:         t.u64().primaryKey().autoInc(),
+      owner:      t.identity(),   // who carries the aura
+      abilityId:  t.string(),     // source ability; (owner, abilityId, effectKind) is the refresh key
+      effectKind: t.string(),     // one of the 12 AbilityEffect kinds
+      stat:       t.string(),     // buff target stat; '' when not a stat buff
+      magnitude:  t.f32(),
+      expiresAt:  t.u64(),        // micros since epoch
+      nextTickAt: t.u64(),        // micros since epoch; 0 = non-ticking aura
+      tickSec:    t.f32(),        // 0 = non-ticking aura
+    }
+  ),
+
+  /** M6 — the same, carried by a mob instead of a player (D86). */
+  mobAura: table(
+    { public: true },
+    {
+      id:         t.u64().primaryKey().autoInc(),
+      mobId:      t.u64(),
+      abilityId:  t.string(),
+      effectKind: t.string(),
+      stat:       t.string(),
+      magnitude:  t.f32(),
+      expiresAt:  t.u64(),
+      nextTickAt: t.u64(),
+      tickSec:    t.f32(),
+    }
+  ),
+
+  /**
+   * M6 — combat feedback channel (D87, §2.6). Every hit, crit, miss, dodge,
+   * kill, heal, aura application AND every rejection reason lands here, so the
+   * client never infers damage from an `hp` delta: two players hitting one mob
+   * make that delta ambiguous, and miss/dodge do not change hp at all.
+   *
+   * Rows live 5 s; `reapCombatEvents` deletes the rest.
+   */
+  combatEvent: table(
+    { public: true },
+    {
+      id:          t.u64().primaryKey().autoInc(),
+      at:          t.u64(),       // micros since epoch
+      actor:       t.identity(),  // the caster
+      abilityId:   t.string(),    // '' for the castAbility melee fallback
+      targetMobId: t.u64(),       // 0 = self-cast / no target
+      kind:        t.string(),    // see COMBAT_EVENT_KINDS in combat/events.ts
+      amount:      t.i32(),       // damage / heal / absorb; 0 when not applicable
+      reason:      t.string(),    // CastRejection string when kind === 'rejected', else ''
+    }
+  ),
+
+  /**
+   * M6 scheduled tables. Private (server bookkeeping) and, being scheduled,
+   * not client-reachable — so neither enters the D27 reducer binding surface.
+   */
+  auraTickSchedule: table(
+    { scheduled: (): any => tickAuras },
+    auraTickScheduleRow,
+  ),
+
+  combatEventReapSchedule: table(
+    { scheduled: (): any => reapCombatEvents },
+    combatEventReapScheduleRow,
+  ),
+
 });
 
 export default spacetimedb;
@@ -565,6 +689,14 @@ export const setPlayerInfo = spacetimedb.reducer(
         deadUntil: 0n,
         dungeonInstanceId: 0n,
         floorYM: 0,
+        // M6: a brand-new row starts with an empty pool; clientConnected fills
+        // it once the starting kit is equipped and deriveStats has gear to
+        // read, and lazy regen (D94) tops it up from there.
+        resource: 0,
+        resourceMax: 0,
+        lastGcdAt: 0n,
+        abilityCooldowns: '',
+        lastRegenAt: 0n,
       });
       const invCtx = ctx as InventoryCtx;
       getOrCreateWallet(invCtx, identity);
@@ -771,6 +903,18 @@ export const setAvatarConfig = spacetimedb.reducer(
  * Slice 5c: dead players cannot move. Their `playerRespawnQueue` row will
  * teleport them to origin when the timer fires.
  */
+/**
+ * D92 recovery, bounded by the STORED floor: the claimed floorYM is client-controlled, so a
+ * recovered surface must also lie within CASTLE_STEP_DOWN of the row's own floor. A freeze only
+ * ever accumulates in sub-0.55 m steps (the strict window), so every real freeze is within reach,
+ * while a spoofed claim of another level (floors are >= 9.6 m apart) is refused.
+ */
+function recoverNearStoredFloor(wx: number, wz: number, claimedY: number, storedY: number) {
+  const recovered = castleInteriorRecoverSurface(wx, wz, claimedY);
+  if (!recovered || Math.abs(recovered.y - storedY) > CASTLE_STEP_DOWN) return null;
+  return recovered;
+}
+
 export const movePlayer = spacetimedb.reducer(
   {
     x:         t.f32(),
@@ -830,7 +974,8 @@ export const movePlayer = spacetimedb.reducer(
     // post-computation dead-band below still catches zoneId/floor no-ops.)
     if (
       existing.x === clampedX && existing.y === clampedY &&
-      existing.direction === direction % 4 && existing.isMoving === isMoving
+      existing.direction === direction % 4 && existing.isMoving === isMoving &&
+      (existing.dungeonInstanceId === 0n || existing.floorYM === floorYM)
     ) {
       return;
     }
@@ -842,9 +987,12 @@ export const movePlayer = spacetimedb.reducer(
     const worldZM = pxToWorldM(clampedY);
     let nextFloorYM = existing.floorYM;
 
-    if (isInCastleInterior(worldXM, worldZM) || existing.dungeonInstanceId > 0n) {
-      // Server-stored floor is authoritative — never use client floorYM as
-      // surfaceAt refY (prevents spoofed jumps to upper floors / boss rooms).
+    // Interior rules apply only inside an instance (D65 puts the interior at world coordinates
+    // 782..898 × -44..44, which the overworld also covers; an outdoor player crossing that
+    // footprint must not be resolved against the castle grids).
+    if (existing.dungeonInstanceId > 0n) {
+      // Strict resolution starts at the stored floor. D92 recovery is considered
+      // only after rejection, and still requires a real surface at the guarded XZ.
       const refY = existing.floorYM > 0 ? existing.floorYM : CASTLE_LEVELS[1].y;
 
       if (guarded.clamped) {
@@ -859,19 +1007,27 @@ export const movePlayer = spacetimedb.reducer(
         const resolved = castleInteriorResolveMove(
           pxToWorldM(existing.x), pxToWorldM(existing.y), worldXM, worldZM, refY,
         );
-        if (!resolved.surface) return;
-        if (floorYM > 0 && Math.abs(floorYM - resolved.floorYM) > CASTLE_STEP_UP) return;
-        clampedX = worldMToPx(resolved.x);
-        clampedY = worldMToPx(resolved.z);
-        nextFloorYM = resolved.floorYM;
+        if (!resolved.surface || (floorYM > 0 && Math.abs(floorYM - resolved.floorYM) > CASTLE_STEP_UP)) {
+          const recovered = recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
+          if (!recovered) return;
+          // Keep the upstream speed-clamped endpoint, never the unguarded claim.
+          nextFloorYM = recovered.y;
+        } else {
+          clampedX = worldMToPx(resolved.x);
+          clampedY = worldMToPx(resolved.z);
+          nextFloorYM = resolved.floorYM;
+        }
       } else {
         // Unclamped claims keep the strict all-or-nothing check: the client
         // already wall-slides locally, so a blocked point here is spoofed or
         // desynced and should be refused rather than quietly slid.
-        const surface = castleInteriorSurfaceAt(worldXM, worldZM, refY);
+        let surface = castleInteriorSurfaceAt(worldXM, worldZM, refY)
+          ?? recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
         if (!surface) return;
-        // Reject moves whose client-claimed floor is far from the resolved surface.
-        if (floorYM > 0 && Math.abs(floorYM - surface.y) > CASTLE_STEP_UP) return;
+        if (floorYM > 0 && Math.abs(floorYM - surface.y) > CASTLE_STEP_UP) {
+          surface = recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
+          if (!surface) return;
+        }
         nextFloorYM = surface.y;
       }
     } else if (existing.floorYM !== 0) {
@@ -1287,6 +1443,21 @@ export const seedWorld = spacetimedb.reducer({}, (ctx) => {
       scheduledAt: ScheduleAt.interval(AI_TICK_MICROS),
     });
   }
+  // M6: same lazy-init for the combat schedules. Doing it here rather than in
+  // an `init` lifecycle is deliberate — the live maincloud module predates
+  // `init`, so an ADD COLUMN publish never re-runs one.
+  if (ctx.db.auraTickSchedule.count() === 0n) {
+    ctx.db.auraTickSchedule.insert({
+      id: 0n,
+      scheduledAt: ScheduleAt.interval(AURA_TICK_MICROS),
+    });
+  }
+  if (ctx.db.combatEventReapSchedule.count() === 0n) {
+    ctx.db.combatEventReapSchedule.insert({
+      id: 0n,
+      scheduledAt: ScheduleAt.interval(COMBAT_EVENT_REAP_MICROS),
+    });
+  }
 
   // 2. Self-heal pass — drop rows whose spawn definition no longer exists.
   //    This is also the migration path away from the retired tile-JSON
@@ -1304,6 +1475,8 @@ export const seedWorld = spacetimedb.reducer({}, (ctx) => {
     seeded.add(m.spawnNetId);
   }
   for (const mobId of toDelete) {
+    // NON-KILL MOB DELETE: retiring a row whose spawn definition is gone. No
+    // respawn is scheduled and nobody is credited. See combat/kill.ts.
     ctx.db.mob.mobId.delete(mobId);
   }
 
@@ -1367,35 +1540,422 @@ export const castAbility = spacetimedb.reducer(
     if (mob.dungeonInstanceId > 0n && !sameInteriorFloor(mob.floorYM, player.floorYM)) return;
 
     const newHp = mob.hp - MELEE_DAMAGE;
+    // M6 §2.6: the melee fallback publishes events too, so the client has one
+    // source of combat feedback regardless of which reducer swung.
+    emitCombatEvent(ctx, {
+      at: nowMicros,
+      actor: player.identity,
+      abilityId: '',
+      targetMobId: mobId,
+      kind: 'hit',
+      amount: MELEE_DAMAGE,
+    });
     if (newHp <= 0) {
-      // Kill: delete the row (client sees onDelete → mob disappears) and
-      // schedule a respawn after the spawn point's respawnSec.
-      const respawnAt = nowMicros + BigInt(mob.respawnSec) * 1_000_000n;
-      ctx.db.mobRespawnQueue.insert({
-        id: 0n,    // auto-inc replaces this
-        scheduledAt: ScheduleAt.time(respawnAt),
-        spawnNetId: mob.spawnNetId,
-        dungeonInstanceId: mob.dungeonInstanceId,
-      });
-      ctx.db.mob.mobId.delete(mobId);
-      // P1 quest hook: kill credit goes to whoever lands the killing blow
-      // (tap rights / party sharing arrive with P3/P6).
-      creditKillToQuests(ctx, player.identity, mob);
-      // P4: mob loot + copper to the killer.
-      const mobDef = MOBS[mob.mobType];
-      if (mobDef) {
-        const seed = lootSeedFromKill(
-          player.identity,
-          mobId,
-          nowMicros,
-          mob.spawnNetId,
-        );
-        grantMobLoot(ctx as InventoryCtx, player.identity, mobDef, seed);
-        refreshCollectQuestProgress(ctx as InventoryCtx, player.identity);
-      }
+      // Kill: the shared path (D89) deletes the row (client sees onDelete →
+      // mob disappears), schedules the respawn, and credits quests + loot.
+      // castAbility's own behaviour is unchanged — only this block moved.
+      applyMobKill(
+        ctx,
+        player.identity,
+        mob,
+        nowMicros,
+        (at) => ScheduleAt.time(at),
+        creditKillToQuests,
+        '',
+      );
     } else {
       ctx.db.mob.mobId.update({ ...mob, hp: newHp });
     }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ABILITIES (M6)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** `reapCombatEvents` cadence. Rows live COMBAT_EVENT_TTL_MICROS (5 s). */
+const COMBAT_EVENT_REAP_MICROS = 5_000_000n;
+
+/**
+ * Server-enforced floor between `castAbilityById` calls, in the same spirit
+ * (and at the same cadence) as `MELEE_COOLDOWN_MICROS` guards `castAbility`.
+ *
+ * The GCD alone is not a throttle, because it is only set on SUCCESS: without
+ * this, a modified client could loop `castAbilityById('nope', 0)` at frame
+ * rate and every rejection would insert a row into `combatEvent`, which is
+ * PUBLIC and therefore broadcast to every subscribed client. The reaper only
+ * trims rows older than 5 s, so the steady-state table size would scale with
+ * the spam rate — risk R8 re-entering through the rejection channel.
+ *
+ * The floor is carried by `lastAttackAt`, the column `castAbility` already
+ * uses as a 300 ms rate limit — it is a pure rate limiter with no gameplay
+ * meaning, so a rejected cast can stamp it freely.
+ *
+ * It is deliberately NOT carried by `lastGcdAt`. `lastGcdAt` is PUBLIC and
+ * means “micros when the global cooldown frees”; stamping it on a mis-click
+ * would render an ordinary out-of-range error as a real global cooldown on
+ * every client. Worse, gating on it before the ability is looked up would
+ * silently swallow off-GCD abilities — `titan_immovable` (`classes/titan.ts`,
+ * `triggersGcd: false`) is a panic-button defensive that exists precisely to
+ * be pressed WHILE the GCD is running. The GCD stays where the resolver puts
+ * it: `validateCast`, per-ability, after the lookup.
+ *
+ * A call arriving inside the floor is dropped BEFORE any work and writes
+ * nothing at all, so at most ONE rejection event per caster per window ever
+ * reaches the table.
+ */
+const CAST_THROTTLE_MICROS = 300_000n;
+
+/**
+ * M6 §2.3 — the ability reducer.
+ *
+ * `castAbility` above stays as the fixed melee fallback the web client ships
+ * today (D16); this is the content-driven path. All the maths lives in the
+ * canonical resolver (`content/formulas/abilityResolve.ts`, mirrored from
+ * `src/features/world/content/`), so this reducer only does what a pure
+ * function cannot: read rows, roll a seeded RNG, and write the deltas back.
+ *
+ * `targetMobId = 0n` means "no target" — correct for self-cast abilities,
+ * which content marks with `rangeM === 0`.
+ *
+ * Every rejection publishes a `combatEvent` with its reason (§2.6) instead of
+ * the bare `return` that leaves the caller guessing.
+ */
+export const castAbilityById = spacetimedb.reducer(
+  {
+    abilityId:   t.string(),
+    targetMobId: t.u64(),
+  },
+  (ctx, { abilityId, targetMobId }) => {
+    const player = ctx.db.player.identity.find(ctx.sender);
+    if (!player) return; // not authenticated yet — no row to attribute an event to
+
+    const nowMicros = ctx.timestamp.microsSinceUnixEpoch;
+
+    // ── Throttle, BEFORE any work (see CAST_THROTTLE_MICROS) ──────────────
+    // Rate limit only — NOT the global cooldown, which is per-ability and is
+    // enforced by `validateCast` after the lookup. Anything arriving inside
+    // the floor is dropped silently: no table scan, no resolver call, and
+    // above all no combatEvent row. That is what caps rejection events at one
+    // per caster per window. Shared with `castAbility`'s melee cadence, which
+    // is correct: one player, one hand, one action rate.
+    if (
+      player.lastAttackAt > 0n &&
+      nowMicros - player.lastAttackAt < CAST_THROTTLE_MICROS
+    ) return;
+
+    const reject = (reason: string): void => {
+      emitCombatEvent(ctx, {
+        at: nowMicros,
+        actor: player.identity,
+        abilityId,
+        targetMobId,
+        kind: 'rejected',
+        reason,
+      });
+      // A rejected cast still costs the caller time, so a rejection loop
+      // cannot drive inserts into a public table at frame rate. Every reject()
+      // call site returns immediately after and writes no other player field,
+      // so spreading the row we read is safe. `lastGcdAt` is deliberately NOT
+      // touched: a mis-click must not render as a global cooldown.
+      ctx.db.player.identity.update({
+        ...player,
+        lastAttackAt: nowMicros,
+      });
+    };
+
+    // Dead players cannot cast — mirrors castAbility's gate.
+    if (player.hp <= 0 || player.deadUntil > nowMicros) {
+      reject('casterDead');
+      return;
+    }
+
+    const level = getPlayerLevel(ctx, player.identity);
+    // ONE `playerEquipped` pass for the whole cast: attributes, weapon band and
+    // the resource pool all read from it (review L-1). The table has no owner
+    // index, so each extra helper call was a full table scan.
+    const snapshot = equippedSnapshot(ctx, player.identity);
+    const resourceMax = maxResourceFrom(snapshot.attrs, player.classType, level);
+    // D94: regeneration is settled HERE, lazily, from `lastRegenAt` — not by a
+    // 1 Hz sweep. The caster validates and spends against the regenerated
+    // value, and the row below stores it.
+    const resourceNow = regeneratedResource(
+      player.resource, resourceMax, player.lastRegenAt, nowMicros,
+    );
+    const caster = buildCasterState(ctx, player, level, snapshot, resourceNow);
+    if (!caster) {
+      // classType is a free string column; a row carrying a retired class id
+      // has no kit, so no ability can belong to it.
+      reject('wrongClass');
+      return;
+    }
+
+    const def = abilityById(abilityId);
+
+    // Target resolution. A mob in another dungeon instance, or on another
+    // interior floor, is not reachable — verbatim castAbility's gates — so it
+    // is presented to the validator as no target at all rather than as an
+    // out-of-range one, which would tell the client to walk closer.
+    let mob = targetMobId > 0n ? ctx.db.mob.mobId.find(targetMobId) : null;
+    if (mob) {
+      if (mob.dungeonInstanceId !== player.dungeonInstanceId) mob = null;
+      else if (
+        mob.dungeonInstanceId > 0n &&
+        !sameInteriorFloor(mob.floorYM, player.floorYM)
+      ) mob = null;
+    }
+
+    const distM = mob
+      ? Math.sqrt(
+          (player.x - mob.x) * (player.x - mob.x) +
+          (player.y - mob.y) * (player.y - mob.y),
+        ) / PX_PER_M
+      : Number.POSITIVE_INFINITY;
+    const target = mob ? buildTargetState(mob) : null;
+
+    const rejection = validateCast(def, caster, target, distM, nowMicros);
+    if (rejection || !def) {
+      reject(rejection ?? 'unknownAbility');
+      return;
+    }
+
+    // Seeded exactly like the loot rolls (lootSeedFromKill): deterministic for
+    // a given (caster, ability, target, microsecond), unpredictable in practice.
+    const rng = mulberry32(
+      seedFrom(String(player.identity), abilityId, targetMobId, nowMicros),
+    );
+    // The resolver throws on malformed dot/hot content (tickSec <= 0) and on an
+    // unhandled effect kind. A throw inside a reducer panics the module and
+    // aborts the transaction, so content that goes bad degrades to a rejection
+    // the client can render instead of taking the module down (review L-3).
+    let outcome;
+    try {
+      outcome = resolveCast(rng, def, caster, target, nowMicros);
+    } catch {
+      reject('resolveFailed');
+      return;
+    }
+
+    // ── Apply damage / heals ────────────────────────────────────────────────
+    let damageTotal = 0;
+    let healTotal = 0;
+    for (const effect of outcome.effects) {
+      if (effect.kind === 'damage') {
+        damageTotal += effect.amount;
+        emitCombatEvent(ctx, {
+          at: nowMicros,
+          actor: player.identity,
+          abilityId,
+          // Same normalisation as the aura event below: a self-cast issued
+          // with a stale mob id must not publish damage against a mob that
+          // was never targeted (review L-2).
+          targetMobId: mob ? targetMobId : 0n,
+          // 'hit' | 'crit' | 'miss' | 'dodge' come straight from the hit table.
+          kind: effect.hit as CombatEventKind,
+          amount: effect.amount,
+        });
+      } else if (effect.kind === 'heal') {
+        healTotal += effect.amount;
+        emitCombatEvent(ctx, {
+          at: nowMicros,
+          actor: player.identity,
+          abilityId,
+          targetMobId: 0n,
+          kind: 'healed',
+          amount: effect.amount,
+        });
+      }
+    }
+
+    const aurasPlaced = applyResolvedAuras(ctx, outcome.effects, {
+      abilityId,
+      casterIdentity: player.identity,
+      targetMobId: mob ? targetMobId : 0n,
+      nowMicros,
+    });
+    if (aurasPlaced > 0) {
+      emitCombatEvent(ctx, {
+        at: nowMicros,
+        actor: player.identity,
+        abilityId,
+        targetMobId: mob ? targetMobId : 0n,
+        kind: 'aura',
+        amount: aurasPlaced,
+      });
+    }
+
+    // ── Caster bookkeeping ──────────────────────────────────────────────────
+    const cooldowns = caster.cooldownsMicros;
+    if (def.cooldownSec > 0) cooldowns[abilityId] = outcome.cooldownUntilMicros;
+    const healedHp = healTotal > 0
+      ? Math.min(player.maxHp, player.hp + healTotal)
+      : player.hp;
+
+    ctx.db.player.identity.update({
+      ...player,
+      hp: healedHp,
+      resource: Math.max(0, Math.min(resourceMax, resourceNow - outcome.resourceSpent)),
+      resourceMax,
+      lastGcdAt: outcome.gcdUntilMicros,
+      abilityCooldowns: serializeCooldowns(cooldowns, nowMicros),
+      // Regen accrues from this instant; see regeneratedResource().
+      lastRegenAt: nowMicros,
+      // The anti-spam floor is charged on success as well as on rejection, so
+      // the cadence is the same whichever way the cast went.
+      lastAttackAt: nowMicros,
+    });
+
+    // ── Target bookkeeping ──────────────────────────────────────────────────
+    if (mob && damageTotal > 0) {
+      const newHp = mob.hp - damageTotal;
+      if (newHp <= 0) {
+        applyMobKill(
+          ctx,
+          player.identity,
+          mob,
+          nowMicros,
+          (at) => ScheduleAt.time(at),
+          creditKillToQuests,
+          abilityId,
+        );
+      } else {
+        ctx.db.mob.mobId.update({ ...mob, hp: newHp });
+      }
+    }
+  }
+);
+
+/**
+ * Scheduled aura tick — 1 Hz (M6 §2.4).
+ *
+ * Two jobs, in this order: expire, then tick. Expiry wins a tie, so an aura
+ * whose last tick and expiry land in the same second does not get a free final
+ * tick.
+ *
+ * There is deliberately NO resource-regeneration sweep here: regen is settled
+ * lazily inside `castAbilityById` from `player.lastRegenAt` (D94). A sweep
+ * would rescan `playerEquipped` per online player and write a row on the
+ * module's hottest PUBLIC table every second whether or not anyone is playing.
+ *
+ * A dot's killing blow goes through the SAME shared kill path as a cast
+ * (D89) — otherwise a mob that bleeds to death would drop no loot and credit
+ * no quest.
+ */
+export const tickAuras = spacetimedb.reducer(
+  {
+    schedule: auraTickScheduleRow,
+  },
+  (ctx) => {
+    const nowMicros = ctx.timestamp.microsSinceUnixEpoch;
+
+    // ── Player auras: hot ticks and expiry ──────────────────────────────────
+    const playerRows = [...ctx.db.playerAura.iter()];
+    const playerWork = partitionAuraWork(playerRows, nowMicros);
+    for (const row of playerWork.expired) ctx.db.playerAura.id.delete(row.id);
+    for (const row of playerWork.ticking) {
+      ctx.db.playerAura.id.update({ ...row, nextTickAt: advanceTick(row, nowMicros) });
+      if (row.effectKind !== 'hot') continue;
+      const p = ctx.db.player.identity.find(row.owner);
+      if (!p || p.hp <= 0) continue;
+      const amount = Math.max(1, Math.round(row.magnitude));
+      ctx.db.player.identity.update({
+        ...p,
+        hp: Math.min(p.maxHp, p.hp + amount),
+      });
+      emitCombatEvent(ctx, {
+        at: nowMicros,
+        actor: row.owner,
+        abilityId: row.abilityId,
+        targetMobId: 0n,
+        kind: 'healed',
+        amount,
+      });
+    }
+
+    // ── Mob auras: dot ticks and expiry ─────────────────────────────────────
+    const mobRows = [...ctx.db.mobAura.iter()];
+    const mobWork = partitionAuraWork(mobRows, nowMicros);
+    for (const row of mobWork.expired) ctx.db.mobAura.id.delete(row.id);
+    // `mobWork.ticking` is a snapshot taken before the loop. When one dot's
+    // tick kills the mob, `applyMobKill` -> `clearMobAuras` deletes EVERY
+    // mobAura row for that mob, including rows still sitting later in this
+    // snapshot. Deleting one of those a second time would depend on
+    // delete-by-unique-index being idempotent in the 2.2.0 bindings; if it is
+    // not, the reducer panics and the 1 Hz schedule wedges. So the ids the
+    // kill path removed are recorded and skipped (review M-1).
+    const removedAuraIds = new Set<bigint>();
+    for (const row of mobWork.ticking) {
+      if (removedAuraIds.has(row.id)) continue;
+      const mob = ctx.db.mob.mobId.find(row.mobId);
+      if (!mob) {
+        // The mob died to something else; its auras go with it.
+        ctx.db.mobAura.id.delete(row.id);
+        continue;
+      }
+      ctx.db.mobAura.id.update({ ...row, nextTickAt: advanceTick(row, nowMicros) });
+      if (row.effectKind !== 'dot') continue;
+      const amount = Math.max(1, Math.round(row.magnitude));
+      emitCombatEvent(ctx, {
+        at: nowMicros,
+        actor: ctx.sender,
+        abilityId: row.abilityId,
+        targetMobId: row.mobId,
+        kind: 'tick',
+        amount,
+      });
+      const newHp = mob.hp - amount;
+      if (newHp <= 0) {
+        // Loot and quest credit for a dot kill would go to the caster of the
+        // dot, but a mobAura row carries no caster identity (D86's shape is
+        // deliberately owner-less on the mob side), so the only killer this
+        // scheduled reducer can name is the MODULE's own identity. Crediting
+        // that identity would materialise wallet / stack / quest-progress rows
+        // owned by a non-player, which nothing reads and nothing reaps, so the
+        // credit half is skipped entirely (review M-4): the mob still dies and
+        // still respawns, it simply drops nothing. Giving mobAura an
+        // `appliedBy` column is the real fix and is a table addition, not a
+        // live-table migration.
+        for (const id of applyMobKill(
+          ctx,
+          ctx.sender,
+          mob,
+          nowMicros,
+          (at) => ScheduleAt.time(at),
+          creditKillToQuests,
+          row.abilityId,
+          false, // creditKill: no player landed this blow
+        )) removedAuraIds.add(id);
+      } else {
+        ctx.db.mob.mobId.update({ ...mob, hp: newHp });
+      }
+    }
+  }
+);
+
+/**
+ * Scheduled combat-event reap — every 5 s (M6 §2.4).
+ *
+ * `combatEvent` is a push channel, not a log: a client that was not connected
+ * when the row appeared has no use for it. Rows older than the TTL are
+ * deleted, and the count is logged so an unbounded table shows up in the logs
+ * as a rising number rather than as a mystery memory graph (risk R8).
+ */
+export const reapCombatEvents = spacetimedb.reducer(
+  {
+    schedule: combatEventReapScheduleRow,
+  },
+  (ctx) => {
+    const cutoff = ctx.timestamp.microsSinceUnixEpoch - COMBAT_EVENT_TTL_MICROS;
+    const doomed: bigint[] = [];
+    let remaining = 0;
+    for (const row of ctx.db.combatEvent.iter()) {
+      if (row.at < cutoff) doomed.push(row.id);
+      else remaining++;
+    }
+    for (const id of doomed) ctx.db.combatEvent.id.delete(id);
+    logCombat(
+      `reapCombatEvents: deleted ${doomed.length}, ${remaining} live`,
+    );
   }
 );
 
@@ -1651,6 +2211,14 @@ export const respawnPlayer = spacetimedb.reducer(
       lastMoveAt: ctx.timestamp.microsSinceUnixEpoch,
     });
 
+    // Death clears the player's auras - a hot must not keep ticking across a
+    // corpse timer (review L-4; the mob side of this is `clearMobAuras`).
+    const doomedAuras: bigint[] = [];
+    for (const row of ctx.db.playerAura.iter()) {
+      if (row.owner.isEqual(schedule.identity)) doomedAuras.push(row.id);
+    }
+    for (const id of doomedAuras) ctx.db.playerAura.id.delete(id);
+
     if (prevInstanceId > 0n) {
       cleanupDungeonInstanceIfEmpty(ctx, prevInstanceId);
     }
@@ -1672,10 +2240,33 @@ export const clientConnected = spacetimedb.clientConnected((ctx) => {
     // predating lastMoveAt a real baseline — without it their first move
     // after the migration would be measured against 0. It also means a
     // reconnect tightens the next move's allowance rather than banking one.
+    // M6: recompute the resource pool from the live kit + gear. Rows that
+    // predate the ADD COLUMN publish arrive with resourceMax = 0 (the backfill
+    // default) and would be unable to cast anything; they are filled here,
+    // which is also the only place a first-ever connect can fill them.
+    const resourceMax = resourceMaxFor(
+      ctx, existing.identity, existing.classType, getPlayerLevel(ctx, existing.identity),
+    );
+    // `resource` is only a low-water mark written at cast time (D94), so the
+    // stored value must be settled through the same lazy formula before it is
+    // clamped — otherwise a player who fought, then walked around for a
+    // minute, then reconnected would come back at their stale post-cast value
+    // and lose regen that legitimately accrued while they were online.
+    const resource = existing.resourceMax <= 0
+      ? resourceMax                                   // migrated / new row: start full
+      : regeneratedResource(                          // settle, then clamp to the live pool
+          existing.resource, resourceMax, existing.lastRegenAt,
+          ctx.timestamp.microsSinceUnixEpoch,
+        );
     ctx.db.player.identity.update({
       ...existing,
       online: true,
       lastMoveAt: ctx.timestamp.microsSinceUnixEpoch,
+      resource,
+      resourceMax,
+      // Regen resumes from the connect; the pool itself was settled above through
+      // regeneratedResource(), so time away counts at the same D94 rate.
+      lastRegenAt: ctx.timestamp.microsSinceUnixEpoch,
     });
   }
   // If no row exists, setPlayerInfo will create one.
@@ -2152,7 +2743,11 @@ function seedDungeonInstanceMobs(ctx: any, instanceId: bigint, dungeonId: string
 function cleanupDungeonInstanceIfEmpty(ctx: any, instanceId: bigint): void {
   if (countInstanceMembers(ctx, instanceId) > 0) return;
   for (const m of ctx.db.mob.iter()) {
-    if (m.dungeonInstanceId === instanceId) ctx.db.mob.mobId.delete(m.mobId);
+    if (m.dungeonInstanceId !== instanceId) continue;
+    clearMobAuras(ctx, m.mobId);
+    // NON-KILL MOB DELETE: the whole instance is being torn down; its mobs go
+    // with it, uncredited and without a respawn. See combat/kill.ts.
+    ctx.db.mob.mobId.delete(m.mobId);
   }
   ctx.db.dungeonInstance.instanceId.delete(instanceId);
 }

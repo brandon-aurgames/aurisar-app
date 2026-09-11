@@ -12,7 +12,9 @@ import {
 } from './navGrids.js';
 
 type Stair = typeof CASTLE_STAIRS[number];
-type Surface = { y: number; level: number };
+export type Surface = { y: number; level: number };
+export type CastleGridAccessor = (level: number, cellIndex: number) => number;
+export const CASTLE_RECOVERY_TOLERANCE_M = 0.25;
 
 let decoded: Uint16Array[] | null = null;
 
@@ -65,7 +67,15 @@ function stairSurfaceY(st: Stair, x: number, z: number): number | null {
   return null;
 }
 
-function surfaceAt(wx: number, wz: number, currentY: number): Surface | null {
+function readGridCell(level: number, cellIndex: number): number {
+  return decodeGrids()[level][cellIndex];
+}
+
+/** Shared pure scan; the accessor supplies the emitted nav cell's surface tag. */
+export function scanCastleInteriorSurface(
+  wx: number, wz: number, minY: number, maxY: number, readCell: CastleGridAccessor,
+): Surface | null {
+  if (!Number.isFinite(wx) || !Number.isFinite(wz) || !Number.isFinite(minY) || !Number.isFinite(maxY)) return null;
   const { anchor, bounds, navCellM, cols, rows } = CASTLE_NAV_META;
   const x = wx - anchor.x, z = wz - anchor.z;
   if (x < bounds.x0 || x >= bounds.x1 || z < bounds.z0 || z >= bounds.z1) return null;
@@ -74,39 +84,46 @@ function surfaceAt(wx: number, wz: number, currentY: number): Surface | null {
   const row = Math.floor((z - bounds.z0) / navCellM);
   if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
   const idx = row * cols + col;
-  const grids = decodeGrids();
-
-  const stairYCache = CASTLE_STAIRS.map((st) => {
-    const u2 = st.u0 + st.runLen + st.landingD;
-    return (lx: number, lz: number) => {
-      let u = st.axis === 'z' ? lz : lx;
-      const v = st.axis === 'z' ? lx : lz;
-      u = Math.min(Math.max(u, st.u0), u2);
-      return st.axis === 'z'
-        ? stairSurfaceY(st, v, u)
-        : stairSurfaceY(st, u, v);
-    };
-  });
-
   let bestY = -Infinity, bestLevel = -1;
-  for (let li = 0; li < grids.length; li++) {
-    const v = grids[li][idx];
+  for (let li = 0; li < CASTLE_NAV_META.levelCount; li++) {
+    const v = readCell(li, idx);
     if (v === 0) continue;
     let y: number, level = li;
     if (v === 1) {
       y = CASTLE_LEVELS[li].y;
     } else {
-      const sy = stairYCache[v - 2](x, z);
+      const st = CASTLE_STAIRS[v - 2];
+      if (!st) continue;
+      const u = Math.min(Math.max(st.axis === 'z' ? z : x, st.u0), st.u0 + st.runLen + st.landingD);
+      const sy = st.axis === 'z' ? stairSurfaceY(st, x, u) : stairSurfaceY(st, u, z);
       if (sy == null) continue;
       y = sy;
-      const st = CASTLE_STAIRS[v - 2];
       level = y >= (CASTLE_LEVELS[st.lo].y + CASTLE_LEVELS[st.hi].y) / 2 ? st.hi : st.lo;
     }
-    if (y <= currentY + CASTLE_STEP_UP && y >= currentY - CASTLE_STEP_DOWN && y > bestY) {
+    if (y <= maxY && y >= minY && y > bestY) {
       bestY = y; bestLevel = level;
     }
   }
   return bestLevel >= 0 ? { y: bestY, level: bestLevel } : null;
+}
+
+function surfaceAt(wx: number, wz: number, currentY: number): Surface | null {
+  return scanCastleInteriorSurface(wx, wz, currentY - CASTLE_STEP_DOWN, currentY + CASTLE_STEP_UP, readGridCell);
+}
+
+/**
+ * D92: recover only onto a real cell surface near the claimed floor, never the stored floor.
+ * The window is asymmetric: a surface may sit up to CASTLE_STEP_DOWN below the claimed floor
+ * (a sprinting client flies off treads on a descent and keeps claiming its last grounded floor
+ * while the ramp under it is already ~1 m lower — accepting a surface BELOW the claim can never
+ * let a client stand on a floor it fell through), but only CASTLE_RECOVERY_TOLERANCE_M above it.
+ */
+export function castleInteriorRecoverSurface(
+  wx: number, wz: number, claimedY: number, readCell: CastleGridAccessor = readGridCell,
+): Surface | null {
+  return scanCastleInteriorSurface(
+    wx, wz, claimedY - CASTLE_STEP_DOWN, claimedY + CASTLE_RECOVERY_TOLERANCE_M, readCell,
+  );
 }
 
 export function pxToWorldM(px: number): number {
