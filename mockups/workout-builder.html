@@ -1,5 +1,9 @@
-<title>Aurisar Workout Builder</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Aurisar Workout Builder — Mockup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@400;500;600;700&family=Barlow:wght@700&family=Barlow+Condensed:wght@700&display=swap">
@@ -465,7 +469,21 @@ body.dragging,body.dragging .drag-handle{cursor:grabbing}
   .orb-btn:active,.btn:hover,.btn-gold-solid:hover,.picker-ex-row:hover,.picker-ex-row:active{transform:none}
   .details-tab:hover,.details-tab:focus-visible,.details-tab:active{transform:none}
 }
+
+/* mockup banner — not part of the app's own vocabulary, kept visually minimal */
+.mock-banner{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:5px 14px;text-align:center;
+  font-family:'Inter',sans-serif;font-size:.62rem;line-height:1.5;color:#8a8478;background:rgba(196,148,40,.05);
+  border-bottom:1px solid rgba(196,148,40,.12)}
+.mock-banner b{color:#c4a044;font-weight:600}
+@media (min-width:900px){.mock-banner{max-width:none}}
 </style>
+</head>
+<body>
+
+<div class="mock-banner">
+  <b>Mockup — not wired to the app.</b> Chrome (colors, type, layout) matches production.
+  Superset grouping, its rest/XP math, and the Workout Details drawer are proposed, not live.
+</div>
 
 <!-- ════════ svg sprite: app tab icons (verbatim TabIcons.jsx) + exercise glyphs ════════ -->
 <svg style="display:none" aria-hidden="true">
@@ -628,6 +646,7 @@ body.dragging,body.dragging .drag-handle{cursor:grabbing}
 'use strict';
 /* ════════ §C · utils ════════ */
 const $=(s,c=document)=>c.querySelector(s), $$=(s,c=document)=>[...c.querySelectorAll(s)];
+const escHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const RM=matchMedia('(prefers-reduced-motion: reduce)');
 const DESK=matchMedia('(min-width: 900px)');
 const COARSE=matchMedia('(pointer: coarse)');
@@ -675,9 +694,11 @@ const SS_MAX=4, SS_BONUS=1.10;
 const state={workout:[],collapsed:new Set(),ss:new Set(),groups:{},selection:new Set(),filters:{q:'',mg:'',type:'',eq:''}};
 const newInstance=e=>({uid:uid(),exId:e.id,rest:120,notes:'',gid:null,
   sets:Array.from({length:3},()=>({w:e.w,r:e.r,done:false}))});
-const effW=s=>s.w||BW_EQ;
-const exXP=ex=>{const d=libById(ex.exId);
-  return ex.sets.reduce((a,s)=>a+d.xp*(1+s.r/40)*(1+effW(s)/400),0)*XP_K*(ex.gid?SS_BONUS:1);};
+/* bodyweight equivalent only applies to actual bodyweight exercises — a barbell
+   lift left at 0 lb should read as 0 load, not spike to the 150lb stand-in */
+const effW=(s,isBW)=>isBW?BW_EQ+(s.w||0):(s.w||0);
+const exXP=ex=>{const d=libById(ex.exId),isBW=d.eq==='Bodyweight';
+  return ex.sets.reduce((a,s)=>a+d.xp*(1+s.r/40)*(1+effW(s,isBW)/400),0)*XP_K*(ex.gid?SS_BONUS:1);};
 const groupRest=g=>(state.groups[g]&&state.groups[g].rest)||120;
 /* walk the list in runs: a group is a maximal stretch of neighbours sharing a gid */
 function eachRun(list,fn){for(let i=0;i<list.length;){const g=list[i].gid;let j=i+1;
@@ -689,8 +710,10 @@ function calcTotals(list){list=list||state.workout;
   eachRun(list,(run,g)=>{
     run.forEach(x=>secs+=x.sets.length*SET_WORK);
     /* ungrouped: rest after every set. grouped: you go straight to the next station,
-       so only the last member's sets carry the shared rest. one setup per station. */
-    secs+=g==null?run[0].sets.length*run[0].rest:run[run.length-1].sets.length*groupRest(g);
+       so shared rest is charged per round, not per exercise — rounds are bounded by
+       whichever member has the most sets, so this stays the same however they're
+       ordered. one setup per station. */
+    secs+=g==null?run[0].sets.length*run[0].rest:Math.max(...run.map(x=>x.sets.length))*groupRest(g);
     secs+=EX_OVERHEAD;});
   return {exercises:list.length,sets,dur:Math.ceil(secs/60),xp:Math.round(list.reduce((a,x)=>a+exXP(x),0))};}
 const diffTotals=(a,b)=>({sets:b.sets-a.sets,dur:b.dur-a.dur,xp:b.xp-a.xp,exercises:b.exercises-a.exercises});
@@ -746,7 +769,7 @@ function bodyHTML(ex){const d=libById(ex.exId);
     <div class="rest-notes">
       ${ex.gid?'':`<div class="field rest"><label>Rest</label><select class="inp inp--sm rest-main" aria-label="Rest between sets">${
         REST_OPTS.map(o=>`<option value="${o}"${o===ex.rest?' selected':''}>${o} sec</option>`).join('')}</select></div>`}
-      <div class="field"><label>Notes</label><input class="inp inp--sm notes" placeholder="Add notes…" value="${ex.notes.replace(/"/g,'&quot;')}" aria-label="Notes"></div>
+      <div class="field"><label>Notes</label><input class="inp inp--sm notes" placeholder="Add notes…" value="${escHtml(ex.notes)}" aria-label="Notes"></div>
     </div>
     <div class="se-head"><span class="sp"></span><span class="se-col-hdr h">Reps</span><span class="se-col-hdr h">lbs</span><span class="se-col-hdr hd">Done</span><span class="hr"></span></div>
     <div class="se-rows">${ex.sets.map((_,i)=>setRowHTML(ex,i)).join('')}</div>
@@ -763,7 +786,7 @@ function cardHTML(ex,i){const d=libById(ex.exId),col=state.collapsed.has(ex.uid)
     badge=g?`${groupLetter(g)}${k+1}`:`${i+1}`,
     on=state.ss.has(ex.uid)||!!g;
   return `<li class="wb-ex-row${col?' collapsed':''}${complete?' complete':''}${g?' in-ss':''}${first?' ss-first':''}${last?' ss-last':''}" data-uid="${ex.uid}"${g?` data-gid="${g}"`:''} style="--mg-color:${MG[d.mg].c}">
-    <div class="wb-ex-hdr" role="button" aria-expanded="${!col}">
+    <div class="wb-ex-hdr" role="button" tabindex="0" aria-expanded="${!col}">
       <div class="wb-reorder">
         <button type="button" class="icon-btn mv" data-dir="-1" aria-label="Move ${d.name} up" ${upOff?'disabled':''}><span class="icon-btn-glyph" aria-hidden="true">▲</span></button>
         <button type="button" class="icon-btn mv" data-dir="1" aria-label="Move ${d.name} down" ${g?(last?'disabled':''):(i===n-1?'disabled':'')}><span class="icon-btn-glyph" aria-hidden="true">▼</span></button>
@@ -898,7 +921,11 @@ function flyDelta(fromRect,k,amount,target){if(!amount)return;
     {transform:'translate(-50%,-50%) translateY(-26px) scale(1.05)',opacity:1,offset:.4},
     {transform:`translate(-50%,-50%) translate(${dx}px,${dy}px) scale(.55)`,opacity:.85}],
     {duration:600,easing:'cubic-bezier(.16,1,.3,1)'}).onfinish=()=>{n.remove();flightCount--;
-      if(flights[k]===st)delete flights[k];countUp(k,st.target);surge();};}
+      if(flights[k]===st)delete flights[k];
+      /* resolve to the CURRENT total, not the one this flight captured — if
+         something else changed that stat while this was in flight, landing on
+         the stale captured target would clobber the already-correct display */
+      countUp(k,calcTotals()[k]);surge();};}
 function commitFX(fromRect,before,after){const d=diffTotals(before,after);
   [['sets',0],['dur',80],['xp',160]].forEach(([k,delay])=>{if(!d[k])return;
     setTimeout(()=>flyDelta(fromRect,k,d[k],after[k]),RM.matches?0:delay);});
@@ -937,7 +964,7 @@ function renderTray(land){const ids=[...state.selection];
     chips.slice(0,-1).forEach((c,i)=>c.animate([{transform:'translateX(0) rotate(0)'},{transform:`translateX(-3px) rotate(${i%2?4:-4}deg)`},{transform:'translateX(0) rotate(0)'}],
       {duration:250,delay:i*40,easing:'cubic-bezier(.34,1.56,.64,1)'}));}}
 function sealFinale(){const done=()=>{updateTotals({surge:true});
-    toast('Workout saved — <b style="color:#e8c870">+250 XP</b>',{ttl:3200});announce('Workout saved');};
+    toast(`Workout saved — <b style="color:#e8c870">${formatXP(calcTotals().xp)}</b>`,{ttl:3200});announce('Workout saved');};
   if(RM.matches){done();return;}
   const cs=cards(),mid=listEl.getBoundingClientRect(),cy=mid.top+mid.height/2;
   cs.forEach(c=>{const r=c.getBoundingClientRect();c.style.setProperty('--tele',`${(cy-(r.top+r.height/2))*.22}px`);});
@@ -988,10 +1015,13 @@ function ghostFrom(el,r,compact){const g=el.cloneNode(true);g.classList.add('gho
 function beginDrag(kind,el,e){const r=el.getBoundingClientRect();
   drag={kind,el,start:{x:e.clientX,y:e.clientY},off:{x:e.clientX-r.left,y:e.clientY-r.top},homeRect:r,armed:false,timer:null,
     lineIdx:null,slots:null,ghost:null,lastX:e.clientX,lastT:performance.now(),vx:0,entry:null,uid:null,
-    overUid:null,overEl:null};
+    overUid:null,overEl:null,noTarget:false,autoY:null};
   if(kind==='list')drag.uid=el.dataset.uid;else drag.entry=libById(el.dataset.id);
   el.classList.add('gripping');
-  drag.timer=setTimeout(()=>{if(drag&&!drag.armed)armDrag();},COARSE.matches?150:40);}
+  /* coarse pointers arm on a hold — that gate IS the scroll/drag disambiguation.
+     fine pointers arm purely from movement (see onPointerMove): a timer here
+     would arm a still-held mouse after 40ms and swallow an ordinary slow click */
+  if(COARSE.matches)drag.timer=setTimeout(()=>{if(drag&&!drag.armed)armDrag();},150);}
 function armDrag(){if(!drag)return;drag.armed=true;const {el,kind}=drag;el.classList.remove('gripping');
   document.body.classList.add('dragging');drag.ghost=ghostFrom(el,drag.homeRect,kind==='lib');
   if(!RM.matches)drag.ghost.animate([{opacity:.6},{opacity:1}],{duration:150,easing:'cubic-bezier(.16,1,.3,1)'});
@@ -1009,15 +1039,31 @@ function onPointerMove(e){if(!drag)return;
   e.preventDefault();moveGhost(e.clientX,e.clientY);autoScroll(e.clientY);
   const zr=dropZone.getBoundingClientRect(),overZone=e.clientY>=zr.top&&e.clientY<=zr.bottom&&e.clientX>=zr.left&&e.clientX<=zr.right;
   dropZone.classList.toggle('hot',overZone&&drag.kind==='lib');
+  /* desktop's two-pane layout means the sidebar and canvas can share a Y range —
+     a release outside the canvas horizontally must not still register a target */
+  const wr=listWrap.getBoundingClientRect(),inCanvasX=e.clientX>=wr.left-24&&e.clientX<=wr.right+24;
+  if(!overZone&&!inCanvasX){clearDropVisuals();setMergeTarget(null);drag.noTarget=true;return;}
+  drag.noTarget=false;
   const onto=overZone?null:mergeTargetAt(e.clientY);
   setMergeTarget(onto);
   if(onto)return;
   positionDropLine(overZone?drag.slots.length:insertionIndexFor(e.clientY,drag.slots,drag.lineIdx),drag.slots);}
-function autoScroll(y){const EDGE=70;let dy=0;
-  if(y<EDGE)dy=-(EDGE-y)/6;else if(y>innerHeight-EDGE)dy=(y-(innerHeight-EDGE))/6;
-  if(dy&&!scrollRAF)scrollRAF=requestAnimationFrame(()=>{scrollRAF=null;scrollBy(0,dy*3);if(drag&&drag.armed)drag.slots=slotRects(drag.uid);});}
+function edgeDy(y){const EDGE=70;
+  if(y<EDGE)return -(EDGE-y)/6;
+  if(y>innerHeight-EDGE)return (y-(innerHeight-EDGE))/6;
+  return 0;}
+function autoScroll(y){drag.autoY=y;
+  /* pointermove only fires on actual movement, so a held-stationary pointer at
+     the edge needs its own loop to keep scrolling rather than one scroll tick */
+  if(edgeDy(y)&&!scrollRAF)scrollRAF=requestAnimationFrame(function tick(){
+    if(!drag||!drag.armed){scrollRAF=null;return;}
+    const d=edgeDy(drag.autoY);
+    if(!d){scrollRAF=null;return;}
+    scrollBy(0,d*3);drag.slots=slotRects(drag.uid);
+    scrollRAF=requestAnimationFrame(tick);});}
 function onPointerUp(e){if(!drag)return;if(!drag.armed){cancelDrag(false);return;}
   suppressClick=true;setTimeout(()=>suppressClick=false,80);
+  if(drag.noTarget){snapBack();return;}
   const moved=Math.hypot(e.clientX-drag.start.x,e.clientY-drag.start.y)>6;
   /* merge wins before the line index is consulted — a null lineIdx means "append" */
   if(drag.overUid&&(drag.kind==='list'||moved)){commitMerge();return;}
@@ -1051,10 +1097,12 @@ function commitReorder(target){const from=state.workout.findIndex(x=>x.uid===dra
      the superset, and any card dropped between two teammates joins theirs. */
   const between=prev&&next&&prev.gid&&prev.gid===next.gid?prev.gid:null;
   let at=target;
-  if(between&&between!==wasGid&&membersOf(between).length>=SS_MAX)
-    at=pastRun(rest,between);                                  /* full: land below it */
-  else if(between&&between!==wasGid)item.gid=between;
-  else item.gid=wasGid&&((prev&&prev.gid===wasGid)||(next&&next.gid===wasGid))?wasGid:null;
+  if(between&&between!==wasGid&&membersOf(between).length>=SS_MAX){
+    at=pastRun(rest,between);item.gid=null;      /* full: land below it, ungrouped —
+      without clearing gid here it keeps pointing at its old group, and the very
+      next normalizeGroups() silently snaps it back there, discarding this drop */
+  }else if(between&&between!==wasGid){item.gid=between;}
+  else{item.gid=wasGid&&((prev&&prev.gid===wasGid)||(next&&next.gid===wasGid))?wasGid:null;}
   if(at===from&&item.gid===wasGid){snapBack();return;}
   rest.splice(at,0,item);state.workout=rest;normalizeGroups();
   const left=wasGid&&!item.gid,joined=!wasGid&&item.gid;
@@ -1097,11 +1145,15 @@ document.addEventListener('click',e=>{if(suppressClick){e.stopPropagation();e.pr
 
 /* ════════ §H · Add-to-Workout sheet ════════ */
 let sheetOpener=null,comboN=0,lastPick=0,heatTimer=null;
+let sheetFocusT=null;
 function openSheet(opener){sheetOpener=opener||null;
   if(DESK.matches){$('#lib-q').focus({preventScroll:true});return;}
   backdrop.classList.add('open');libEl.classList.remove('sheet-slide-up');void libEl.offsetWidth;libEl.classList.add('sheet-slide-up');
-  setTimeout(()=>$('#lib-q').focus({preventScroll:true}),RM.matches?0:260);}
-function closeSheet(){backdrop.classList.remove('open');if(sheetOpener){sheetOpener.focus({preventScroll:true});sheetOpener=null;}}
+  clearTimeout(sheetFocusT);
+  /* guard against closing before this fires — a late focus grab would steal it
+     back from wherever the user moved to, and can reopen the mobile keyboard */
+  sheetFocusT=setTimeout(()=>{if(backdrop.classList.contains('open'))$('#lib-q').focus({preventScroll:true});},RM.matches?0:260);}
+function closeSheet(){clearTimeout(sheetFocusT);backdrop.classList.remove('open');if(sheetOpener){sheetOpener.focus({preventScroll:true});sheetOpener=null;}}
 function updateCTA(){const n=state.selection.size;ctaEl.hidden=!n;ctaEl.textContent=`＋ Add ${n}`;
   sheetTitle.textContent=n?`Add to Workout · ${n} selected`:'Add to Workout';}
 function bumpHeat(){const now=performance.now();comboN=now-lastPick<900?comboN+1:1;lastPick=now;
@@ -1126,11 +1178,24 @@ function setStep(ex,i,f,d){const s=ex.sets[i];if(f==='w')s.w=clamp(s.w+d*5,0,995
 function toggleCollapse(u){if(state.collapsed.has(u))state.collapsed.delete(u);else state.collapsed.add(u);withFLIP(()=>renderList());}
 function moveExercise(u,dir){const ex=exByUid(u),i=state.workout.indexOf(ex),j=i+dir;
   if(j<0||j>=state.workout.length)return;
-  /* a grouped card only reorders inside its own run */
-  if(ex.gid&&state.workout[j].gid!==ex.gid)return;
-  [state.workout[i],state.workout[j]]=[state.workout[j],state.workout[i]];renderList({flip:true});
+  const nb=state.workout[j];
+  if(ex.gid){
+    /* a grouped card only reorders inside its own run */
+    if(nb.gid!==ex.gid)return;
+    [state.workout[i],state.workout[j]]=[state.workout[j],state.workout[i]];
+  }else if(nb.gid){
+    /* stepping toward a group: land past the whole run, never in its interior —
+       a plain adjacent swap here would wedge an ungrouped card between two
+       members of the same superset and break its contiguity */
+    const g=nb.gid,mem=membersOf(g),rest=state.workout.filter(x=>x!==ex),
+      at=dir<0?rest.indexOf(mem[0]):pastRun(rest,g);
+    rest.splice(at,0,ex);state.workout=rest;
+  }else{
+    [state.workout[i],state.workout[j]]=[state.workout[j],state.workout[i]];
+  }
+  renderList({flip:true});
   const c=cardEl(u);if(c)$(`.mv[data-dir="${dir}"]`,c)?.focus();
-  announce(`${libById(ex.exId).name} moved to position ${j+1} of ${state.workout.length}`);}
+  announce(`${libById(ex.exId).name} moved to position ${state.workout.indexOf(ex)+1} of ${state.workout.length}`);}
 /* ════════ supersets: staging, grouping, ungrouping ════════ */
 function syncStageBar(u){renderList({flip:true});
   const c=u&&cardEl(u),w=c&&$('.ss-wrap',c);if(w)w.focus({preventScroll:true});}
@@ -1201,10 +1266,18 @@ let pendingUndo=null;
 function deleteExercise(u){const i=state.workout.findIndex(x=>x.uid===u);if(i<0)return;if(pendingUndo)pendingUndo.t.kill();
   const ex=state.workout[i],d=libById(ex.exId),before=calcTotals(),c=cardEl(u),rect=c?c.getBoundingClientRect():listEl.getBoundingClientRect();
   routeOff(c);state.workout.splice(i,1);
+  /* capture the group ex is leaving behind BEFORE normalizeGroups can dissolve it
+     (a 2-member superset drops to 1 member here and would otherwise be silently
+     ungrouped) so Undo can restore both the surviving member and the group */
+  const wasGid=ex.gid,groupSnap=wasGid?{...state.groups[wasGid]}:null,
+    partnerUids=wasGid?membersOf(wasGid).map(x=>x.uid):[];
   state.ss.delete(u);state.collapsed.delete(u);normalizeGroups();
   renderList({flip:true});commitFX(rect,before,calcTotals());
   const t=toast(`${d.name} removed`,{action:'Undo',ttl:5000,ring:true,onAction(){const b2=calcTotals();
-    state.workout.splice(Math.min(i,state.workout.length),0,ex);normalizeGroups();renderList({flip:true,enterUids:[ex.uid]});
+    state.workout.splice(Math.min(i,state.workout.length),0,ex);
+    if(wasGid&&partnerUids.length){state.groups[wasGid]=groupSnap||{rest:ex.rest};
+      ex.gid=wasGid;partnerUids.forEach(pu=>{const p=exByUid(pu);if(p)p.gid=wasGid;});}
+    normalizeGroups();renderList({flip:true,enterUids:[ex.uid]});
     commitFX(listEl.getBoundingClientRect(),b2,calcTotals());announce(`${d.name} restored`);pendingUndo=null;}});
   pendingUndo={t};setTimeout(()=>pendingUndo=null,5100);
   const ring=$('.undo-ring',t.node);if(ring){const t0=performance.now();(function tick(now){if(!t.node.isConnected)return;
@@ -1233,7 +1306,8 @@ document.addEventListener('click',e=>{const t=e.target;
     patchCardHeader(ex);return;}
   const rm=t.closest('.se-row-remove');
   if(rm&&!rm.disabled){const card=rm.closest('.wb-ex-row'),ex=exByUid(card.dataset.uid),row=rm.closest('.se-row'),i=+row.dataset.i,before=calcTotals(),r=row.getBoundingClientRect();
-    row.classList.add('dying');setTimeout(()=>{ex.sets.splice(i,1);renderRows(ex);commitFX(r,before,calcTotals());},RM.matches?0:220);return;}
+    rm.disabled=true;row.classList.add('dying');
+    setTimeout(()=>{ex.sets.splice(i,1);renderRows(ex);commitFX(r,before,calcTotals());},RM.matches?0:220);return;}
   const addSet=t.closest('.add-set');
   if(addSet){const card=addSet.closest('.wb-ex-row'),ex=exByUid(card.dataset.uid),last=ex.sets[ex.sets.length-1],before=calcTotals();
     ex.sets.push({...last,done:false});renderRows(ex);commitFX(addSet.getBoundingClientRect(),before,calcTotals());announce(`Set ${ex.sets.length} added`);return;}
@@ -1273,7 +1347,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){if(drag&&drag.armed){cancelDrag();return;}
     if(dBackdrop.classList.contains('open')){closeDetails();return;}
     if(backdrop.classList.contains('open')){closeSheet();return;}}
-  if((e.key==='Enter'||e.key===' ')&&e.target.matches('.picker-ex-row,.ss-wrap')){e.preventDefault();e.target.click();}});
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('.picker-ex-row,.ss-wrap')){e.preventDefault();e.target.click();}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('.wb-ex-hdr')){e.preventDefault();toggleCollapse(e.target.closest('.wb-ex-row').dataset.uid);}});
 $('#add-btn').addEventListener('click',e=>openSheet(e.currentTarget));
 ctaEl.addEventListener('click',commitSelection);
 $('#sheet-close').addEventListener('click',closeSheet);
@@ -1282,8 +1357,17 @@ const saveBtn=$('#save-btn');
 saveBtn.addEventListener('pointerdown',()=>chargeStart(saveBtn));
 saveBtn.addEventListener('pointerup',()=>chargeEnd(true));
 saveBtn.addEventListener('pointerleave',()=>chargeEnd(false));
-saveBtn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sealFinale();}});
-DESK.addEventListener('change',()=>{if(drag)cancelDrag();closeSheet();renderLibrary();});
+saveBtn.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat){e.preventDefault();sealFinale();}});
+/* #library is a true modal sheet on mobile but a permanent sidebar at desktop
+   widths — its dialog semantics must follow the breakpoint, not just its CSS */
+function syncLibraryA11y(){
+  if(DESK.matches){libEl.removeAttribute('role');libEl.removeAttribute('aria-modal');libEl.setAttribute('aria-label','Exercise library');}
+  else{libEl.setAttribute('role','dialog');libEl.setAttribute('aria-modal','true');libEl.setAttribute('aria-label','Add exercises to workout');}}
+DESK.addEventListener('change',()=>{if(drag)cancelDrag();closeSheet();
+  /* mobile staging doesn't apply on desktop (rows there commit instantly) — stale
+     picks left over from crossing the breakpoint would otherwise resurface later */
+  state.selection.clear();renderTray(false);updateCTA();
+  syncLibraryA11y();renderLibrary();});
 
 /* ════════ §M · Workout Details: edge peekaboo tab → side drawer ════════
    The tab hangs on the right screen edge (z 700 — StartDock's layering
@@ -1293,7 +1377,7 @@ DESK.addEventListener('change',()=>{if(drag)cancelDrag();closeSheet();renderLibr
 const dBackdrop=$('#details-backdrop'),dDrawer=$('#details-drawer'),dTab=$('#details-tab');
 state.details={name:'Push Day',desc:'',labels:['Legs','Upper Body','Chest'],activeCal:320,totalCal:450};
 let detailsSnap=null;
-const chipHTML=l=>`<button type="button" class="wo-label-chip sel" data-label="${l}" aria-pressed="true">${l}</button>`;
+const chipHTML=l=>`<button type="button" class="wo-label-chip sel" data-label="${escHtml(l)}" aria-pressed="true">${escHtml(l)}</button>`;
 function renderDetails(){const d=state.details;
   $('#details-title-sub').textContent=`· ${d.name.trim()||'Untitled workout'}`;
   const box=$('#wk-labels');$$('.wo-label-chip[data-label]',box).forEach(c=>c.remove());
@@ -1330,7 +1414,9 @@ document.addEventListener('input',e=>{const t=e.target,d=state.details;
 /* ════════ §L · boot ════════ */
 state.workout=['bench','incline','latpull','brow','squat'].map(id=>newInstance(libById(id)));
 state.workout.slice(1).forEach(x=>state.collapsed.add(x.uid));
-renderLibrary();renderList();updateTotals();updateCTA();renderDetails();
+syncLibraryA11y();renderLibrary();renderList();updateTotals();updateCTA();renderDetails();
 })();
 </script>
+</body>
+</html>
 
