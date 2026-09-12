@@ -1493,6 +1493,20 @@
         inset 0 -14px 32px rgba(214,106,47,.12);
     }
     .wb-details-fire{position:absolute;inset:0;pointer-events:none;z-index:0}
+    .wb-details-fire::before{
+      content:"";position:absolute;inset:-4%;
+      background:
+        radial-gradient(18% 22% at 0% 12%,rgba(240,120,60,.7),transparent 70%),
+        radial-gradient(16% 20% at 4% 38%,rgba(226,90,42,.55),transparent 68%),
+        radial-gradient(20% 24% at 0% 68%,rgba(214,106,47,.6),transparent 70%),
+        radial-gradient(18% 20% at 8% 92%,rgba(122,61,130,.28),transparent 70%),
+        radial-gradient(18% 22% at 100% 18%,rgba(240,120,60,.5),transparent 70%),
+        radial-gradient(16% 20% at 96% 62%,rgba(214,106,47,.45),transparent 68%),
+        radial-gradient(22% 16% at 50% 0%,rgba(240,120,60,.4),transparent 70%),
+        radial-gradient(22% 16% at 50% 100%,rgba(214,106,47,.35),transparent 70%);
+      filter:blur(10px);
+      animation:wb-dt-breathe 7s ease-in-out infinite;
+    }
     .wb-details-fire-edge{
       position:absolute;pointer-events:none;
       animation:wb-dt-breathe 8s ease-in-out infinite;
