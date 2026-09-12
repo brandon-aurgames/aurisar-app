@@ -1401,8 +1401,8 @@
     .wb-dt-label-idle{
       position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
       writing-mode:vertical-rl;transform:rotate(180deg);
-      font-family:'Inter',sans-serif;font-size:7px;font-weight:600;
-      letter-spacing:.22em;text-transform:uppercase;color:rgba(212,206,196,.62);
+      font-family:'Inter',sans-serif;font-size:8px;font-weight:600;
+      letter-spacing:.22em;text-transform:uppercase;color:rgba(212,206,196,.78);
     }
     .wb-dt-label-hover{
       display:none;position:absolute;inset:0;align-items:center;justify-content:center;
@@ -1419,6 +1419,16 @@
     .wb-dt.is-hover .wb-dt-label-idle,.wb-dt:focus-visible .wb-dt-label-idle{display:none}
     .wb-dt.is-hover .wb-dt-label-hover,.wb-dt:focus-visible .wb-dt-label-hover{display:flex}
     .wb-dt.is-hover .wb-dt-ember,.wb-dt:focus-visible .wb-dt-ember{opacity:.85}
+    @media (hover:hover){
+      .wb-dt:hover{width:112px;height:108px}
+      .wb-dt:hover .wb-dt-tab{
+        width:104px;height:100px;transform:translateY(calc(-50% - 2px));
+        box-shadow:inset -1px 0 0 rgba(214,106,47,.45),0 0 18px rgba(214,106,47,.22),0 0 28px rgba(85,53,111,.18);
+      }
+      .wb-dt:hover .wb-dt-label-idle{display:none}
+      .wb-dt:hover .wb-dt-label-hover{display:flex}
+      .wb-dt:hover .wb-dt-ember{opacity:.85}
+    }
     .wb-dt:focus-visible .wb-dt-tab{outline:2px solid var(--wb-ember);outline-offset:2px}
     .wb-dt.is-opening .wb-dt-tab{
       box-shadow:inset 0 0 18px rgba(240,120,60,.45),0 0 24px rgba(214,106,47,.4),0 0 32px rgba(85,53,111,.28);

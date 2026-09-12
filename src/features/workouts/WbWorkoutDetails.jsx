@@ -48,9 +48,15 @@ export function WbDetailsTrigger({ open, filled, onOpen }) {
       className={`wb-dt${filled ? ' is-filled' : ''}${opening ? ' is-opening' : ''}${hovered ? ' is-hover' : ''}${paused ? ' is-paused' : ''}${open ? ' is-open' : ''}`}
       onPointerEnter={e => { if (e.pointerType !== 'touch') setHovered(true); }}
       onPointerLeave={() => setHovered(false)}
+      onMouseEnter={() => {
+        if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
+          setHovered(true);
+        }
+      }}
+      onMouseLeave={() => setHovered(false)}
       onClick={chargeAndOpen}
       disabled={open || opening}
-      inert={open}
+      {...(open ? { inert: true } : {})}
       aria-hidden={open || undefined}
       aria-haspopup="dialog"
       aria-expanded={open}
