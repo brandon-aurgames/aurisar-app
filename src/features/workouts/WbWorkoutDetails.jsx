@@ -26,6 +26,10 @@ export function WbDetailsTrigger({ open, filled, onOpen }) {
     if (openTimer.current) window.clearTimeout(openTimer.current);
   }, []);
 
+  useEffect(() => {
+    setHovered(false);
+  }, [open]);
+
   const chargeAndOpen = () => {
     if (openTimer.current) return;
     setOpening(true);
