@@ -1,4 +1,13 @@
 import { clone } from '../utils/helpers';
+import {
+  groupStaged,
+  ungroup,
+  moveGroup,
+  moveExercise,
+  removeExercise,
+  remapGroupIds,
+  normalizeSupersetGroups,
+} from '../features/workouts/supersetModel';
 
 export const A = {
   UPDATE_EX_FIELD:       'UPDATE_EX_FIELD',
@@ -20,9 +29,15 @@ export const A = {
 };
 
 export function initBDays({ editPlan, templatePlan }) {
-  if (editPlan)     return clone(editPlan.days);
-  if (templatePlan) return clone(templatePlan.days);
-  return Array.from({ length: 7 }, (_, i) => ({ label: `Day ${i + 1}`, exercises: [] }));
+  const raw = editPlan
+    ? clone(editPlan.days)
+    : templatePlan
+      ? clone(templatePlan.days)
+      : Array.from({ length: 7 }, (_, i) => ({ label: `Day ${i + 1}`, exercises: [] }));
+  return raw.map(d => ({
+    ...d,
+    exercises: normalizeSupersetGroups(d.exercises || []),
+  }));
 }
 
 function mapDay(days, dayIdx, fn) {
@@ -50,87 +65,51 @@ export function bDaysReducer(state, action) {
     case A.REMOVE_EX:
       return mapDay(state, action.dayIdx, d => ({
         ...d,
-        exercises: d.exercises.filter((_, j) => j !== action.exIdx),
+        exercises: removeExercise(d.exercises, action.exIdx),
       }));
 
     case A.MOVE_EX: {
       const { dayIdx, fromIdx, toIdx } = action;
       if (fromIdx === toIdx) return state;
-      return mapDay(state, dayIdx, d => {
-        const exs = [...d.exercises];
-        const [moved] = exs.splice(fromIdx, 1);
-        exs.splice(toIdx, 0, moved);
-        return { ...d, exercises: exs };
-      });
+      const dir = toIdx > fromIdx ? 1 : -1;
+      return mapDay(state, dayIdx, d => ({
+        ...d,
+        exercises: moveExercise(d.exercises, fromIdx, dir),
+      }));
     }
 
     case A.ADD_EXERCISES:
       return mapDay(state, action.dayIdx, d => ({
         ...d,
-        exercises: [...d.exercises, ...action.exercises],
+        exercises: normalizeSupersetGroups([
+          ...d.exercises,
+          ...remapGroupIds(action.exercises || []),
+        ]),
       }));
 
     case A.GROUP_SUPERSET:
       return mapDay(state, action.dayIdx, d => ({
         ...d,
-        exercises: d.exercises.map((e, ei) =>
-          ei === action.idxA ? { ...e, supersetWith: action.idxB }
-          : ei === action.idxB ? { ...e, supersetWith: action.idxA }
-          : e
-        ),
+        exercises: groupStaged(d.exercises, action.indices || [], action.joinGid),
       }));
 
     case A.UNGROUP_SUPERSET:
       return mapDay(state, action.dayIdx, d => ({
         ...d,
-        exercises: d.exercises.map((e, ei) =>
-          ei === action.idxA || ei === action.idxB
-            ? { ...e, supersetWith: null }
-            : e
-        ),
+        exercises: ungroup(d.exercises, action.gid),
       }));
 
-    // Pair at [minI, minI+1] shifts up one slot; element above slides to tail.
-    case A.MOVE_SUPERSET_UP: {
-      const { dayIdx, minI } = action;
-      return mapDay(state, dayIdx, d => {
-        const exs = [...d.exercises];
-        const above = exs[minI - 1];
-        exs[minI - 1] = exs[minI];
-        exs[minI]     = exs[minI + 1];
-        exs[minI + 1] = above;
-        return {
-          ...d,
-          exercises: exs.map(e => {
-            if (e.supersetWith === minI - 1) return { ...e, supersetWith: minI + 1 };
-            if (e.supersetWith === minI)     return { ...e, supersetWith: minI - 1 };
-            if (e.supersetWith === minI + 1) return { ...e, supersetWith: minI };
-            return e;
-          }),
-        };
-      });
-    }
+    case A.MOVE_SUPERSET_UP:
+      return mapDay(state, action.dayIdx, d => ({
+        ...d,
+        exercises: moveGroup(d.exercises, action.gid, -1),
+      }));
 
-    // Pair at [minI, maxI] shifts down one slot; element below slides to head.
-    case A.MOVE_SUPERSET_DOWN: {
-      const { dayIdx, minI, maxI } = action;
-      return mapDay(state, dayIdx, d => {
-        const exs = [...d.exercises];
-        const below = exs[maxI + 1];
-        exs[maxI + 1] = exs[maxI];
-        exs[maxI]     = exs[minI];
-        exs[minI]     = below;
-        return {
-          ...d,
-          exercises: exs.map(e => {
-            if (e.supersetWith === minI)     return { ...e, supersetWith: minI + 1 };
-            if (e.supersetWith === minI + 1) return { ...e, supersetWith: minI + 2 };
-            if (e.supersetWith === maxI + 1) return { ...e, supersetWith: minI };
-            return e;
-          }),
-        };
-      });
-    }
+    case A.MOVE_SUPERSET_DOWN:
+      return mapDay(state, action.dayIdx, d => ({
+        ...d,
+        exercises: moveGroup(d.exercises, action.gid, 1),
+      }));
 
     case A.UPDATE_DAY_LABEL:
       return mapDay(state, action.dayIdx, d => ({ ...d, label: action.val }));

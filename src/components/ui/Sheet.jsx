@@ -27,6 +27,7 @@ const LAYER_Z = {
  *
  * `placement="bottom"` is the mobile-first default; `"center"` is for the
  * few dialogs whose character is a centered card (completion, confirms).
+ * `"left"` is a full-height drawer (workout-builder session notes).
  *
  * On open, focus moves into the dialog (unless a caller has already placed
  * focus inside — e.g. ConfirmSheet focuses its Cancel), so keyboard and
@@ -36,7 +37,7 @@ export default function Sheet({
   open,
   onClose,
   layer = 'modal',            // key of LAYER_Z, or an explicit z number
-  placement = 'bottom',       // "bottom" | "center"
+  placement = 'bottom',       // "bottom" | "center" | "left"
   title,
   icon,
   titleFont,                  // "cinzel" opts into the serif display face
@@ -59,6 +60,7 @@ export default function Sheet({
   onAnimationEnd,
   className = '',
   bodyClassName = '',
+  id,
   children,
 }) {
   const backdropRef = useRef(null);
@@ -89,6 +91,16 @@ export default function Sheet({
 
   const zIndex = typeof layer === 'number' ? layer : (LAYER_Z[layer] ?? Z.modal);
   const isBottom = placement === 'bottom';
+  const isLeft = placement === 'left';
+  let backdropMod = 'ui-sheet-backdrop--center';
+  let sheetMod = 'ui-sheet--center ui-sheet-pop';
+  if (isBottom) {
+    backdropMod = 'ui-sheet-backdrop--bottom';
+    sheetMod = 'ui-sheet--bottom sheet-slide-up';
+  } else if (isLeft) {
+    backdropMod = 'ui-sheet-backdrop--left';
+    sheetMod = 'ui-sheet--left sheet-enter-left';
+  }
 
   // Touch/animation passthroughs are spread so a sheet without a swipe pager
   // carries no listeners at all.
@@ -102,7 +114,7 @@ export default function Sheet({
     <div
       ref={backdropRef}
       role="presentation"
-      className={`ui-sheet-backdrop ${isBottom ? 'ui-sheet-backdrop--bottom' : 'ui-sheet-backdrop--center'}${isBottom && navOffset ? ' ui-sheet-backdrop--nav' : ''}`}
+      className={`ui-sheet-backdrop ${backdropMod}${(isBottom || isLeft) && navOffset ? ' ui-sheet-backdrop--nav' : ''}`}
       style={{ zIndex }}
       onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}
     >
@@ -112,8 +124,9 @@ export default function Sheet({
         aria-label={ariaLabel || title || undefined}
         ref={dialogRef}
         tabIndex={tabIndex != null ? tabIndex : -1}
-        className={`ui-sheet ${isBottom ? 'ui-sheet--bottom sheet-slide-up' : 'ui-sheet--center ui-sheet-pop'}${tall ? ' ui-sheet--tall' : ''} ${className}`}
+        className={`ui-sheet ${sheetMod}${tall ? ' ui-sheet--tall' : ''} ${className}`}
         style={{ maxWidth, ...style }}
+        id={id}
         {...passthrough}
       >
         {isBottom && showHandle && <div className={'ui-sheet-handle'} aria-hidden={'true'} />}

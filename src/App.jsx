@@ -41,6 +41,7 @@ import XpBarFlash from './features/profile/XpBarFlash';
 import { useAvatarConfig } from './features/avatar/useAvatarConfig.js';
 import MapOverlay from './features/character/MapOverlay';
 import WorkoutsTabContainer from './features/workouts/WorkoutsTabContainer';
+import { normalizeSupersetGroups } from './features/workouts/supersetModel';
 import CompletionModal from './features/workouts/CompletionModal';
 import CalendarTab from './features/calendar/CalendarTab';
 import LeaderboardTab from './features/leaderboard/LeaderboardTab';
@@ -3799,7 +3800,7 @@ function App() {
   }
   // Open stats prompt if any of duration/activeCal/totalCal are missing, then run onConfirm
   function _buildLiveExercises(wo) {
-    return (wo.exercises || []).map((ex, i) => {
+    return normalizeSupersetGroups((wo.exercises || []).map((ex, i) => {
       const exData = allExById[ex.exId];
       const cat = (exData?.category || 'strength').toLowerCase();
       const rows = [{ sets: ex.sets, reps: ex.reps }, ...(ex.extraRows || [])];
@@ -3823,10 +3824,11 @@ function App() {
         seconds: ex.seconds || null,
         extraRows: ex.extraRows || [],
         setsDesc,
+        ssGroupId: ex.ssGroupId || undefined,
         supersetWith: (typeof ex.supersetWith === 'number' && ex.supersetWith >= 0) ? ex.supersetWith : null,
         done: false,
       };
-    });
+    }));
   }
 
   function startLiveWorkout(wo) {

@@ -35,9 +35,9 @@ describe('builder fresh-start reset (P2c)', () => {
     const body = src.slice(src.indexOf('openBuilderWithExercises:'));
     const fn = body.slice(0, body.indexOf('},') + 2);
     expect(fn).toContain('resetBuilderFields()');
-    expect(fn).toContain('setWbExercises(entries)');
+    expect(fn).toContain('setWbExercises(normalizeSupersetGroups(entries))');
     // reset must precede the seed
-    expect(fn.indexOf('resetBuilderFields()')).toBeLessThan(fn.indexOf('setWbExercises(entries)'));
+    expect(fn.indexOf('resetBuilderFields()')).toBeLessThan(fn.indexOf('setWbExercises(normalizeSupersetGroups(entries))'));
   });
 
   it('initWorkoutBuilder also starts from the shared reset', () => {
@@ -57,5 +57,25 @@ describe('stats-prompt preference is read live (C1)', () => {
     expect(fn).toContain('reviewBattleStats');
     // must NOT re-introduce the stale read for the gate
     expect(fn).not.toMatch(/const _bsPrefs = profile\.notificationPrefs/);
+  });
+});
+
+describe('builder session-notes peek', () => {
+  it('keeps required name on the canvas and parks optional fields in Workout Details', () => {
+    const src = read('src/features/workouts/WorkoutsTab.jsx');
+    expect(src).toContain('WbDetailsTrigger');
+    expect(src).toContain('WbDetailsOverlay');
+    expect(src).not.toContain('placeholder={"320"}');
+    expect(src).not.toContain('placeholder={"450"}');
+    const overlay = read('src/features/workouts/WbWorkoutDetails.jsx');
+    expect(overlay).toContain('Open workout details');
+    expect(overlay).toContain('Workout Details');
+    expect(overlay).toContain('is-closing');
+  });
+
+  it('Sheet supports left placement', () => {
+    const sheet = read('src/components/ui/Sheet.jsx');
+    expect(sheet).toContain("placement === 'left'");
+    expect(sheet).toContain('ui-sheet--left');
   });
 });

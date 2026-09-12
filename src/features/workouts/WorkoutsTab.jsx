@@ -1,17 +1,32 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ExIcon } from '../../components/ExIcon';
 import { getMuscleColor, getTypeColor, calcExXP, calcExEntryXP, calcWorkoutXP } from '../../utils/xp';
-import { lbsToKg, miToKm, isMetric, weightLabel, displayWt } from '../../utils/units';
+import { lbsToKg, isMetric, displayWt } from '../../utils/units';
 import { formatXP } from '../../utils/format';
 import { todayStr } from '../../utils/helpers';
-import { normalizeHHMM, combineHHMMSec, daysUntil } from '../../utils/time';
+import { combineHHMMSec, daysUntil } from '../../utils/time';
 import { S, R, FS, Z } from '../../utils/tokens';
 import SetsEditor from '../../components/ui/SetsEditor';
 import FilterDropdown from '../exercises/FilterDropdown';
 import IconButton from '../../components/ui/IconButton';
 import Sheet from '../../components/ui/Sheet';
+import { WbDetailsOverlay, WbDetailsTrigger } from './WbWorkoutDetails';
 import { buildWorkoutObject } from './workoutModel';
-import { UI_COLORS, MUSCLE_COLORS, WORKOUT_TEMPLATES, NO_SETS_EX_IDS, RUNNING_EX_ID, HR_ZONES } from '../../data/constants';
+import {
+  SS_MAX,
+  adjacentGroupId,
+  eachRun,
+  groupLetter,
+  groupStaged,
+  memberBadge,
+  mergeOnto,
+  moveExercise,
+  normalizeSupersetGroups,
+  removeExercise,
+  ungroup,
+} from './supersetModel';
+import { useBuilderPointerDnd } from './useBuilderPointerDnd';
+import { UI_COLORS, MUSCLE_COLORS, WORKOUT_TEMPLATES, NO_SETS_EX_IDS, RUNNING_EX_ID } from '../../data/constants';
 
 /**
  * Workouts tab — extracted from the inline IIFE in App.jsx as part of
@@ -21,11 +36,9 @@ import { UI_COLORS, MUSCLE_COLORS, WORKOUT_TEMPLATES, NO_SETS_EX_IDS, RUNNING_EX
  *
  * Co-located sub-components / helpers:
  *   WbExCard             — memoized exercise row in the workout builder
+ *   SsStagingBar         — group-as-superset action bar
  *   getWorkoutMgColor    — derive card accent from dominant muscle group
  *   getRecipeMgColor     — derive card accent from recipe category
- *   updateWbEx           — typed field updater (closure over setWbExercises)
- *   renderWbExFields     — inline field group for a single exercise row
- *   renderSsAccordionSection — collapsible accordion section inside a superset card
  */
 
 // ── Module-level constants (hoisted from App.jsx) ──
@@ -104,6 +117,16 @@ function getWorkoutMgColor(wo, exById, mgColors) {
   return top && mgColors[top] || "#B0A090";
 }
 
+function SsStagingBar({ count, joinLetter, onGroup, onCancel }) {
+  const ready = count >= 2 || !!joinLetter;
+  const text = joinLetter
+    ? `Add to Superset ${joinLetter}`
+    : count === 1
+      ? "Select 1 more to superset"
+      : `${count} selected — ready to group`;
+  return <div className={"ss-action-bar"}><span className={"ss-action-text"}>{text}</span>{ready && <button type={"button"} className={"ss-action-btn"} onClick={onGroup}>{joinLetter ? `🔗 Add to ${joinLetter}` : "🔗 Group as Superset"}</button>}<button type={"button"} className={"ss-action-cancel"} onClick={onCancel} aria-label={"Cancel superset selection"}>{"✕"}</button></div>;
+}
+
 const WbExCard = React.memo(function WbExCard({
   ex,
   i,
@@ -117,7 +140,11 @@ const WbExCard = React.memo(function WbExCard({
   setSsChecked,
   ssChecked,
   exCount,
-  openExEditor
+  openExEditor,
+  canMoveUp,
+  canMoveDown,
+  grouped,
+  orderBadge,
 }) {
   function updateField(field, val) {
     setWbExercises(exs => exs.map((e, j) => j !== i ? e : {
@@ -126,21 +153,7 @@ const WbExCard = React.memo(function WbExCard({
     }));
   }
   function removeEx() {
-    setWbExercises(exs => {
-      const updated = exs.map((e, j) => {
-        if (j === i) return null;
-        if (e.supersetWith === i) return {
-          ...e,
-          supersetWith: null
-        };
-        if (e.supersetWith != null && e.supersetWith > i) return {
-          ...e,
-          supersetWith: e.supersetWith - 1
-        };
-        return e;
-      }).filter(Boolean);
-      return updated;
-    });
+    setWbExercises(exs => removeExercise(exs, i));
   }
   function toggleCollapse() {
     setCollapsedWbEx(s => ({
@@ -148,27 +161,8 @@ const WbExCard = React.memo(function WbExCard({
       [i]: !s[i]
     }));
   }
-  function reorder(toIdx) {
-    if (i === toIdx) return;
-    setWbExercises(exs => {
-      const arr = [...exs];
-      const [moved] = arr.splice(i, 1);
-      arr.splice(toIdx, 0, moved);
-      const indexMap = {};
-      const temp = exs.map((_, idx) => idx);
-      const [movedIdx] = temp.splice(i, 1);
-      temp.splice(toIdx, 0, movedIdx);
-      temp.forEach((oldIdx, newIdx) => {
-        indexMap[oldIdx] = newIdx;
-      });
-      return arr.map(e => {
-        if (e.supersetWith != null && indexMap[e.supersetWith] != null) return {
-          ...e,
-          supersetWith: indexMap[e.supersetWith]
-        };
-        return e;
-      });
-    });
+  function reorder(dir) {
+    setWbExercises(exs => moveExercise(exs, i, dir));
   }
   const noSetsEx = NO_SETS_EX_IDS.has(exD.id);
   const isRunningEx = exD.id === RUNNING_EX_ID;
@@ -182,13 +176,13 @@ const WbExCard = React.memo(function WbExCard({
   const runPace = isRunningEx && distMiVal > 0 && durationMin > 0 ? durationMin / distMiVal : null;
   const runBoostPct = runPace ? runPace <= 8 ? 20 : 5 : 0;
   const mgColor = getMuscleColor(exD.muscleGroup);
-  return <><div className={"wb-ex-hdr"} onClick={() => toggleCollapse()}><div className={"wb-reorder"}><IconButton label={`Move ${exD.name} up`} size={20} disabled={i === 0} onClick={e => {
+  return <><div className={"wb-ex-hdr"} onClick={() => toggleCollapse()}><div className={"wb-reorder"}><IconButton label={`Move ${exD.name} up`} size={20} disabled={!canMoveUp} onClick={e => {
           e.stopPropagation();
-          reorder(i - 1);
-        }}>{"▲"}</IconButton><IconButton label={`Move ${exD.name} down`} size={20} disabled={i === exCount - 1} onClick={e => {
+          reorder(-1);
+        }}>{"▲"}</IconButton><IconButton label={`Move ${exD.name} down`} size={20} disabled={!canMoveDown} onClick={e => {
           e.stopPropagation();
-          reorder(i + 1);
-        }}>{"▼"}</IconButton></div>{ex.supersetWith == null && exCount >= 2 && <div style={{
+          reorder(1);
+        }}>{"▼"}</IconButton></div>{!grouped && exCount >= 2 && <div style={{
         display: "flex",
         alignItems: "center",
         gap: S.s4,
@@ -199,7 +193,7 @@ const WbExCard = React.memo(function WbExCard({
         setSsChecked(prev => {
           const n = new Set(prev);
           if (n.has(i)) n.delete(i);else {
-            if (n.size >= 2) {
+            if (n.size >= SS_MAX) {
               const oldest = [...n][0];
               n.delete(oldest);
             }
@@ -213,12 +207,7 @@ const WbExCard = React.memo(function WbExCard({
           fontWeight: 600,
           letterSpacing: ".03em",
           userSelect: "none"
-        }}>{"Superset"}</span></div>}<span aria-hidden={"true"} style={{
-        cursor: "grab",
-        color: "#8a8478",
-        fontSize: FS.fs90,
-        flexShrink: 0
-      }}>{"⠿"}</span><div className={"builder-ex-orb"} style={{
+        }}>{"Superset"}</span></div>}<span data-drag-handle={"true"} className={"drag-handle"} aria-hidden={"true"} title={"Drag to reorder"}>{"⠿"}</span><div className={"builder-ex-orb"} style={{
         "--mg-color": mgColor
       }}><ExIcon ex={exD} size={".95rem"} color={"#d4cec4"} /></div><div className={"builder-ex-name-styled"}>{exD.name}{exD.custom && <span className={"custom-ex-badge"} style={{
           marginLeft: S.s4
@@ -229,7 +218,7 @@ const WbExCard = React.memo(function WbExCard({
         }} onClick={e => {
           e.stopPropagation();
           openExEditor("edit", exD);
-        }}>{"✎ edit"}</button>}</div>{ex.supersetWith && <span className={"ss-badge"}>{"SS"}</span>}{(isRunningEx && pbDisp || exPBDisp) && <span style={{
+        }}>{"✎ edit"}</button>}</div>{orderBadge && <span className={"ss-badge"}>{orderBadge}</span>}{(isRunningEx && pbDisp || exPBDisp) && <span style={{
         fontSize: FS.fs58,
         color: "#b4ac9e",
         flexShrink: 0
@@ -322,62 +311,6 @@ const WorkoutsTab = memo(function WorkoutsTab({
   allExById,
   clsColor,
 }) {
-  function updateWbEx(idx, field, val) {
-    setWbExercises(exs => exs.map((e, i) => i === idx ? { ...e, [field]: val } : e));
-  }
-function renderWbExFields(ex, idx, exD) {
-  return <SetsEditor exD={exD} value={ex} onField={(field, val) => updateWbEx(idx, field, val)} units={profile.units} age={profile.age || 30} variant={"builder"} />;
-}
-function renderSsAccordionSection(ex, idx, exD, label, sectionKey) {
-  const collapsed = !!ssAccordion[sectionKey];
-  const _noSets = NO_SETS_EX_IDS.has(exD.id);
-  const _isC = exD.category === "cardio";
-  const _isF = exD.category === "flexibility";
-  const _metric = isMetric(profile.units);
-  const _wUnit = weightLabel(profile.units);
-  const _distMiVal = ex.distanceMi ? parseFloat(ex.distanceMi) : 0;
-  const _durMin = parseFloat(ex.reps || 0);
-  const _isRunning = exD.id === RUNNING_EX_ID;
-  const _runPace = _isRunning && _distMiVal > 0 && _durMin > 0 ? _durMin / _distMiVal : null;
-  const _runBoost = _runPace ? _runPace <= 8 ? 20 : 5 : 0;
-  const xpVal = calcExEntryXP(ex, profile.chosenClass, allExById);
-  const summaryText = (_noSets ? "" : ex.sets + "×") + ex.reps + (ex.weightLbs ? ` · ${displayWt(ex.weightLbs, profile.units)}` : "");
-  return <div className={"ss-section"}><div className={"ss-section-hdr"} onClick={() => setSsAccordion(prev => ({
-      ...prev,
-      [sectionKey]: !prev[sectionKey]
-    }))}><div className={"ab-badge"}>{label}</div><div style={{
-        width: 28,
-        height: 28,
-        borderRadius: R.md,
-        flexShrink: 0,
-        background: "rgba(45,42,36,.15)",
-        border: "1px solid rgba(180,172,158,.05)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: FS.fs80
-      }}>{exD.icon}</div><span style={{
-        fontFamily: "'Cinzel',serif",
-        fontSize: FS.fs66,
-        color: "#d8caba",
-        letterSpacing: ".02em",
-        flex: 1,
-        minWidth: 0
-      }}>{exD.name}</span>{collapsed && <span style={{
-        fontSize: FS.fs55,
-        color: "#8a8478"
-      }}>{summaryText}</span>}<span style={{
-        fontSize: FS.sm,
-        fontWeight: 700,
-        color: "#b4ac9e",
-        flexShrink: 0
-      }}>{"+" + xpVal}</span><span style={{
-        fontSize: FS.sm,
-        color: "#8a8478",
-        transition: "transform .2s",
-        transform: collapsed ? "rotate(0deg)" : "rotate(180deg)"
-      }}>{"▼"}</span></div>{!collapsed && <div className={"ss-section-body"}>{renderWbExFields(ex, idx, exD)}</div>}</div>;
-}
 const metric = isMetric(profile.units);
 const allW = useMemo(() => profile.workouts || [], [profile.workouts]);
 // Per-workout XP + accent, computed once per relevant-input change rather
@@ -401,6 +334,26 @@ const woLabelCounts = useMemo(() => {
   }
   return c;
 }, [allW]);
+
+const wbListRef = useRef(null);
+useBuilderPointerDnd({
+  listRef: wbListRef,
+  exercises: wbExercises,
+  enabled: workoutView === "builder",
+  onReorder: reorderWbEx,
+  onMerge: (from, onto) => setWbExercises(xs => mergeOnto(xs, from, onto)),
+});
+const [detailsOpen, setDetailsOpen] = useState(false);
+useEffect(() => {
+  if (workoutView !== "builder") setDetailsOpen(false);
+}, [workoutView]);
+const detailsFilled = !!(
+  (wbDesc && wbDesc.trim())
+  || (wbLabels && wbLabels.length)
+  || wbDuration
+  || wbActiveCal
+  || wbTotalCal
+);
 
 // ── LIST ───────────────────────────────
 if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div style={{
@@ -821,85 +774,51 @@ if (workoutView === "recipes") {
             }}>{"▼"}</span></div>{expandedRecipeEx.has(tpl.id) && <div style={{
             marginTop: S.s8
           }}>{(() => {
-              const rendered = new Set();
-              return tpl.exercises.map((ex, i) => {
-                if (rendered.has(i)) return null;
-                const exD = allExById[ex.exId];
-                if (!exD) return null;
-                const noSets = NO_SETS_EX_IDS.has(ex.exId);
-                // Check for superset pair
-                if (ex.supersetWith != null && !rendered.has(ex.supersetWith)) {
-                  const j = ex.supersetWith;
-                  const exB = tpl.exercises[j];
-                  const exDB = allExById[exB?.exId];
-                  if (exDB) {
-                    rendered.add(i);
-                    rendered.add(j);
-                    const noSetsB = NO_SETS_EX_IDS.has(exB.exId);
-                    return <div key={i} className={"recipe-ss-group"} style={{
-                      borderLeft: "2px solid #C4A044",
-                      paddingLeft: 8,
-                      marginBottom: S.s6,
-                      marginTop: i > 0 ? 6 : 0
-                    }}><div style={{
-                        fontSize: FS.fs58,
-                        color: "#C4A044",
-                        fontWeight: 600,
-                        marginBottom: S.s4,
-                        textTransform: "uppercase",
-                        letterSpacing: ".5px"
-                      }}>{"🔗 Superset"}</div><div style={{
+              const list = normalizeSupersetGroups(tpl.exercises.map(e => ({ ...e })));
+              const nodes = [];
+              eachRun(list, (run, gid, start) => {
+                if (gid) {
+                  const letter = groupLetter(list, gid);
+                  nodes.push(<div key={gid} className={"recipe-ss-group"} style={{
+                    borderLeft: "2px solid #C4A044",
+                    paddingLeft: 8,
+                    marginBottom: S.s6,
+                    marginTop: start > 0 ? 6 : 0
+                  }}><div style={{
+                      fontSize: FS.fs58,
+                      color: "#C4A044",
+                      fontWeight: 600,
+                      marginBottom: S.s4,
+                      textTransform: "uppercase",
+                      letterSpacing: ".5px"
+                    }}>{"🔗 Superset "}{letter}</div>{run.map((ex, k) => {
+                      const exD = allExById[ex.exId];
+                      if (!exD) return null;
+                      const noSets = NO_SETS_EX_IDS.has(ex.exId);
+                      return <div key={start + k} style={{
                         display: "flex",
                         alignItems: "center",
                         gap: S.s8,
                         padding: "3px 0"
-                      }}><span style={{
-                          fontSize: FS.fs90,
-                          flexShrink: 0
-                        }}>{exD.icon}</span><span style={{
-                          fontSize: FS.fs75,
-                          color: "#d4cec4",
-                          flex: 1
-                        }}>{exD.name}</span><span style={{
-                          fontSize: FS.fs68,
-                          color: "#8a8478"
-                        }}>{noSets ? `${ex.reps} min` : `${ex.sets} × ${ex.reps}`}</span></div><div style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: S.s8,
-                        padding: "3px 0"
-                      }}><span style={{
-                          fontSize: FS.fs90,
-                          flexShrink: 0
-                        }}>{exDB.icon}</span><span style={{
-                          fontSize: FS.fs75,
-                          color: "#d4cec4",
-                          flex: 1
-                        }}>{exDB.name}</span><span style={{
-                          fontSize: FS.fs68,
-                          color: "#8a8478"
-                        }}>{noSetsB ? `${exB.reps} min` : `${exB.sets} × ${exB.reps}`}</span></div></div>;
-                  }
+                      }}><span style={{ fontSize: FS.fs90, flexShrink: 0 }}>{exD.icon}</span><span style={{ fontSize: FS.fs75, color: "#d4cec4", flex: 1 }}>{memberBadge(list, start + k)}{" · "}{exD.name}</span><span style={{ fontSize: FS.fs68, color: "#8a8478" }}>{noSets ? `${ex.reps} min` : `${ex.sets} × ${ex.reps}`}</span></div>;
+                    })}</div>);
+                  return;
                 }
-                rendered.add(i);
-                return <div key={i} style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: S.s8,
-                  padding: "4px 0",
-                  borderBottom: i < tpl.exercises.length - 1 ? "1px solid rgba(45,42,36,.15)" : ""
-                }}><span style={{
-                    fontSize: FS.fs90,
-                    flexShrink: 0
-                  }}>{exD.icon}</span><span style={{
-                    fontSize: FS.fs75,
-                    color: "#d4cec4",
-                    flex: 1
-                  }}>{exD.name}</span><span style={{
-                    fontSize: FS.fs68,
-                    color: "#8a8478"
-                  }}>{noSets ? `${ex.distanceMi ? ex.distanceMi + "mi · " : ""}${ex.reps} min` : `${ex.sets} × ${ex.reps}`}</span></div>;
+                run.forEach((ex, k) => {
+                  const i = start + k;
+                  const exD = allExById[ex.exId];
+                  if (!exD) return;
+                  const noSets = NO_SETS_EX_IDS.has(ex.exId);
+                  nodes.push(<div key={i} style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: S.s8,
+                    padding: "4px 0",
+                    borderBottom: i < list.length - 1 ? "1px solid rgba(45,42,36,.15)" : ""
+                  }}><span style={{ fontSize: FS.fs90, flexShrink: 0 }}>{exD.icon}</span><span style={{ fontSize: FS.fs75, color: "#d4cec4", flex: 1 }}>{exD.name}</span><span style={{ fontSize: FS.fs68, color: "#8a8478" }}>{noSets ? `${ex.distanceMi ? ex.distanceMi + "mi · " : ""}${ex.reps} min` : `${ex.sets} × ${ex.reps}`}</span></div>);
+                });
               });
+              return nodes;
             })()}</div>}</div><div style={{
           display: "flex",
           gap: S.s8
@@ -926,9 +845,9 @@ if (workoutView === "recipes") {
             setWbName(tpl.name);
             setWbIcon(tpl.icon);
             setWbDesc(tpl.desc);
-            setWbExercises(tpl.exercises.map(e => ({
+            setWbExercises(normalizeSupersetGroups(tpl.exercises.map(e => ({
               ...e
-            })));
+            }))));
             setWbEditId(null);
             setWorkoutView("builder");
           }}>{"✎ Customize First"}</button></div></div>;
@@ -1037,45 +956,30 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       minWidth: 0
     }}><div className={"builder-nav-title"}>{wbIsOneOff ? wbEditId ? "✎ Edit One-Off" : "⚡ New One-Off Workout" : wbEditId ? "✎ Edit Workout" : wbCopySource ? "⎘ Copy Workout" : "⚔ New Workout"}</div>{wbCopySource && <div className={"builder-nav-sub"}>{"Forging from: "}{wbCopySource}</div>}</div></div>
   {
-    /* Combined Identity + Labels + Session Stats panel */
-  }<div className={"wb-section"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input className={"inp"} value={wbName} onChange={e => setWbName(e.target.value)} placeholder={"e.g. Morning Push Day…"} /></div></div>{<Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>}<div className={"field"} style={{marginTop: S.s8}}><label>{"Description "}<span style={{color:"#8a8478",fontWeight:"normal",textTransform:"none"}}>{"(optional)"}</span></label><input className={"inp"} value={wbDesc} onChange={e => setWbDesc(e.target.value)} placeholder={"e.g. Upper body strength focus…"} /></div><div className={"wb-section-divider"} /><div className={"wb-sub-hdr"}><span className={"wb-sub-hdr-icon"}>{"❖"}</span>{"Labels"}<span style={{color:"#8a8478",fontWeight:"normal",letterSpacing:".05em",marginLeft:S.s6,textTransform:"none"}}>{"(optional)"}</span></div><div style={{display:"flex",gap:S.s6,flexWrap:"wrap",alignItems:"center"}}>{(profile.workoutLabels || []).map(l => <span key={l} className={"wo-label-chip" + (wbLabels.includes(l) ? " sel" : "")} onClick={() => setWbLabels(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l])}>{l}</span>)}<span style={{display:"inline-flex",alignItems:"center",gap:S.s4}}><input className={"wo-label-new-inp"} value={newLabelInput} onChange={e => setNewLabelInput(e.target.value)} onKeyDown={e => {
-          if (e.key === "Enter" && newLabelInput.trim()) {
-            const lbl = newLabelInput.trim();
-            if (!(profile.workoutLabels || []).some(x => x.toLowerCase() === lbl.toLowerCase())) {
-              setProfile(p => ({
-                ...p,
-                workoutLabels: [...(p.workoutLabels || []), lbl]
-              }));
-            }
-            if (!wbLabels.includes(lbl)) setWbLabels(prev => [...prev, lbl]);
-            setNewLabelInput("");
-          }
-        }} placeholder={"+ New label…"} style={{width: 100}} /><button className={"btn btn-ghost btn-xs"} style={{padding:"2px 6px",fontSize:FS.sm}} onClick={() => {
-          const lbl = newLabelInput.trim();
-          if (!lbl) return;
-          if (!(profile.workoutLabels || []).some(x => x.toLowerCase() === lbl.toLowerCase())) {
-            setProfile(p => ({
-              ...p,
-              workoutLabels: [...(p.workoutLabels || []), lbl]
-            }));
-          }
-          if (!wbLabels.includes(lbl)) setWbLabels(prev => [...prev, lbl]);
-          setNewLabelInput("");
-        }}>{"+"}</button></span></div><div className={"wb-section-divider"} /><div className={"wb-sub-hdr"}><span className={"wb-sub-hdr-icon"}>{"⏱"}</span>{"Session Stats"}<span style={{color:"#8a8478",fontWeight:"normal",letterSpacing:".05em",marginLeft:S.s6,textTransform:"none"}}>{"(optional)"}</span></div><div className={"wb-stats-row"}><div className={"field"} style={{flex:2,marginBottom:S.s0}}><label>{"Duration"}</label><input className={"inp"} type={"text"} inputMode={"numeric"} value={wbDuration} onChange={e => setWbDuration(e.target.value)} onBlur={e => {
-        const val = e.target.value.trim();
-        if (!val) { setWbDuration(""); setWbDurSec(""); return; }
-        const hms = val.match(/^(\d+):(\d{1,2}):(\d{1,2})$/);
-        if (hms) {
-          const h = Number(hms[1]), m = Number(hms[2]), s = Number(hms[3]);
-          const ss = Math.min(s, 59);
-          setWbDuration(`${String(h + Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}:${String(ss).padStart(2,"0")}`);
-          setWbDurSec("");
-        } else {
-          setWbDuration(normalizeHHMM(val));
-          setWbDurSec("");
-        }
-      }} placeholder={"HH:MM or HH:MM:SS"} style={{textAlign:"center"}} /><div className={"wb-dur-hint"}>{"90 = 1h30m · include :SS for seconds"}</div></div><div className={"field"} style={{flex:1.3,marginBottom:S.s0}}><label>{"Active Cal"}</label><input className={"inp"} type={"number"} min={"0"} max={"9999"} value={wbActiveCal} onChange={e => setWbActiveCal(e.target.value)} placeholder={"320"} /></div><div className={"field"} style={{flex:1.3,marginBottom:S.s0}}><label>{"Total Cal"}</label><input className={"inp"} type={"number"} min={"0"} max={"9999"} value={wbTotalCal} onChange={e => setWbTotalCal(e.target.value)} placeholder={"450"} /></div></div></div>
-  {
+    /* Name stays on the canvas. Optional session fields live in Workout Details. */
+  }<WbDetailsTrigger open={detailsOpen} filled={detailsFilled} onOpen={() => setDetailsOpen(true)} /><WbDetailsOverlay
+    open={detailsOpen}
+    onClose={() => setDetailsOpen(false)}
+    wbName={wbName}
+    setWbName={setWbName}
+    wbDesc={wbDesc}
+    setWbDesc={setWbDesc}
+    wbLabels={wbLabels}
+    setWbLabels={setWbLabels}
+    newLabelInput={newLabelInput}
+    setNewLabelInput={setNewLabelInput}
+    profile={profile}
+    setProfile={setProfile}
+    wbDuration={wbDuration}
+    setWbDuration={setWbDuration}
+    setWbDurSec={setWbDurSec}
+    wbActiveCal={wbActiveCal}
+    setWbActiveCal={setWbActiveCal}
+    wbTotalCal={wbTotalCal}
+    setWbTotalCal={setWbTotalCal}
+    wbExercises={wbExercises}
+    allExById={allExById}
+  /><div className={"wb-section"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input className={"inp"} value={wbName} onChange={e => setWbName(e.target.value)} placeholder={"e.g. Morning Push Day…"} /></div></div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
     /* Exercise list */
   }<div className={"wo-section-hdr"} style={{
     marginTop: S.s18,
@@ -1095,104 +999,47 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       gap: S.s6
     }}><button className={"btn btn-ghost btn-xs"} onClick={() => setWbExPickerOpen(true)}>{"＋ Add Exercise"}</button><button className={"btn btn-ghost btn-xs"} onClick={() => openExEditor("create", null)}>{"⚔ Forge Custom"}</button></div></div>{wbExercises.length === 0 && <div className={"empty"} style={{
     padding: "16px 0"
-  }}>{"No techniques yet. Add from the arsenal or forge a custom one."}</div>}{(() => {
+  }}>{"No techniques yet. Add from the arsenal or forge a custom one."}</div>}<div className={"wb-ex-list"} ref={wbListRef}><div className={"wb-drop-line"} aria-hidden={"true"}><div className={"dl-bar"} /><span className={"dl-plus"}>{"+"}</span></div>{(() => {
     const minSsChecked = ssChecked.size > 0 ? Math.min(...ssChecked) : -1;
-    return wbExercises.map((ex, i) => {
+    const joinGid = adjacentGroupId(wbExercises, [...ssChecked]);
+    const joinLetter = joinGid ? groupLetter(wbExercises, joinGid) : "";
+    const staging = ssChecked.size > 0 ? <SsStagingBar count={ssChecked.size} joinLetter={joinLetter} onGroup={() => {
+      setWbExercises(xs => groupStaged(xs, [...ssChecked], joinGid));
+      setSsChecked(new Set());
+    }} onCancel={() => setSsChecked(new Set())} /> : null;
+    const renderCard = (ex, i, inSs, isLast) => {
       const exD = allExById[ex.exId];
       if (!exD) return null;
-      const isC = exD.category === "cardio";
-      const isF = exD.category === "flexibility";
-      const showW = !isC && !isF;
-      const showSsConnector = false; // replaced by group card
-      // If this row is the SECOND in a pair (its anchor points back to i), skip — rendered by anchor
-      const isSecondInPair = wbExercises.some((x, xi) => x.supersetWith != null && x.supersetWith === i && xi < i);
-      if (isSecondInPair) return null;
-      // If this row is the FIRST in a pair, we'll render a Group Card wrapper
-      const partnerIdx = ex.supersetWith != null ? ex.supersetWith : null;
-      const partnerEx = partnerIdx != null ? wbExercises[partnerIdx] : null;
-      const partnerExD = partnerEx ? allExById[partnerEx.exId] || null : null;
-      const showDist = isC;
-      const showHR = isC;
-      const isTreadmill = exD.hasTreadmill || false;
-      const noSetsEx = NO_SETS_EX_IDS.has(exD.id);
-      const isRunningEx = exD.id === RUNNING_EX_ID;
-      const age = profile.age || 30;
-      const dispW = ex.weightLbs ? metric ? lbsToKg(ex.weightLbs) : ex.weightLbs : "";
-      const dispDist = ex.distanceMi ? metric ? String(parseFloat(miToKm(ex.distanceMi)).toFixed(2)) : String(ex.distanceMi) : "";
-      const pbPaceMi = profile.runningPB || null;
-      const pbDisp = pbPaceMi ? metric ? parseFloat((pbPaceMi * 1.60934).toFixed(2)) + " min/km" : parseFloat(pbPaceMi.toFixed(2)) + " min/mi" : null;
-      const exPB = (profile.exercisePBs || {})[exD.id] || null;
-      const exPBDisp = exPB ? exPB.type === "cardio" ? metric ? parseFloat((exPB.value * 1.60934).toFixed(2)) + " min/km" : parseFloat(exPB.value.toFixed(2)) + " min/mi" : exPB.type === "assisted" ? "🏆 1RM: " + exPB.value + (metric ? " kg" : " lbs") + " (Assisted)" : "🏆 1RM: " + exPB.value + (metric ? " kg" : " lbs") : null;
-      const durationMin = parseFloat(ex.reps || 0);
-      const distMiVal = ex.distanceMi ? parseFloat(ex.distanceMi) : 0;
-      const runPace = isRunningEx && distMiVal > 0 && durationMin > 0 ? durationMin / distMiVal : null;
-      const runBoostPct = runPace ? runPace <= 8 ? 20 : 5 : 0;
-      const catColor = getTypeColor(exD.category);
-      const mgColor = getMuscleColor(exD.muscleGroup);
-      /* ── ACCORDION SUPERSET CARD — replaces both solo rows when paired ── */
-      if (partnerIdx != null && partnerExD) {
-        const totalXP = calcExXP(ex.exId, ex.sets || 3, ex.reps || 10, profile.chosenClass, allExById) + calcExXP(partnerEx.exId, partnerEx.sets || 3, partnerEx.reps || 10, profile.chosenClass, allExById);
-        return <div key={i} className={"ss-accordion"}><div className={"ss-accordion-hdr"}><div style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: S.s2,
-              flexShrink: 0
-            }}><button className={"btn btn-ghost btn-xs"} style={{
-                padding: "2px 6px",
-                fontSize: FS.fs65,
-                lineHeight: 1,
-                minWidth: 0,
-                opacity: Math.min(i, partnerIdx) === 0 ? .3 : 1
-              }} onClick={e => {
-                e.stopPropagation();
-                reorderSupersetPair(i, partnerIdx, "up");
-              }}>{"▲"}</button><button className={"btn btn-ghost btn-xs"} style={{
-                padding: "2px 6px",
-                fontSize: FS.fs65,
-                lineHeight: 1,
-                minWidth: 0,
-                opacity: Math.max(i, partnerIdx) >= wbExercises.length - 1 ? .3 : 1
-              }} onClick={e => {
-                e.stopPropagation();
-                reorderSupersetPair(i, partnerIdx, "down");
-              }}>{"▼"}</button></div><span className={"ss-accordion-hdr-title"}>{"🔗 Superset"}</span><span className={"ss-accordion-xp"}>{formatXP(totalXP) + " total"}</span><button className={"ss-accordion-ungroup"} onClick={() => setWbExercises(exs => exs.map((x, xi) => xi === i ? {
-              ...x,
-              supersetWith: null
-            } : xi === partnerIdx ? {
-              ...x,
-              supersetWith: null
-            } : x))}>{"✕ Ungroup"}</button></div>{renderSsAccordionSection(ex, i, exD, "A", i + "_a")}{renderSsAccordionSection(partnerEx, partnerIdx, partnerExD, "B", i + "_b")}</div>;
-      }
-      return <>{i === minSsChecked && ssChecked.size > 0 && <div className={"ss-action-bar"}><span className={"ss-action-text"}>{ssChecked.size === 1 ? "Select 1 more to superset" : "🔗 2 selected — ready to group"}</span>{ssChecked.size === 2 && <button className={"ss-action-btn"} onClick={() => {
-            const [a, b] = [...ssChecked];
-            setWbExercises(exs => exs.map((x, xi) => xi === a ? {
-              ...x,
-              supersetWith: b
-            } : xi === b ? {
-              ...x,
-              supersetWith: a
-            } : x));
+      const grouped = !!ex.ssGroupId;
+      const canMoveUp = grouped ? i > 0 && wbExercises[i - 1].ssGroupId === ex.ssGroupId : i > 0;
+      const canMoveDown = grouped ? i < wbExercises.length - 1 && wbExercises[i + 1].ssGroupId === ex.ssGroupId : i < wbExercises.length - 1;
+      return <div key={i + "_" + (ex.exId || "")} className={`wb-ex-row${inSs ? " in-ss" : ""}${isLast ? " ss-last" : ""}`} data-wb-idx={i} style={{
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: S.s0,
+        "--cat-color": getTypeColor(exD.category),
+        "--mg-color": getMuscleColor(exD.muscleGroup)
+      }}><WbExCard ex={ex} i={i} exD={exD} collapsed={!!collapsedWbEx[i]} profile={profile} allExById={allExById} metric={metric} setWbExercises={setWbExercises} setCollapsedWbEx={setCollapsedWbEx} setSsChecked={setSsChecked} ssChecked={ssChecked} exCount={wbExercises.length} openExEditor={openExEditor} canMoveUp={canMoveUp} canMoveDown={canMoveDown} grouped={grouped} orderBadge={grouped ? memberBadge(wbExercises, i) : null} /></div>;
+    };
+    const nodes = [];
+    eachRun(wbExercises, (run, gid, start) => {
+      if (gid) {
+        const letter = groupLetter(wbExercises, gid);
+        const last = start + run.length - 1;
+        const totalXP = run.reduce((s, e) => s + calcExEntryXP(e, profile.chosenClass, allExById), 0);
+        nodes.push(<div key={gid} className={"ss-run"}><div className={"ss-band"} aria-label={`Superset ${letter}, ${run.length} exercises`}><div className={"wb-reorder"}><IconButton label={`Move superset ${letter} up`} size={20} disabled={start === 0} onClick={() => reorderSupersetPair(gid, "up")}>{"▲"}</IconButton><IconButton label={`Move superset ${letter} down`} size={20} disabled={last === wbExercises.length - 1} onClick={() => reorderSupersetPair(gid, "down")}>{"▼"}</IconButton></div><span className={"ss-band-icon"} aria-hidden={"true"}>{"🔗"}</span><span className={"ss-accordion-hdr-title"}>{"Superset "}{letter}</span><span className={"ss-band-spacer"} /><span className={"ss-accordion-xp"}>{formatXP(totalXP) + " total"}</span><button type={"button"} className={"ss-accordion-ungroup"} onClick={() => {
+            setWbExercises(xs => ungroup(xs, gid));
             setSsChecked(new Set());
-          }}>{"🔗 Group as Superset"}</button>}<button className={"ss-action-cancel"} onClick={() => setSsChecked(new Set())}>{"✕"}</button></div>}<div className={`wb-ex-row ${dragWbExIdx === i ? "dragging" : ""}`} style={{
-          opacity: dragWbExIdx === i ? 0.5 : 1,
-          flexDirection: "column",
-          alignItems: "stretch",
-          gap: S.s0,
-          "--cat-color": catColor,
-          "--mg-color": mgColor
-        }} draggable={true} onDragStart={e => {
-          e.dataTransfer.effectAllowed = "move";
-          setDragWbExIdx(i);
-        }} onDragOver={e => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-        }} onDrop={e => {
-          e.preventDefault();
-          reorderWbEx(dragWbExIdx, i);
-          setDragWbExIdx(null);
-        }} onDragEnd={() => setDragWbExIdx(null)}><WbExCard ex={ex} i={i} exD={exD} collapsed={!!collapsedWbEx[i]} profile={profile} allExById={allExById} metric={metric} setWbExercises={setWbExercises} setCollapsedWbEx={setCollapsedWbEx} setSsChecked={setSsChecked} ssChecked={ssChecked} exCount={wbExercises.length} openExEditor={openExEditor} /></div></>;
+          }}>{"✕ Ungroup"}</button></div>{run.map((ex, k) => renderCard(ex, start + k, true, k === run.length - 1))}</div>);
+        return;
+      }
+      run.forEach((ex, k) => {
+        const i = start + k;
+        nodes.push(<React.Fragment key={"solo_" + i}>{i === minSsChecked ? staging : null}{renderCard(ex, i, false, false)}</React.Fragment>);
+      });
     });
-  })()}<div className={"wb-footer"}>{wbIsOneOff ? wbEditId ?
+    return nodes;
+  })()}</div><div className={"wb-footer"}>{wbIsOneOff ? wbEditId ?
   // Editing an existing scheduled one-off — save changes in place
   <button className={"btn btn-gold"} style={{
     flex: 1
@@ -1210,7 +1057,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       name: wbName.trim(),
       icon: wbIcon,
       desc: wbDesc.trim(),
-      exercises: wbExercises,
+      exercises: normalizeSupersetGroups(wbExercises),
       createdAt: todayStr(),
       oneOff: true,
       labels: wbLabels
