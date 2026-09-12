@@ -13,6 +13,7 @@ import { FS, S, Z } from '../../utils/tokens';
 export function WbDetailsTrigger({ open, filled, onOpen }) {
   const [paused, setPaused] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const openTimer = useRef(null);
 
   useEffect(() => {
@@ -40,7 +41,9 @@ export function WbDetailsTrigger({ open, filled, onOpen }) {
   return createPortal(
     <button
       type="button"
-      className={`wb-dt${filled ? ' is-filled' : ''}${opening ? ' is-opening' : ''}${paused ? ' is-paused' : ''}`}
+      className={`wb-dt${filled ? ' is-filled' : ''}${opening ? ' is-opening' : ''}${hovered ? ' is-hover' : ''}${paused ? ' is-paused' : ''}`}
+      onPointerEnter={e => { if (e.pointerType !== 'touch') setHovered(true); }}
+      onPointerLeave={() => setHovered(false)}
       onClick={chargeAndOpen}
       aria-haspopup="dialog"
       aria-expanded={false}
