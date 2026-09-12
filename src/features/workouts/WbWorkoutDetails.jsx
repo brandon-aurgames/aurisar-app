@@ -36,17 +36,20 @@ export function WbDetailsTrigger({ open, filled, onOpen }) {
     }, 140);
   };
 
-  if (open || typeof document === 'undefined') return null;
+  if (typeof document === 'undefined') return null;
 
   return createPortal(
     <button
       type="button"
-      className={`wb-dt${filled ? ' is-filled' : ''}${opening ? ' is-opening' : ''}${hovered ? ' is-hover' : ''}${paused ? ' is-paused' : ''}`}
+      className={`wb-dt${filled ? ' is-filled' : ''}${opening ? ' is-opening' : ''}${hovered ? ' is-hover' : ''}${paused ? ' is-paused' : ''}${open ? ' is-open' : ''}`}
       onPointerEnter={e => { if (e.pointerType !== 'touch') setHovered(true); }}
       onPointerLeave={() => setHovered(false)}
       onClick={chargeAndOpen}
+      disabled={open || opening}
+      inert={open}
+      aria-hidden={open || undefined}
       aria-haspopup="dialog"
-      aria-expanded={false}
+      aria-expanded={open}
       aria-controls="wb-details-overlay"
       aria-label="Open workout details"
     >
@@ -79,8 +82,32 @@ export function WbDetailsOverlay({
   const backdropRef = useRef(null);
   const dialogRef = useRef(null);
   const [paused, setPaused] = useState(false);
+  const [shown, setShown] = useState(!!open);
+  const [closing, setClosing] = useState(false);
 
   useModalLifecycle(!!open, onClose, backdropRef);
+
+  useEffect(() => {
+    if (open) {
+      setShown(true);
+      setClosing(false);
+      return undefined;
+    }
+    if (!shown) return undefined;
+    setClosing(true);
+    const reduce = typeof window !== 'undefined'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      setShown(false);
+      setClosing(false);
+      return undefined;
+    }
+    const t = window.setTimeout(() => {
+      setShown(false);
+      setClosing(false);
+    }, 360);
+    return () => window.clearTimeout(t);
+  }, [open, shown]);
 
   useEffect(() => {
     const onVis = () => setPaused(document.hidden);
@@ -97,7 +124,7 @@ export function WbDetailsOverlay({
     return () => cancelAnimationFrame(id);
   }, [open]);
 
-  if (!open) return null;
+  if (!shown) return null;
 
   const addLabel = () => {
     const lbl = newLabelInput.trim();
@@ -112,7 +139,7 @@ export function WbDetailsOverlay({
   return createPortal(
     <div
       ref={backdropRef}
-      className={`wb-details-overlay${paused ? ' is-paused' : ''}`}
+      className={`wb-details-overlay${closing ? ' is-closing' : ''}${paused ? ' is-paused' : ''}`}
       style={{ zIndex: Z.modal }}
       role="presentation"
     >
@@ -123,6 +150,11 @@ export function WbDetailsOverlay({
         <span className="wb-details-sweep-ember e2" />
         <span className="wb-details-sweep-ember e3" />
         <span className="wb-details-sweep-ember e4" />
+      </div>
+      <div className="wb-details-atmos" aria-hidden="true">
+        <span className="wb-details-atmos-p p1" />
+        <span className="wb-details-atmos-p p2" />
+        <span className="wb-details-atmos-p p3" />
       </div>
       <div
         ref={dialogRef}

@@ -70,6 +70,7 @@ describe('builder session-notes peek', () => {
     const overlay = read('src/features/workouts/WbWorkoutDetails.jsx');
     expect(overlay).toContain('Open workout details');
     expect(overlay).toContain('Workout Details');
+    expect(overlay).toContain('is-closing');
   });
 
   it('Sheet supports left placement', () => {
