@@ -1415,15 +1415,17 @@
       background:linear-gradient(90deg,transparent,rgba(255,248,220,.65),transparent);
       filter:blur(0.6px);opacity:.55;
     }
+    .wb-details-peek.is-sloshing .wb-details-peek-liquid,
     .wb-details-peek:hover .wb-details-peek-liquid,
     .wb-details-peek:focus-visible .wb-details-peek-liquid,
     .wb-details-peek:active .wb-details-peek-liquid{
-      animation:wb-peek-slosh 1.35s cubic-bezier(.36,.07,.19,.97) infinite;
+      animation:wb-peek-slosh 1.6s cubic-bezier(.36,.07,.19,.97) infinite;
     }
+    .wb-details-peek.is-sloshing .wb-details-peek-sheen,
     .wb-details-peek:hover .wb-details-peek-sheen,
     .wb-details-peek:focus-visible .wb-details-peek-sheen,
     .wb-details-peek:active .wb-details-peek-sheen{
-      animation:wb-peek-sheen 1.35s cubic-bezier(.36,.07,.19,.97) infinite;
+      animation:wb-peek-sheen 1.6s cubic-bezier(.36,.07,.19,.97) infinite;
     }
     .wb-details-peek-spark{
       position:absolute;inset:5px;border-radius:50%;pointer-events:none;
@@ -1435,10 +1437,11 @@
       text-shadow:0 0 10px rgba(196,148,40,.7);
       animation:wb-peek-bob 2.6s ease-in-out infinite;
     }
+    .wb-details-peek.is-sloshing .wb-details-peek-gem,
     .wb-details-peek:hover .wb-details-peek-gem,
     .wb-details-peek:focus-visible .wb-details-peek-gem,
     .wb-details-peek:active .wb-details-peek-gem{
-      animation:wb-peek-gem-slosh 1.35s cubic-bezier(.36,.07,.19,.97) infinite;
+      animation:wb-peek-gem-slosh 1.6s cubic-bezier(.36,.07,.19,.97) infinite;
     }
     .wb-details-peek-ribbon{
       position:absolute;left:40px;top:50%;

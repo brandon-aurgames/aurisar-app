@@ -252,12 +252,15 @@ const WbExCard = React.memo(function WbExCard({
 /** Rounded top-left seal that opens optional session notes. Portaled so it
  *  isn't clipped by the HUD scroller; hidden while the notes sheet is open. */
 function WbDetailsPeek({ open, filled, onOpen }) {
+  const [sloshing, setSloshing] = useState(false);
   if (open || typeof document === "undefined") return null;
   return createPortal(
     <button
       type="button"
-      className={`wb-details-peek${filled ? " is-filled" : ""}`}
+      className={`wb-details-peek${filled ? " is-filled" : ""}${sloshing ? " is-sloshing" : ""}`}
       onClick={onOpen}
+      onPointerEnter={() => setSloshing(true)}
+      onPointerLeave={() => setSloshing(false)}
       aria-haspopup="dialog"
       aria-expanded={false}
       aria-controls="wb-details-sheet"
