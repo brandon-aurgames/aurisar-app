@@ -1398,17 +1398,22 @@
       position:absolute;inset:2px;border-radius:50%;overflow:hidden;pointer-events:none;
     }
     .wb-details-peek-liquid{
-      position:absolute;left:-32%;right:-32%;bottom:-24%;height:80%;
-      background:linear-gradient(180deg,rgba(246,227,182,.96) 0%,rgba(232,180,74,.9) 26%,rgba(168,110,24,.84) 100%);
-      border-radius:50% 50% 46% 46% / 34% 34% 54% 54%;
-      transform-origin:50% 72%;
-      box-shadow:inset 0 7px 10px rgba(255,236,180,.38);
+      position:absolute;left:-18%;right:-18%;bottom:-6%;height:58%;
+      background:linear-gradient(180deg,rgba(255,236,186,.98) 0%,rgba(232,180,74,.92) 22%,rgba(150,96,18,.88) 100%);
+      border-radius:50% 50% 42% 42% / 38% 38% 50% 50%;
+      transform-origin:50% 100%;
+      box-shadow:inset 0 5px 8px rgba(255,244,200,.45);
+    }
+    .wb-details-peek-liquid::after{
+      content:"";position:absolute;left:6%;right:6%;top:-7px;height:14px;
+      border-radius:50%;
+      background:radial-gradient(ellipse at 50% 40%,rgba(255,248,220,.7),rgba(232,180,74,.15) 70%);
     }
     .wb-details-peek-sheen{
-      position:absolute;left:16%;top:40%;width:46%;height:13%;
+      position:absolute;left:18%;top:46%;width:40%;height:11%;
       border-radius:50%;pointer-events:none;
-      background:linear-gradient(90deg,transparent,rgba(255,248,220,.55),transparent);
-      filter:blur(1px);opacity:.45;
+      background:linear-gradient(90deg,transparent,rgba(255,248,220,.65),transparent);
+      filter:blur(0.6px);opacity:.55;
     }
     .wb-details-peek:hover .wb-details-peek-liquid,
     .wb-details-peek:focus-visible .wb-details-peek-liquid,
@@ -1473,28 +1478,28 @@
     /* Decaying slosh — the surface tilts and the blob stretches like liquid
        in a cup that's been nudged, then keeps a lighter swirl while hovered. */
     @keyframes wb-peek-slosh{
-      0%{transform:rotate(0deg) translate(0,0);border-radius:50% 50% 46% 46%/34% 34% 54% 54%}
-      14%{transform:rotate(-16deg) translate(-5px,2px);border-radius:30% 70% 48% 42%/18% 44% 52% 58%}
-      32%{transform:rotate(13deg) translate(5px,2px);border-radius:70% 30% 42% 48%/44% 18% 58% 52%}
-      50%{transform:rotate(-9deg) translate(-3px,1px);border-radius:38% 60% 47% 44%/24% 38% 53% 56%}
-      68%{transform:rotate(6deg) translate(2px,1px);border-radius:60% 38% 44% 47%/38% 24% 56% 53%}
-      84%{transform:rotate(-3deg) translate(-1px,0);border-radius:46% 52% 46% 46%/30% 32% 54% 54%}
-      100%{transform:rotate(0deg) translate(0,0);border-radius:50% 50% 46% 46%/34% 34% 54% 54%}
+      0%{transform:rotate(0deg) translateX(0);border-radius:50% 50% 42% 42%/38% 38% 50% 50%}
+      16%{transform:rotate(-22deg) translateX(-6px);border-radius:22% 78% 40% 48%/16% 52% 48% 58%}
+      36%{transform:rotate(18deg) translateX(6px);border-radius:78% 22% 48% 40%/52% 16% 58% 48%}
+      54%{transform:rotate(-12deg) translateX(-4px);border-radius:32% 64% 44% 42%/22% 42% 50% 54%}
+      72%{transform:rotate(8deg) translateX(3px);border-radius:64% 32% 42% 44%/42% 22% 54% 50%}
+      88%{transform:rotate(-4deg) translateX(-1px);border-radius:46% 52% 42% 42%/34% 36% 50% 50%}
+      100%{transform:rotate(0deg) translateX(0);border-radius:50% 50% 42% 42%/38% 38% 50% 50%}
     }
     @keyframes wb-peek-sheen{
-      0%{transform:translateX(0) rotate(0deg);opacity:.4}
-      14%{transform:translateX(-9px) rotate(-12deg);opacity:.75}
-      32%{transform:translateX(9px) rotate(10deg);opacity:.75}
-      50%{transform:translateX(-5px) rotate(-7deg);opacity:.55}
-      68%{transform:translateX(4px) rotate(5deg);opacity:.55}
-      100%{transform:translateX(0) rotate(0deg);opacity:.4}
+      0%{transform:translateX(0) rotate(0deg);opacity:.45}
+      16%{transform:translateX(-11px) rotate(-18deg);opacity:.85}
+      36%{transform:translateX(11px) rotate(16deg);opacity:.85}
+      54%{transform:translateX(-6px) rotate(-10deg);opacity:.6}
+      72%{transform:translateX(5px) rotate(8deg);opacity:.6}
+      100%{transform:translateX(0) rotate(0deg);opacity:.45}
     }
     @keyframes wb-peek-gem-slosh{
       0%{transform:translate(0,0)}
-      14%{transform:translate(-3px,2px)}
-      32%{transform:translate(3px,2px)}
-      50%{transform:translate(-2px,1px)}
-      68%{transform:translate(1.5px,1px)}
+      16%{transform:translate(-4px,3px)}
+      36%{transform:translate(4px,3px)}
+      54%{transform:translate(-3px,2px)}
+      72%{transform:translate(2px,1px)}
       100%{transform:translate(0,0)}
     }
     .wb-details-sheet .wb-stats-row{flex-direction:column;gap:10px}
