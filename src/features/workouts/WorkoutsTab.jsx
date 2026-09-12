@@ -265,6 +265,10 @@ function WbDetailsPeek({ open, filled, onOpen }) {
     >
       <span className="wb-details-peek-orb" aria-hidden="true">
         <span className="wb-details-peek-ring" />
+        <span className="wb-details-peek-cup">
+          <span className="wb-details-peek-liquid" />
+          <span className="wb-details-peek-sheen" />
+        </span>
         <span className="wb-details-peek-spark" />
         <span className="wb-details-peek-gem">{"✦"}</span>
       </span>

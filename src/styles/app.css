@@ -1382,7 +1382,7 @@
     .wb-details-peek-orb{
       position:relative;width:48px;height:48px;border-radius:50%;
       display:grid;place-items:center;
-      background:radial-gradient(circle at 32% 28%,#4a3f2e 0%,#1a1610 58%,#0c0a08 100%);
+      background:radial-gradient(circle at 32% 22%,#2a2418 0%,#12100c 62%,#0a0907 100%);
       border:1.5px solid #c49428;
       box-shadow:0 0 14px rgba(196,148,40,.42),inset 0 1px 0 rgba(255,230,160,.28);
       transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-base);
@@ -1393,15 +1393,47 @@
       border:1px dashed rgba(196,148,40,.42);
       animation:wb-peek-spin 14s linear infinite;
     }
+    /* Cup clip — gold fill sloshes inside this rim like water in a vessel. */
+    .wb-details-peek-cup{
+      position:absolute;inset:2px;border-radius:50%;overflow:hidden;pointer-events:none;
+    }
+    .wb-details-peek-liquid{
+      position:absolute;left:-32%;right:-32%;bottom:-24%;height:80%;
+      background:linear-gradient(180deg,rgba(246,227,182,.96) 0%,rgba(232,180,74,.9) 26%,rgba(168,110,24,.84) 100%);
+      border-radius:50% 50% 46% 46% / 34% 34% 54% 54%;
+      transform-origin:50% 72%;
+      box-shadow:inset 0 7px 10px rgba(255,236,180,.38);
+    }
+    .wb-details-peek-sheen{
+      position:absolute;left:16%;top:40%;width:46%;height:13%;
+      border-radius:50%;pointer-events:none;
+      background:linear-gradient(90deg,transparent,rgba(255,248,220,.55),transparent);
+      filter:blur(1px);opacity:.45;
+    }
+    .wb-details-peek:hover .wb-details-peek-liquid,
+    .wb-details-peek:focus-visible .wb-details-peek-liquid,
+    .wb-details-peek:active .wb-details-peek-liquid{
+      animation:wb-peek-slosh 1.35s cubic-bezier(.36,.07,.19,.97) infinite;
+    }
+    .wb-details-peek:hover .wb-details-peek-sheen,
+    .wb-details-peek:focus-visible .wb-details-peek-sheen,
+    .wb-details-peek:active .wb-details-peek-sheen{
+      animation:wb-peek-sheen 1.35s cubic-bezier(.36,.07,.19,.97) infinite;
+    }
     .wb-details-peek-spark{
       position:absolute;inset:5px;border-radius:50%;pointer-events:none;
-      background:radial-gradient(circle,rgba(232,200,112,.4),transparent 68%);
+      background:radial-gradient(circle,rgba(232,200,112,.28),transparent 68%);
       animation:wb-peek-pulse 2.6s ease-in-out infinite;
     }
     .wb-details-peek-gem{
-      position:relative;color:#e8c870;font-size:1rem;line-height:1;
+      position:relative;z-index:1;color:#e8c870;font-size:1rem;line-height:1;
       text-shadow:0 0 10px rgba(196,148,40,.7);
       animation:wb-peek-bob 2.6s ease-in-out infinite;
+    }
+    .wb-details-peek:hover .wb-details-peek-gem,
+    .wb-details-peek:focus-visible .wb-details-peek-gem,
+    .wb-details-peek:active .wb-details-peek-gem{
+      animation:wb-peek-gem-slosh 1.35s cubic-bezier(.36,.07,.19,.97) infinite;
     }
     .wb-details-peek-ribbon{
       position:absolute;left:40px;top:50%;
@@ -1438,6 +1470,33 @@
     @keyframes wb-peek-spin{to{transform:rotate(360deg)}}
     @keyframes wb-peek-pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
     @keyframes wb-peek-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+    /* Decaying slosh — the surface tilts and the blob stretches like liquid
+       in a cup that's been nudged, then keeps a lighter swirl while hovered. */
+    @keyframes wb-peek-slosh{
+      0%{transform:rotate(0deg) translate(0,0);border-radius:50% 50% 46% 46%/34% 34% 54% 54%}
+      14%{transform:rotate(-16deg) translate(-5px,2px);border-radius:30% 70% 48% 42%/18% 44% 52% 58%}
+      32%{transform:rotate(13deg) translate(5px,2px);border-radius:70% 30% 42% 48%/44% 18% 58% 52%}
+      50%{transform:rotate(-9deg) translate(-3px,1px);border-radius:38% 60% 47% 44%/24% 38% 53% 56%}
+      68%{transform:rotate(6deg) translate(2px,1px);border-radius:60% 38% 44% 47%/38% 24% 56% 53%}
+      84%{transform:rotate(-3deg) translate(-1px,0);border-radius:46% 52% 46% 46%/30% 32% 54% 54%}
+      100%{transform:rotate(0deg) translate(0,0);border-radius:50% 50% 46% 46%/34% 34% 54% 54%}
+    }
+    @keyframes wb-peek-sheen{
+      0%{transform:translateX(0) rotate(0deg);opacity:.4}
+      14%{transform:translateX(-9px) rotate(-12deg);opacity:.75}
+      32%{transform:translateX(9px) rotate(10deg);opacity:.75}
+      50%{transform:translateX(-5px) rotate(-7deg);opacity:.55}
+      68%{transform:translateX(4px) rotate(5deg);opacity:.55}
+      100%{transform:translateX(0) rotate(0deg);opacity:.4}
+    }
+    @keyframes wb-peek-gem-slosh{
+      0%{transform:translate(0,0)}
+      14%{transform:translate(-3px,2px)}
+      32%{transform:translate(3px,2px)}
+      50%{transform:translate(-2px,1px)}
+      68%{transform:translate(1.5px,1px)}
+      100%{transform:translate(0,0)}
+    }
     .wb-details-sheet .wb-stats-row{flex-direction:column;gap:10px}
     .wb-details-sheet .wb-stats-row .field{flex:none;width:100%}
     .wb-details-sheet .wb-cal-fields{display:flex;gap:8px;width:100%}
@@ -2220,7 +2279,8 @@
       }
       /* Purely decorative loops — stop outright rather than run 500×/s. */
       .lib-hero-orb, .lw-dot, .sf-xp-sweep, .wb-drop-line .dl-bar::after, .wb-drag-ghost::after,
-      .wb-details-peek-ring, .wb-details-peek-spark, .wb-details-peek-gem { animation: none; }
+      .wb-details-peek-ring, .wb-details-peek-spark, .wb-details-peek-gem,
+      .wb-details-peek-liquid, .wb-details-peek-sheen { animation: none; }
       .pt { display: none; }
       .wb-details-peek,
       .wb-details-peek:hover,
