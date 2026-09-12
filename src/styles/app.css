@@ -1394,8 +1394,8 @@
     .wb-dt-flame{
       position:absolute;top:8%;bottom:8%;right:-1px;width:2px;border-radius:2px;
       background:linear-gradient(180deg,transparent,#F0783C 22%,#E25A2A 50%,#D66A2F 78%,transparent);
-      box-shadow:0 0 6px 1px rgba(240,120,60,.35);
-      opacity:.4;pointer-events:none;
+      box-shadow:0 0 8px 2px rgba(240,120,60,.45);
+      opacity:.55;pointer-events:none;
       animation:wb-dt-flicker 7s ease-in-out infinite;
     }
     .wb-dt-flame-bloom{
@@ -1486,6 +1486,11 @@
     .wb-details-stage{
       position:relative;width:100%;max-width:520px;height:100%;
       overflow:hidden;
+      box-shadow:
+        inset 14px 0 36px rgba(214,106,47,.2),
+        inset -10px 0 28px rgba(214,106,47,.12),
+        inset 0 12px 28px rgba(240,120,60,.1),
+        inset 0 -14px 32px rgba(214,106,47,.12);
     }
     .wb-details-fire{position:absolute;inset:0;pointer-events:none;z-index:0}
     .wb-details-fire-edge{
@@ -1493,30 +1498,30 @@
       animation:wb-dt-breathe 8s ease-in-out infinite;
     }
     .wb-details-fire-edge.is-left{
-      left:-8%;top:-6%;bottom:-6%;width:42%;
+      left:-4%;top:-4%;bottom:-4%;width:38%;
       background:
-        radial-gradient(ellipse 70% 38% at 8% 22%,rgba(240,120,60,.42),transparent 62%),
-        radial-gradient(ellipse 80% 42% at 0% 58%,rgba(214,106,47,.36),transparent 64%),
-        radial-gradient(ellipse 50% 30% at 12% 88%,rgba(122,61,130,.18),transparent 70%),
-        linear-gradient(90deg,rgba(214,106,47,.34),rgba(214,106,47,.08) 46%,transparent);
-      filter:blur(16px);
+        radial-gradient(ellipse 80% 36% at 0% 18%,rgba(240,120,60,.7),transparent 58%),
+        radial-gradient(ellipse 90% 40% at 0% 52%,rgba(226,90,42,.58),transparent 60%),
+        radial-gradient(ellipse 70% 32% at 8% 86%,rgba(122,61,130,.28),transparent 64%),
+        linear-gradient(90deg,rgba(214,106,47,.55),rgba(214,106,47,.16) 40%,transparent 78%);
+      filter:blur(12px);
     }
     .wb-details-fire-edge.is-right{
-      right:-10%;top:-8%;bottom:-8%;width:36%;
+      right:-4%;top:-6%;bottom:-6%;width:32%;
       background:
-        radial-gradient(ellipse 70% 40% at 92% 30%,rgba(240,120,60,.32),transparent 62%),
-        radial-gradient(ellipse 60% 36% at 100% 72%,rgba(214,106,47,.26),transparent 66%);
-      filter:blur(18px);
+        radial-gradient(ellipse 80% 38% at 100% 24%,rgba(240,120,60,.55),transparent 58%),
+        radial-gradient(ellipse 70% 36% at 100% 70%,rgba(214,106,47,.42),transparent 62%);
+      filter:blur(14px);
     }
     .wb-details-fire-edge.is-top{
-      left:-8%;right:-8%;top:-10%;height:22%;
-      background:radial-gradient(ellipse 70% 80% at 50% 0%,rgba(240,120,60,.28),transparent 70%);
-      filter:blur(16px);
+      left:-6%;right:-6%;top:-6%;height:20%;
+      background:radial-gradient(ellipse 80% 90% at 50% 0%,rgba(240,120,60,.48),transparent 68%);
+      filter:blur(12px);
     }
     .wb-details-fire-edge.is-bottom{
-      left:-8%;right:-8%;bottom:-12%;height:24%;
-      background:radial-gradient(ellipse 70% 80% at 50% 100%,rgba(214,106,47,.24),transparent 70%);
-      filter:blur(16px);
+      left:-6%;right:-6%;bottom:-8%;height:22%;
+      background:radial-gradient(ellipse 80% 90% at 50% 100%,rgba(214,106,47,.4),transparent 68%);
+      filter:blur(12px);
     }
     .wb-details-fire-haze{
       position:absolute;inset:0;
