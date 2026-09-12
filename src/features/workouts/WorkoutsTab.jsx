@@ -249,8 +249,8 @@ const WbExCard = React.memo(function WbExCard({
   </div>}</>;
 });
 
-/** Rounded top-left seal that opens optional session notes. Portaled so it
- *  isn't clipped by the HUD scroller; hidden while the notes sheet is open. */
+/** Borderless vertical liquid bar that opens optional session notes.
+ *  Portaled so it isn't clipped by the HUD scroller; hidden while the sheet is open. */
 function WbDetailsPeek({ open, filled, onOpen }) {
   const [sloshing, setSloshing] = useState(false);
   if (open || typeof document === "undefined") return null;
@@ -266,18 +266,12 @@ function WbDetailsPeek({ open, filled, onOpen }) {
       aria-controls="wb-details-sheet"
       aria-label="Session notes"
     >
-      <span className="wb-details-peek-orb" aria-hidden="true">
-        <span className="wb-details-peek-ring" />
-        <span className="wb-details-peek-cup">
-          <span className="wb-details-peek-liquid" />
-          <span className="wb-details-peek-sheen" />
-        </span>
-        <span className="wb-details-peek-spark" />
-        <span className="wb-details-peek-gem">{"✦"}</span>
+      <span className="wb-details-peek-bar" aria-hidden="true">
+        <span className="wb-details-peek-liquid" />
+        <span className="wb-details-peek-wave" />
+        <span className="wb-details-peek-sheen" />
       </span>
-      <span className="wb-details-peek-ribbon">
-        <span className="wb-details-peek-label">{"Notes"}</span>
-      </span>
+      <span className="wb-details-peek-label">{"Notes"}</span>
     </button>,
     document.body
   );
