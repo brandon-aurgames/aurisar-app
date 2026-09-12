@@ -61,13 +61,15 @@ describe('stats-prompt preference is read live (C1)', () => {
 });
 
 describe('builder session-notes peek', () => {
-  it('keeps required name on the canvas and parks optional fields in a left sheet', () => {
+  it('keeps required name on the canvas and parks optional fields in Workout Details', () => {
     const src = read('src/features/workouts/WorkoutsTab.jsx');
-    expect(src).toContain('WbDetailsPeek');
-    expect(src).toContain('placement={"left"}');
-    expect(src).toContain('Session notes');
+    expect(src).toContain('WbDetailsTrigger');
+    expect(src).toContain('WbDetailsOverlay');
     expect(src).not.toContain('placeholder={"320"}');
     expect(src).not.toContain('placeholder={"450"}');
+    const overlay = read('src/features/workouts/WbWorkoutDetails.jsx');
+    expect(overlay).toContain('Open workout details');
+    expect(overlay).toContain('Workout Details');
   });
 
   it('Sheet supports left placement', () => {

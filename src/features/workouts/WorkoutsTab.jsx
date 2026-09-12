@@ -1,16 +1,16 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { ExIcon } from '../../components/ExIcon';
 import { getMuscleColor, getTypeColor, calcExXP, calcExEntryXP, calcWorkoutXP } from '../../utils/xp';
 import { lbsToKg, isMetric, displayWt } from '../../utils/units';
 import { formatXP } from '../../utils/format';
 import { todayStr } from '../../utils/helpers';
-import { normalizeHHMM, combineHHMMSec, daysUntil } from '../../utils/time';
+import { combineHHMMSec, daysUntil } from '../../utils/time';
 import { S, R, FS, Z } from '../../utils/tokens';
 import SetsEditor from '../../components/ui/SetsEditor';
 import FilterDropdown from '../exercises/FilterDropdown';
 import IconButton from '../../components/ui/IconButton';
 import Sheet from '../../components/ui/Sheet';
+import { WbDetailsOverlay, WbDetailsTrigger } from './WbWorkoutDetails';
 import { buildWorkoutObject } from './workoutModel';
 import {
   SS_MAX,
@@ -248,34 +248,6 @@ const WbExCard = React.memo(function WbExCard({
     <SetsEditor exD={exD} value={ex} onField={updateField} units={profile.units} age={age} variant={"builder"} />
   </div>}</>;
 });
-
-/** Borderless vertical liquid bar that opens optional session notes.
- *  Portaled so it isn't clipped by the HUD scroller; hidden while the sheet is open. */
-function WbDetailsPeek({ open, filled, onOpen }) {
-  const [sloshing, setSloshing] = useState(false);
-  if (open || typeof document === "undefined") return null;
-  return createPortal(
-    <button
-      type="button"
-      className={`wb-details-peek${filled ? " is-filled" : ""}${sloshing ? " is-sloshing" : ""}`}
-      onClick={onOpen}
-      onPointerEnter={() => setSloshing(true)}
-      onPointerLeave={() => setSloshing(false)}
-      aria-haspopup="dialog"
-      aria-expanded={false}
-      aria-controls="wb-details-sheet"
-      aria-label="Session notes"
-    >
-      <span className="wb-details-peek-bar" aria-hidden="true">
-        <span className="wb-details-peek-liquid" />
-        <span className="wb-details-peek-wave" />
-        <span className="wb-details-peek-sheen" />
-      </span>
-      <span className="wb-details-peek-label">{"Notes"}</span>
-    </button>,
-    document.body
-  );
-}
 
 const WorkoutsTab = memo(function WorkoutsTab({
   // View state
@@ -984,45 +956,30 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       minWidth: 0
     }}><div className={"builder-nav-title"}>{wbIsOneOff ? wbEditId ? "✎ Edit One-Off" : "⚡ New One-Off Workout" : wbEditId ? "✎ Edit Workout" : wbCopySource ? "⎘ Copy Workout" : "⚔ New Workout"}</div>{wbCopySource && <div className={"builder-nav-sub"}>{"Forging from: "}{wbCopySource}</div>}</div></div>
   {
-    /* Name stays on the canvas. Optional notes live in the left sheet. */
-  }<WbDetailsPeek open={detailsOpen} filled={detailsFilled} onOpen={() => setDetailsOpen(true)} /><div className={"wb-section"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input className={"inp"} value={wbName} onChange={e => setWbName(e.target.value)} placeholder={"e.g. Morning Push Day…"} /></div></div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet><Sheet open={detailsOpen} onClose={() => setDetailsOpen(false)} layer={"modal"} placement={"left"} maxWidth={320} title={"Session notes"} icon={"✦"} titleFont={"cinzel"} ariaLabel={"Session notes"} id={"wb-details-sheet"} className={"wb-details-sheet"}><div className={"field"}><label>{"Description "}<span style={{color:"#8a8478",fontWeight:"normal",textTransform:"none"}}>{"(optional)"}</span></label><input className={"inp"} value={wbDesc} onChange={e => setWbDesc(e.target.value)} placeholder={"e.g. Upper body strength focus…"} /></div><div className={"wb-section-divider"} /><div className={"wb-sub-hdr"}><span className={"wb-sub-hdr-icon"}>{"❖"}</span>{"Labels"}<span style={{color:"#8a8478",fontWeight:"normal",letterSpacing:".05em",marginLeft:S.s6,textTransform:"none"}}>{"(optional)"}</span></div><div style={{display:"flex",gap:S.s6,flexWrap:"wrap",alignItems:"center"}}>{(profile.workoutLabels || []).map(l => <span key={l} className={"wo-label-chip" + (wbLabels.includes(l) ? " sel" : "")} onClick={() => setWbLabels(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l])}>{l}</span>)}<span style={{display:"inline-flex",alignItems:"center",gap:S.s4}}><input className={"wo-label-new-inp"} value={newLabelInput} onChange={e => setNewLabelInput(e.target.value)} onKeyDown={e => {
-          if (e.key === "Enter" && newLabelInput.trim()) {
-            const lbl = newLabelInput.trim();
-            if (!(profile.workoutLabels || []).some(x => x.toLowerCase() === lbl.toLowerCase())) {
-              setProfile(p => ({
-                ...p,
-                workoutLabels: [...(p.workoutLabels || []), lbl]
-              }));
-            }
-            if (!wbLabels.includes(lbl)) setWbLabels(prev => [...prev, lbl]);
-            setNewLabelInput("");
-          }
-        }} placeholder={"+ New label…"} style={{width: 100}} /><button className={"btn btn-ghost btn-xs"} style={{padding:"2px 6px",fontSize:FS.sm}} onClick={() => {
-          const lbl = newLabelInput.trim();
-          if (!lbl) return;
-          if (!(profile.workoutLabels || []).some(x => x.toLowerCase() === lbl.toLowerCase())) {
-            setProfile(p => ({
-              ...p,
-              workoutLabels: [...(p.workoutLabels || []), lbl]
-            }));
-          }
-          if (!wbLabels.includes(lbl)) setWbLabels(prev => [...prev, lbl]);
-          setNewLabelInput("");
-        }}>{"+"}</button></span></div><div className={"wb-section-divider"} /><div className={"wb-sub-hdr"}><span className={"wb-sub-hdr-icon"}>{"⏱"}</span>{"Session Stats"}<span style={{color:"#8a8478",fontWeight:"normal",letterSpacing:".05em",marginLeft:S.s6,textTransform:"none"}}>{"(optional)"}</span></div><div className={"wb-stats-row"}><div className={"field"} style={{marginBottom:S.s0}}><label>{"Duration"}</label><input className={"inp"} type={"text"} inputMode={"numeric"} value={wbDuration} onChange={e => setWbDuration(e.target.value)} onBlur={e => {
-        const val = e.target.value.trim();
-        if (!val) { setWbDuration(""); setWbDurSec(""); return; }
-        const hms = val.match(/^(\d+):(\d{1,2}):(\d{1,2})$/);
-        if (hms) {
-          const h = Number(hms[1]), m = Number(hms[2]), s = Number(hms[3]);
-          const ss = Math.min(s, 59);
-          setWbDuration(`${String(h + Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}:${String(ss).padStart(2,"0")}`);
-          setWbDurSec("");
-        } else {
-          setWbDuration(normalizeHHMM(val));
-          setWbDurSec("");
-        }
-      }} placeholder={"HH:MM[:SS]"} style={{textAlign:"center"}} /><div className={"wb-dur-hint"}>{"90 = 1h30m · include :SS for seconds"}</div></div><div className={"wb-cal-fields"}><div className={"field"} style={{marginBottom:S.s0}}><label>{"Active Cal"}</label><input className={"inp"} type={"number"} min={"0"} max={"9999"} value={wbActiveCal} onChange={e => setWbActiveCal(e.target.value)} /></div><div className={"field"} style={{marginBottom:S.s0}}><label>{"Total Cal"}</label><input className={"inp"} type={"number"} min={"0"} max={"9999"} value={wbTotalCal} onChange={e => setWbTotalCal(e.target.value)} /></div></div></div></Sheet>
-  {
+    /* Name stays on the canvas. Optional session fields live in Workout Details. */
+  }<WbDetailsTrigger open={detailsOpen} filled={detailsFilled} onOpen={() => setDetailsOpen(true)} /><WbDetailsOverlay
+    open={detailsOpen}
+    onClose={() => setDetailsOpen(false)}
+    wbName={wbName}
+    setWbName={setWbName}
+    wbDesc={wbDesc}
+    setWbDesc={setWbDesc}
+    wbLabels={wbLabels}
+    setWbLabels={setWbLabels}
+    newLabelInput={newLabelInput}
+    setNewLabelInput={setNewLabelInput}
+    profile={profile}
+    setProfile={setProfile}
+    wbDuration={wbDuration}
+    setWbDuration={setWbDuration}
+    setWbDurSec={setWbDurSec}
+    wbActiveCal={wbActiveCal}
+    setWbActiveCal={setWbActiveCal}
+    wbTotalCal={wbTotalCal}
+    setWbTotalCal={setWbTotalCal}
+    wbExercises={wbExercises}
+    allExById={allExById}
+  /><div className={"wb-section"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input className={"inp"} value={wbName} onChange={e => setWbName(e.target.value)} placeholder={"e.g. Morning Push Day…"} /></div></div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
     /* Exercise list */
   }<div className={"wo-section-hdr"} style={{
     marginTop: S.s18,
