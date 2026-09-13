@@ -41,9 +41,10 @@ export function createDetailsFire(canvas) {
         const smoke = Math.max(0, 1 - distance / .65) * Math.pow(n, 3) * .20;
         const edgeFade = Math.min(1, v * 14, (1 - v) * 14);
         const p = (y * w + x) * 4;
-        pixels.data[p] = 132 + 108 * temperature;
-        pixels.data[p + 1] = 48 + 72 * temperature;
-        pixels.data[p + 2] = 43 + 17 * temperature;
+        // Match the builder gold (#8B7425) through its warm highlight (#FFE87C).
+        pixels.data[p] = 139 + 116 * temperature;
+        pixels.data[p + 1] = 116 + 116 * temperature;
+        pixels.data[p + 2] = 37 + 87 * temperature;
         pixels.data[p + 3] = Math.min(220, (filament * 330 + smoke * 160) * edgeFade);
       }
     }

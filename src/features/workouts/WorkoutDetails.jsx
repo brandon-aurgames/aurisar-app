@@ -132,7 +132,7 @@ export default function WorkoutDetails({ name, notes, intensity, exercises, allE
       id={`${id}-dialog`} title="WORKOUT DETAILS" ariaLabel="Workout details" ariaDescribedBy={`${id}-subtitle`}
       className="wd-dialog" backdropClassName={`wd-backdrop wd-${phase}${paused ? ' wd-paused' : ''}`}
       atmosphere={<div className="wd-fire" aria-hidden="true" style={{ '--wd-origin': `${origin}px` }}><canvas ref={canvas} /><i className="wd-spark" /><i className="wd-spark" /><i className="wd-spark" /></div>}
-      footer={<div className="wd-actions"><button type="button" className="wd-secondary" onClick={close}>Cancel</button><button type="submit" form={`${id}-form`} className="wd-primary">SAVE DETAILS</button></div>}>
+      footer={<div className="wd-actions"><button type="button" className="btn btn-ghost wd-secondary" onClick={close}>Cancel</button><button type="submit" form={`${id}-form`} className="btn btn-gold-solid wd-primary">SAVE DETAILS</button></div>}>
       <p id={`${id}-subtitle`} className="wd-subtitle">Configure this session</p>
       <form id={`${id}-form`} className="wd-form" onSubmit={e => { e.preventDefault(); save(); }}>
         <div className="wd-field"><label htmlFor={`${id}-name`}>Workout Name</label>
@@ -150,13 +150,13 @@ export default function WorkoutDetails({ name, notes, intensity, exercises, allE
         </section>
         <fieldset className="wd-field"><legend>Intensity · optional</legend><div className="wd-intensity">{['Low', 'Moderate', 'High'].map(level => <label key={level}>
           <input type="radio" name={`${id}-intensity`} value={level.toLowerCase()} checked={draft.intensity === level.toLowerCase()} onChange={e => setDraft({ ...draft, intensity: e.target.value })} /><span>{level}</span>
-        </label>)}</div>{draft.intensity && <button type="button" className="wd-secondary wd-clear-intensity" onClick={() => setDraft({ ...draft, intensity: '' })}>Clear intensity</button>}</fieldset>
+        </label>)}</div>{draft.intensity && <button type="button" className="btn btn-ghost wd-secondary wd-clear-intensity" onClick={() => setDraft({ ...draft, intensity: '' })}>Clear intensity</button>}</fieldset>
         <div className="wd-field"><label htmlFor={`${id}-notes`}>Notes</label><textarea id={`${id}-notes`} value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} placeholder="Set your intention. Pace, form, or anything to remember…" rows={4} /></div>
         {draft.session && <>
           <section className="wd-field" aria-labelledby={`${id}-labels-title`}>
             <h2 className="wd-section-label" id={`${id}-labels-title`}>Labels</h2>
-            <div className="wd-labels">{[...new Set([...availableLabels, ...draft.session.labels])].map(label => <button type="button" key={label} className="wd-secondary" aria-pressed={draft.session.labels.includes(label)} onClick={() => updateSession({ labels: draft.session.labels.includes(label) ? draft.session.labels.filter(l => l !== label) : [...draft.session.labels, label] })}>{label}</button>)}</div>
-            <div className="wd-new-label"><input className="inp" aria-label="New label" placeholder="New label…" value={newLabel} onChange={e => setNewLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLabel(); } }} /><button type="button" className="wd-secondary" onClick={addLabel}>Add label</button></div>
+            <div className="wd-labels">{[...new Set([...availableLabels, ...draft.session.labels])].map(label => <button type="button" key={label} className="btn btn-ghost wd-secondary" aria-pressed={draft.session.labels.includes(label)} onClick={() => updateSession({ labels: draft.session.labels.includes(label) ? draft.session.labels.filter(l => l !== label) : [...draft.session.labels, label] })}>{label}</button>)}</div>
+            <div className="wd-new-label"><input className="inp" aria-label="New label" placeholder="New label…" value={newLabel} onChange={e => setNewLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLabel(); } }} /><button type="button" className="btn btn-ghost wd-secondary" onClick={addLabel}>Add label</button></div>
           </section>
           <section className="wd-field" aria-labelledby={`${id}-stats-title`}>
             <h2 className="wd-section-label" id={`${id}-stats-title`}>Session stats</h2>
