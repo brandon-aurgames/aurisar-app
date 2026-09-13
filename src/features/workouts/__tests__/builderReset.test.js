@@ -63,14 +63,13 @@ describe('stats-prompt preference is read live (C1)', () => {
 describe('builder session-notes peek', () => {
   it('keeps required name on the canvas and parks optional fields in Workout Details', () => {
     const src = read('src/features/workouts/WorkoutsTab.jsx');
-    expect(src).toContain('WbDetailsTrigger');
-    expect(src).toContain('WbDetailsOverlay');
+    expect(src).toContain('<WorkoutDetails');
     expect(src).not.toContain('placeholder={"320"}');
     expect(src).not.toContain('placeholder={"450"}');
-    const overlay = read('src/features/workouts/WbWorkoutDetails.jsx');
+    const overlay = read('src/features/workouts/WorkoutDetails.jsx');
     expect(overlay).toContain('Open workout details');
-    expect(overlay).toContain('Workout Details');
-    expect(overlay).toContain('is-closing');
+    expect(overlay).toContain('WORKOUT DETAILS');
+    expect(overlay).toContain("setPhase('closing')");
   });
 
   it('Sheet supports left placement', () => {

@@ -21,6 +21,7 @@ export function buildWorkoutObject({
   name,
   icon,
   desc = "",
+  intensity,
   exercises,
   createdAt,
   durationMin = null,
@@ -41,6 +42,7 @@ export function buildWorkoutObject({
     totalCal: totalCal || null,
     labels,
   };
+  if (["low", "moderate", "high"].includes(intensity)) w.intensity = intensity;
   if (oneOff) w.oneOff = true;
   return w;
 }

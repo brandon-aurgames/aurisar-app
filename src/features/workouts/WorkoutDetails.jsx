@@ -1,0 +1,160 @@
+import { useEffect, useId, useRef, useState } from 'react';
+import Sheet from '../../components/ui/Sheet';
+import { ExIcon } from '../../components/ExIcon';
+import { normalizeHHMM } from '../../utils/time';
+import { memberBadge } from './supersetModel';
+import { NO_SETS_EX_IDS } from '../../data/constants';
+import { createDetailsFire } from './detailsFire';
+import './workout-details.css';
+
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+export default function WorkoutDetails({ name, notes, intensity, exercises, allExById, onSave, session, availableLabels = [] }) {
+  const [phase, setPhase] = useState('idle');
+  const [origin, setOrigin] = useState(200);
+  const [newLabel, setNewLabel] = useState('');
+  const [draft, setDraft] = useState({ name: '', notes: '', intensity: '' });
+  const [paused, setPaused] = useState(document.hidden);
+  const trigger = useRef(null), dialog = useRef(null), canvas = useRef(null), fire = useRef(null);
+  const timer = useRef(null), positionAnchor = useRef(null);
+  const id = useId();
+  const active = phase !== 'idle';
+
+  // Inline anchor follows the name panel; fixed positioning stays flush to the
+  // viewport even inside the app's centered desktop content column.
+  useEffect(() => {
+    const anchor = positionAnchor.current;
+    function position() {
+      const rect = anchor.getBoundingClientRect();
+      trigger.current?.style.setProperty('--wd-top', `${Math.max(100, Math.min(rect.top + 8, window.innerHeight - 120))}px`);
+    }
+    position();
+    const observer = new ResizeObserver(position);
+    observer.observe(document.body);
+    window.addEventListener('resize', position);
+    document.addEventListener('scroll', position, true);
+    return () => { observer.disconnect(); window.removeEventListener('resize', position); document.removeEventListener('scroll', position, true); };
+  }, []);
+
+  useEffect(() => {
+    function visibility() { setPaused(document.hidden); if (document.hidden) fire.current?.stop(); }
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    function motionChanged(e) {
+      if (!e.matches) return;
+      fire.current?.stop(); clearTimeout(timer.current);
+      setPhase(current => current === 'closing' ? 'idle' : current === 'opening' ? 'open' : current);
+    }
+    document.addEventListener('visibilitychange', visibility);
+    media.addEventListener?.('change', motionChanged);
+    return () => { document.removeEventListener('visibilitychange', visibility); media.removeEventListener?.('change', motionChanged); clearTimeout(timer.current); };
+  }, []);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    fire.current = createDetailsFire(canvas.current);
+    fire.current.start();
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { fire.current?.destroy(); fire.current = null; document.body.style.overflow = overflow; };
+  }, [active]);
+
+  function open() {
+    if (active) return;
+    // Safari does not focus buttons on pointer click; explicitly capture this
+    // trigger before Sheet's lifecycle records the return-focus element.
+    trigger.current.focus({ preventScroll: true });
+    setDraft({ name, notes, intensity: intensity || '', ...(session ? { session: { ...session, labels: [...session.labels] } } : {}) });
+    setNewLabel('');
+    const rect = trigger.current.getBoundingClientRect();
+    setOrigin(rect.top + rect.height / 2);
+    setPhase(reducedMotion() ? 'open' : 'opening');
+    clearTimeout(timer.current);
+    if (!reducedMotion()) timer.current = setTimeout(() => setPhase('open'), 620);
+  }
+  function close() {
+    if (phase === 'closing' || !active) return;
+    clearTimeout(timer.current);
+    if (reducedMotion()) { setPhase('idle'); return; }
+    setPhase('closing');
+    fire.current?.start(360);
+    timer.current = setTimeout(() => setPhase('idle'), 360);
+  }
+  function updateSession(values) {
+    setDraft(current => ({ ...current, session: { ...current.session, ...values } }));
+  }
+  function normalizedDuration(value) {
+    const hms = value.trim().match(/^(\d+):(\d{1,2}):(\d{1,2})$/);
+    if (!hms) return value.trim() ? normalizeHHMM(value.trim()) : '';
+    const [, hours, minutes, seconds] = hms.map(Number);
+    return `${String(hours + Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:${String(Math.min(seconds, 59)).padStart(2, '0')}`;
+  }
+  function addLabel() {
+    const label = newLabel.trim();
+    if (!label) return;
+    const existing = [...availableLabels, ...draft.session.labels].find(l => l.toLowerCase() === label.toLowerCase()) || label;
+    updateSession({ labels: [...new Set([...draft.session.labels, existing])] });
+    setNewLabel('');
+  }
+  function save() {
+    if (phase === 'closing') return;
+    onSave(draft.session ? { ...draft, session: { ...draft.session, duration: normalizedDuration(draft.session.duration) } } : draft);
+    close();
+  }
+  // A local Tab wrap supplements the app's inert modal stack: even the browser
+  // chrome cannot steal the next Tab while the user is working in this form.
+  function trapTab(e) {
+    if (e.key !== 'Tab') return;
+    const controls = [...dialog.current.querySelectorAll('*')].filter(el => el.matches('button, input, textarea, summary') && !el.disabled);
+    const first = controls[0], last = controls.at(-1);
+    if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { e.preventDefault(); last?.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+  }
+
+  return <>
+    <span ref={positionAnchor} aria-hidden="true" />
+    <button ref={trigger} type="button" className={`wd-trigger${paused ? ' wd-paused' : ''}`} data-open={active}
+      aria-label="Open workout details" aria-haspopup="dialog" aria-expanded={active} aria-controls={`${id}-dialog`} onClick={open}>
+      <span className="wd-handle" aria-hidden="true"><span className="wd-label-vertical">DETAILS</span>
+        <span className="wd-label-horizontal">DETAILS<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m6 3 5 5-5 5" /></svg></span>
+      </span><span className="wd-spark" aria-hidden="true" />
+    </button>
+    <Sheet open={active} onClose={close} placement="fullscreen" navOffset={false} showHandle={false} sheetRef={dialog} onKeyDown={trapTab}
+      id={`${id}-dialog`} title="WORKOUT DETAILS" ariaLabel="Workout details" ariaDescribedBy={`${id}-subtitle`}
+      className="wd-dialog" backdropClassName={`wd-backdrop wd-${phase}${paused ? ' wd-paused' : ''}`}
+      atmosphere={<div className="wd-fire" aria-hidden="true" style={{ '--wd-origin': `${origin}px` }}><canvas ref={canvas} /><i className="wd-spark" /><i className="wd-spark" /><i className="wd-spark" /></div>}
+      footer={<div className="wd-actions"><button type="button" className="wd-secondary" onClick={close}>Cancel</button><button type="submit" form={`${id}-form`} className="wd-primary">SAVE DETAILS</button></div>}>
+      <p id={`${id}-subtitle`} className="wd-subtitle">Configure this session</p>
+      <form id={`${id}-form`} className="wd-form" onSubmit={e => { e.preventDefault(); save(); }}>
+        <div className="wd-field"><label htmlFor={`${id}-name`}>Workout Name</label>
+          <input id={`${id}-name`} className="inp" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} placeholder="Name this session" required maxLength={120} /></div>
+        <section className="wd-field" aria-labelledby={`${id}-exercises`}><h2 id={`${id}-exercises`} className="wd-section-label" style={{ margin: 0 }}>Exercises · {exercises.length}</h2>
+          {exercises.length ? <ul className="wd-exercises">{exercises.map((ex, i) => {
+            const definition = allExById[ex.exId];
+            const noSets = NO_SETS_EX_IDS.has(ex.exId);
+            const badge = memberBadge(exercises, i);
+            const timed = definition?.category === 'cardio' || definition?.category === 'flexibility';
+            const setCount = Number(ex.sets || 0) + (ex.extraRows || []).reduce((total, row) => total + Number(row.sets || 0), 0);
+            return <li key={`${ex.exId}-${i}`} className="wd-exercise"><span className="wd-ex-icon" aria-hidden="true">{definition ? <ExIcon ex={definition} size="1rem" color="currentColor" /> : '—'}</span>
+              <div><strong>{badge && <span className="wd-group-badge">{badge} </span>}{definition?.name || 'Exercise unavailable'}</strong><small>{ex.exId === 'rest_day' ? 'Recovery' : noSets ? `${ex.reps || 0} min` : `${setCount} sets · ${ex.reps || 0} ${timed ? 'min' : 'reps'}${ex.extraRows?.length ? ' + varied sets' : ''}`}</small></div></li>;
+          })}</ul> : <p className="wd-empty">Add exercises in the builder to shape this session.</p>}
+        </section>
+        <fieldset className="wd-field"><legend>Intensity</legend><div className="wd-intensity">{['Low', 'Moderate', 'High'].map(level => <label key={level}>
+          <input type="radio" name={`${id}-intensity`} value={level.toLowerCase()} checked={draft.intensity === level.toLowerCase()} onChange={e => setDraft({ ...draft, intensity: e.target.value })} /><span>{level}</span>
+        </label>)}</div></fieldset>
+        <div className="wd-field"><label htmlFor={`${id}-notes`}>Notes</label><textarea id={`${id}-notes`} value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} placeholder="Set your intention. Pace, form, or anything to remember…" rows={4} /></div>
+        {draft.session && <>
+          <section className="wd-field" aria-labelledby={`${id}-labels-title`}>
+            <h2 className="wd-section-label" id={`${id}-labels-title`}>Labels</h2>
+            <div className="wd-labels">{[...new Set([...availableLabels, ...draft.session.labels])].map(label => <button type="button" key={label} className="wd-secondary" aria-pressed={draft.session.labels.includes(label)} onClick={() => updateSession({ labels: draft.session.labels.includes(label) ? draft.session.labels.filter(l => l !== label) : [...draft.session.labels, label] })}>{label}</button>)}</div>
+            <div className="wd-new-label"><input className="inp" aria-label="New label" placeholder="New label…" value={newLabel} onChange={e => setNewLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLabel(); } }} /><button type="button" className="wd-secondary" onClick={addLabel}>Add label</button></div>
+          </section>
+          <section className="wd-field" aria-labelledby={`${id}-stats-title`}>
+            <h2 className="wd-section-label" id={`${id}-stats-title`}>Session stats</h2>
+            <div className="wd-field"><label htmlFor={`${id}-duration`}>Duration</label><input id={`${id}-duration`} className="inp" inputMode="numeric" value={draft.session.duration} onChange={e => updateSession({ duration: e.target.value, durationSec: '' })} onBlur={e => updateSession({ duration: normalizedDuration(e.target.value) })} placeholder="HH:MM[:SS]" /><small className="wd-subtitle">90 = 1h30m · include :SS for seconds</small></div>
+            <div className="wd-calories"><div className="wd-field"><label htmlFor={`${id}-active-cal`}>Active Cal</label><input id={`${id}-active-cal`} className="inp" type="number" min="0" max="9999" value={draft.session.activeCal} onChange={e => updateSession({ activeCal: e.target.value })} /></div><div className="wd-field"><label htmlFor={`${id}-total-cal`}>Total Cal</label><input id={`${id}-total-cal`} className="inp" type="number" min="0" max="9999" value={draft.session.totalCal} onChange={e => updateSession({ totalCal: e.target.value })} /></div></div>
+          </section>
+        </>}
+      </form>
+    </Sheet>
+  </>;
+}

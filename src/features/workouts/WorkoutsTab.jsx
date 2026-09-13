@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useMemo, useRef } from 'react';
 import { ExIcon } from '../../components/ExIcon';
 import { getMuscleColor, getTypeColor, calcExXP, calcExEntryXP, calcWorkoutXP } from '../../utils/xp';
 import { lbsToKg, isMetric, displayWt } from '../../utils/units';
@@ -10,7 +10,7 @@ import SetsEditor from '../../components/ui/SetsEditor';
 import FilterDropdown from '../exercises/FilterDropdown';
 import IconButton from '../../components/ui/IconButton';
 import Sheet from '../../components/ui/Sheet';
-import { WbDetailsOverlay, WbDetailsTrigger } from './WbWorkoutDetails';
+import WorkoutDetails from './WorkoutDetails';
 import { buildWorkoutObject } from './workoutModel';
 import {
   SS_MAX,
@@ -273,6 +273,7 @@ const WorkoutsTab = memo(function WorkoutsTab({
   wbName, setWbName,
   wbIcon, setWbIcon,
   wbDesc, setWbDesc,
+  wbIntensity, setWbIntensity,
   wbExercises, setWbExercises,
   wbEditId, setWbEditId,
   wbIsOneOff, setWbIsOneOff,
@@ -343,18 +344,6 @@ useBuilderPointerDnd({
   onReorder: reorderWbEx,
   onMerge: (from, onto) => setWbExercises(xs => mergeOnto(xs, from, onto)),
 });
-const [detailsOpen, setDetailsOpen] = useState(false);
-useEffect(() => {
-  if (workoutView !== "builder") setDetailsOpen(false);
-}, [workoutView]);
-const detailsFilled = !!(
-  (wbDesc && wbDesc.trim())
-  || (wbLabels && wbLabels.length)
-  || wbDuration
-  || wbActiveCal
-  || wbTotalCal
-);
-
 // ── LIST ───────────────────────────────
 if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div style={{
       marginBottom: S.s8
@@ -845,6 +834,7 @@ if (workoutView === "recipes") {
             setWbName(tpl.name);
             setWbIcon(tpl.icon);
             setWbDesc(tpl.desc);
+            setWbIntensity("");
             setWbExercises(normalizeSupersetGroups(tpl.exercises.map(e => ({
               ...e
             }))));
@@ -957,29 +947,19 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
     }}><div className={"builder-nav-title"}>{wbIsOneOff ? wbEditId ? "✎ Edit One-Off" : "⚡ New One-Off Workout" : wbEditId ? "✎ Edit Workout" : wbCopySource ? "⎘ Copy Workout" : "⚔ New Workout"}</div>{wbCopySource && <div className={"builder-nav-sub"}>{"Forging from: "}{wbCopySource}</div>}</div></div>
   {
     /* Name stays on the canvas. Optional session fields live in Workout Details. */
-  }<WbDetailsTrigger open={detailsOpen} filled={detailsFilled} onOpen={() => setDetailsOpen(true)} /><WbDetailsOverlay
-    open={detailsOpen}
-    onClose={() => setDetailsOpen(false)}
-    wbName={wbName}
-    setWbName={setWbName}
-    wbDesc={wbDesc}
-    setWbDesc={setWbDesc}
-    wbLabels={wbLabels}
-    setWbLabels={setWbLabels}
-    newLabelInput={newLabelInput}
-    setNewLabelInput={setNewLabelInput}
-    profile={profile}
-    setProfile={setProfile}
-    wbDuration={wbDuration}
-    setWbDuration={setWbDuration}
-    setWbDurSec={setWbDurSec}
-    wbActiveCal={wbActiveCal}
-    setWbActiveCal={setWbActiveCal}
-    wbTotalCal={wbTotalCal}
-    setWbTotalCal={setWbTotalCal}
-    wbExercises={wbExercises}
-    allExById={allExById}
-  /><div className={"wb-section"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input className={"inp"} value={wbName} onChange={e => setWbName(e.target.value)} placeholder={"e.g. Morning Push Day…"} /></div></div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
+  }<WorkoutDetails name={wbName} notes={wbDesc} intensity={wbIntensity}
+    exercises={wbExercises} allExById={allExById} availableLabels={profile.workoutLabels || []}
+    session={{ labels: wbLabels, duration: wbDuration, durationSec: wbDurSec, activeCal: wbActiveCal, totalCal: wbTotalCal }}
+    onSave={draft => {
+      setWbName(draft.name); setWbDesc(draft.notes); setWbIntensity(draft.intensity);
+      setWbLabels(draft.session.labels); setWbDuration(draft.session.duration); setWbDurSec(draft.session.durationSec);
+      setWbActiveCal(draft.session.activeCal); setWbTotalCal(draft.session.totalCal);
+      setProfile(p => {
+        const labels = [...(p.workoutLabels || [])];
+        for (const label of draft.session.labels) if (!labels.some(l => l.toLowerCase() === label.toLowerCase())) labels.push(label);
+        return labels.length === (p.workoutLabels || []).length ? p : { ...p, workoutLabels: labels };
+      });
+    }} /><div className={"wb-section wb-details-identity"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input className={"inp"} value={wbName} onChange={e => setWbName(e.target.value)} placeholder={"e.g. Morning Push Day…"} /></div></div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
     /* Exercise list */
   }<div className={"wo-section-hdr"} style={{
     marginTop: S.s18,
@@ -1057,6 +1037,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       name: wbName.trim(),
       icon: wbIcon,
       desc: wbDesc.trim(),
+      intensity: wbIntensity || undefined,
       exercises: normalizeSupersetGroups(wbExercises),
       createdAt: todayStr(),
       oneOff: true,
@@ -1092,6 +1073,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       name: wbName,
       icon: wbIcon,
       desc: wbDesc,
+      intensity: wbIntensity,
       exercises: wbExercises,
       createdAt: todayStr(),
       oneOff: true,
@@ -1122,6 +1104,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       name: wbName,
       icon: wbIcon,
       desc: wbDesc,
+      intensity: wbIntensity,
       exercises: wbExercises,
       createdAt: todayStr(),
       oneOff: true,

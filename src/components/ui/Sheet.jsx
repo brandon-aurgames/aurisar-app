@@ -37,7 +37,7 @@ export default function Sheet({
   open,
   onClose,
   layer = 'modal',            // key of LAYER_Z, or an explicit z number
-  placement = 'bottom',       // "bottom" | "center" | "left"
+  placement = 'bottom',       // "bottom" | "center" | "left" | "fullscreen"
   title,
   icon,
   titleFont,                  // "cinzel" opts into the serif display face
@@ -51,6 +51,10 @@ export default function Sheet({
   navOffset = true,           // keep the sheet above the bottom tab bar
   scroll = 'body',            // "body" | "none"
   ariaLabel,
+  ariaDescribedBy,
+  backdropClassName = '',
+  atmosphere,
+  onKeyDown,
   style,                      // merged onto the sheet (e.g. a --mg-color skin var)
   tabIndex,                   // dialog tabIndex; defaults to -1 (programmatic focus)
   sheetRef,                   // passthroughs for swipe pagers etc.
@@ -92,11 +96,15 @@ export default function Sheet({
   const zIndex = typeof layer === 'number' ? layer : (LAYER_Z[layer] ?? Z.modal);
   const isBottom = placement === 'bottom';
   const isLeft = placement === 'left';
+  const isFullscreen = placement === 'fullscreen';
   let backdropMod = 'ui-sheet-backdrop--center';
   let sheetMod = 'ui-sheet--center ui-sheet-pop';
   if (isBottom) {
     backdropMod = 'ui-sheet-backdrop--bottom';
     sheetMod = 'ui-sheet--bottom sheet-slide-up';
+  } else if (isFullscreen) {
+    backdropMod = 'ui-sheet-backdrop--fullscreen';
+    sheetMod = 'ui-sheet--fullscreen';
   } else if (isLeft) {
     backdropMod = 'ui-sheet-backdrop--left';
     sheetMod = 'ui-sheet--left sheet-enter-left';
@@ -105,6 +113,7 @@ export default function Sheet({
   // Touch/animation passthroughs are spread so a sheet without a swipe pager
   // carries no listeners at all.
   const passthrough = {};
+  if (onKeyDown) passthrough.onKeyDown = onKeyDown;
   if (onTouchStart) passthrough.onTouchStart = onTouchStart;
   if (onTouchMove) passthrough.onTouchMove = onTouchMove;
   if (onTouchEnd) passthrough.onTouchEnd = onTouchEnd;
@@ -114,18 +123,20 @@ export default function Sheet({
     <div
       ref={backdropRef}
       role="presentation"
-      className={`ui-sheet-backdrop ${backdropMod}${(isBottom || isLeft) && navOffset ? ' ui-sheet-backdrop--nav' : ''}`}
+      className={`ui-sheet-backdrop ${backdropMod}${(isBottom || isLeft) && navOffset ? ' ui-sheet-backdrop--nav' : ''} ${backdropClassName}`}
       style={{ zIndex }}
       onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}
     >
+      {atmosphere}
       <div
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel || title || undefined}
+        aria-describedby={ariaDescribedBy}
         ref={dialogRef}
         tabIndex={tabIndex != null ? tabIndex : -1}
         className={`ui-sheet ${sheetMod}${tall ? ' ui-sheet--tall' : ''} ${className}`}
-        style={{ maxWidth, ...style }}
+        style={{ maxWidth: isFullscreen ? 'none' : maxWidth, ...style }}
         id={id}
         {...passthrough}
       >

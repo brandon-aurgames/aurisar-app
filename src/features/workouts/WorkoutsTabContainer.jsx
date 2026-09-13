@@ -60,6 +60,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
   const [wbIcon, setWbIcon] = useState("💪");
   const [wbIconPickerOpen, setWbIconPickerOpen] = useState(false);
   const [wbDesc, setWbDesc] = useState("");
+  const [wbIntensity, setWbIntensity] = useState("");
   const [wbExercises, setWbExercises] = useState([]); // [{exId,sets,reps,weightLbs,durationMin,...}]
   const [wbEditId, setWbEditId] = useState(null); // id of workout being edited
   const [wbCopySource, setWbCopySource] = useState(null);
@@ -104,6 +105,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setWbIcon("💪");
     setWbIconPickerOpen(false);
     setWbDesc("");
+    setWbIntensity("");
     setWbExercises([]);
     setWbEditId(null);
     setWbCopySource(null);
@@ -126,6 +128,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       setWbName(base.name);
       setWbIcon(base.icon);
       setWbDesc(base.desc || "");
+      setWbIntensity(base.intensity || "");
       setWbExercises(normalizeSupersetGroups(base.exercises.map(e => ({ ...e }))));
       setWbEditId(base.id);
       const split = base.durationMin ? secToHHMMSplit(Number(base.durationMin)) : { hhmm: "", sec: "" };
@@ -165,6 +168,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       name: wbName,
       icon: wbIcon,
       desc: wbDesc,
+      intensity: wbIntensity,
       exercises: wbExercises,
       createdAt: new Date().toLocaleDateString(),
       durationMin: combineHHMMSec(wbDuration, wbDurSec) || null,
@@ -201,6 +205,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       name: wbName,
       icon: wbIcon,
       desc: wbDesc,
+      intensity: wbIntensity,
       exercises: wbExercises,
       createdAt: new Date().toLocaleDateString(),
       durationMin: combineHHMMSec(wbDuration, wbDurSec) || null,
@@ -220,6 +225,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setWbName("Copy of " + wo.name);
     setWbIcon(wo.icon);
     setWbDesc(wo.desc || "");
+    setWbIntensity(wo.intensity || "");
     setWbExercises(normalizeSupersetGroups(wo.exercises.map(e => ({ ...e }))));
     setWbEditId(null); // new id on save
     setWbCopySource(wo.name);
@@ -359,6 +365,8 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         setWbName={setWbName}
         wbIcon={wbIcon}
         setWbIcon={setWbIcon}
+        wbIntensity={wbIntensity}
+        setWbIntensity={setWbIntensity}
         wbDesc={wbDesc}
         setWbDesc={setWbDesc}
         wbExercises={wbExercises}
