@@ -310,7 +310,10 @@ export function movementRestriction<T extends AuraRowLike>(
 export interface AbsorbOutcome<T> {
   /** HP the shields ate, rounded to a whole point. */
   absorbed: number;
-  /** Damage still owed to the victim's hp, rounded to a whole point. */
+  /**
+   * Damage still owed to the victim's hp: the whole hit minus `absorbed`, so
+   * the two always sum back to the hit rather than being rounded apart.
+   */
   remaining: number;
   /** `abilityId` of the first pool that ate damage; '' when nothing absorbed. */
   absorbedBy: string;
@@ -365,7 +368,12 @@ export function consumeAbsorb<T extends AuraRowLike & { abilityId: string }>(
     else out.drained.push({ row: pool, magnitude: left });
   }
 
+  // `remaining` is derived from the already-rounded `absorbed`, never rounded
+  // on its own. Pool magnitudes are genuinely fractional (rank scaling), and
+  // rounding both halves of one split independently lets them sum to more or
+  // less than the hit: 10 damage into a 2.5 HP remnant would account
+  // 3 absorbed + 8 to hp = 11 HP of a 10 HP hit.
   out.absorbed = Math.round(out.absorbed);
-  out.remaining = Math.round(out.remaining);
+  out.remaining = Math.max(0, Math.round(damage) - out.absorbed);
   return out;
 }

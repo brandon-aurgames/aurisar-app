@@ -2131,7 +2131,7 @@ export const tickMobAI = spacetimedb.reducer(
             const dx = p.x - mob.x;
             const dy = p.y - mob.y;
             if (dx * dx + dy * dy <= aoeSq) {
-              applyMobHit(ctx, p.identity, now, aoeDmg, mob.mobId);
+              applyMobHit(ctx, p.identity, now, aoeDmg);
             }
           }
           nextLastAoeAt = now;
@@ -2183,7 +2183,7 @@ export const tickMobAI = spacetimedb.reducer(
           const sameFloor = sameInteriorFloor(nextFloorYM, nearest.floorYM);
           if (nearestDistSq <= meleeSq && sameFloor) {
             if (now - mob.lastAttackAt >= attackCdMicros) {
-              applyMobHit(ctx, nearest.identity, now, effectiveDamage, mob.mobId);
+              applyMobHit(ctx, nearest.identity, now, effectiveDamage);
               nextLastAttackAt = now;
             }
           } else {
@@ -2483,15 +2483,18 @@ function mobInteriorStepPx(
  * hp that did not move — a fully absorbed hit changes no hp at all, so there
  * is no delta for a client to read.
  *
- * `sourceMobId` only labels the event; 0n is honest for damage with no mob
- * behind it.
+ * The `'absorbed'` event is anchored on the *shielded player*, so it carries
+ * `targetMobId: 0n` — the module's player-anchored convention, same as the
+ * `healed` events in `castAbilityById` and `tickAuras`. The mob that swung is
+ * deliberately not named: the client floats any combat event with a non-zero
+ * `targetMobId` over that mob, which would put the absorb number on the
+ * attacker instead of on the player whose shield ate the hit.
  */
 function applyMobHit(
   ctx: any,
   targetIdentity: any,
   nowMicros: bigint,
   damage: number,
-  sourceMobId: bigint = 0n,
 ): void {
   const player = ctx.db.player.identity.find(targetIdentity);
   if (!player) return;
@@ -2515,7 +2518,7 @@ function applyMobHit(
         // The shield that ate the hit, not the ability that threw the punch —
         // the client renders this on the absorbing player.
         abilityId: shields.absorbedBy,
-        targetMobId: sourceMobId,
+        targetMobId: 0n,
         kind: 'absorbed',
         amount: shields.absorbed,
       });

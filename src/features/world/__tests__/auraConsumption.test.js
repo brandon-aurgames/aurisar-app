@@ -223,6 +223,18 @@ describe('consumeAbsorb', () => {
     expect(r.absorbedBy).toBe('');
   });
 
+  it('never invents or loses HP when a fractional pool remnant splits the hit', () => {
+    // Rank-scaled magnitudes are fractional, so a half-spent pool lands on a
+    // value like 2.5. Rounding absorbed and remaining independently would
+    // account 3 + 8 = 11 HP for a 10 HP hit.
+    const shield = aura('absorb', { magnitude: 2.5 });
+    const r = consumeAbsorb([shield], 10, NOW);
+    expect(r.absorbed).toBe(3);
+    expect(r.remaining).toBe(7);
+    expect(r.absorbed + r.remaining).toBe(10);
+    expect(r.spent).toEqual([shield]);
+  });
+
   it('is a no-op on a zero or negative hit', () => {
     const shield = aura('absorb', { magnitude: 25 });
     expect(consumeAbsorb([shield], 0, NOW)).toMatchObject({ absorbed: 0, remaining: 0 });
