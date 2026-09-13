@@ -117,6 +117,11 @@ function getWorkoutMgColor(wo, exById, mgColors) {
   return top && mgColors[top] || "#B0A090";
 }
 
+function IntensityChip({ value }) {
+  const label = { low: 'Low', moderate: 'Moderate', high: 'High' }[value];
+  return label ? <span className="workout-intensity">{label} intensity</span> : null;
+}
+
 function SsStagingBar({ count, joinLetter, onGroup, onCancel }) {
   const ready = count >= 2 || !!joinLetter;
   const text = joinLetter
@@ -455,7 +460,7 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
             minWidth: 0
           }}><div className={"workout-name"}>{wo.name}</div><div className={"workout-meta"}><span className={"workout-tag"}>{exCount}{" exercise"}{exCount !== 1 ? "s" : ""}</span><span className={"workout-tag"}>{formatXP(xp, {
                   prefix: "⚡ "
-                })}</span>{(wo.labels || []).map(l => <span key={l} className={"wo-label-chip"} style={{
+                })}</span><IntensityChip value={wo.intensity} />{(wo.labels || []).map(l => <span key={l} className={"wo-label-chip"} style={{
                 pointerEvents: "none",
                 marginLeft: S.s2
               }}>{l}</span>)}</div></div><button className={`track-toggle-btn${liveWorkout?.workoutId === wo.id ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{"Track"}</button></div></div>;
@@ -524,7 +529,7 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
                     prefix: "⚡ "
                   })}</span><span className={`upcoming-badge ${badgeCls}`} style={{
                   marginLeft: S.s4
-                }}>{badgeTxt}</span>{(wo.labels || []).map(l => <span key={l} className={"wo-label-chip"} style={{
+                }}>{badgeTxt}</span><IntensityChip value={wo.intensity} />{(wo.labels || []).map(l => <span key={l} className={"wo-label-chip"} style={{
                   pointerEvents: "none",
                   marginLeft: S.s2
                 }}>{l}</span>)}</div></div><button className={`track-toggle-btn${liveWorkout?.workoutId === wo.id ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{"Track"}</button></div>
@@ -880,7 +885,7 @@ if (workoutView === "detail" && activeWorkout) {
       gap: S.s8,
       marginBottom: S.s14,
       flexWrap: "wrap"
-    }}><div className={"xp-projection"} style={{
+    }}><IntensityChip value={wo.intensity} /><div className={"xp-projection"} style={{
         flex: 1,
         minWidth: 160,
         margin: 0,

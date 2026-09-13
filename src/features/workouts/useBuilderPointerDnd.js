@@ -127,6 +127,7 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
       clearTimeout(drag.timer);
       const snapshot = drag;
       drag = null;
+      if (scrollRaf) { cancelAnimationFrame(scrollRaf); scrollRaf = null; }
       dragRef.current = null;
       document.body.classList.remove('wb-dragging');
       snapshot.el.classList.remove('gripping', 'placeholder');
@@ -138,15 +139,9 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
         return;
       }
       if (snapshot.lineIdx != null && snapshot.lineIdx !== snapshot.fromIdx) {
-        // lineIdx is an insertion index in the *remaining* cards. Map it
-        // back to a target index in the full list: the nth remaining card
-        // (or length-1 when appending).
-        const list = exercisesRef.current;
-        const others = list.map((_, i) => i).filter(i => i !== snapshot.fromIdx);
-        const target = snapshot.lineIdx >= others.length
-          ? list.length - 1
-          : others[snapshot.lineIdx];
-        if (target !== snapshot.fromIdx) onReorderRef.current?.(snapshot.fromIdx, target);
+        // reorderExercise inserts into the post-removal array, exactly like
+        // the drop line's slot index. Mapping back would overshoot downward.
+        onReorderRef.current?.(snapshot.fromIdx, snapshot.lineIdx);
       }
     }
 
@@ -237,6 +232,8 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
       }
     }
 
+    function onCancel() { end(false); }
+
     function onClickCapture(e) {
       if (!suppressClick) return;
       e.stopPropagation();
@@ -246,17 +243,17 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
     root.addEventListener('pointerdown', onPointerDown);
     addEventListener('pointermove', onPointerMove, { passive: false });
     addEventListener('pointerup', onPointerUp);
-    addEventListener('pointercancel', onPointerUp);
+    addEventListener('pointercancel', onCancel);
     addEventListener('keydown', onKey);
-    addEventListener('blur', onPointerUp);
+    addEventListener('blur', onCancel);
     root.addEventListener('click', onClickCapture, true);
     return () => {
       root.removeEventListener('pointerdown', onPointerDown);
       removeEventListener('pointermove', onPointerMove);
       removeEventListener('pointerup', onPointerUp);
-      removeEventListener('pointercancel', onPointerUp);
+      removeEventListener('pointercancel', onCancel);
       removeEventListener('keydown', onKey);
-      removeEventListener('blur', onPointerUp);
+      removeEventListener('blur', onCancel);
       root.removeEventListener('click', onClickCapture, true);
       if (drag) end(false);
     };

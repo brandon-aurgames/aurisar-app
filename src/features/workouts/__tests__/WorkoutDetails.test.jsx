@@ -24,6 +24,49 @@ function setup(overrides = {}) {
 const advance = n => act(() => vi.advanceTimersByTime(n));
 
 describe('Workout Details interaction', () => {
+  it('follows the HUD edge through desktop resize and clamps mobile positioning', () => {
+    const root = document.getElementById('root');
+    root.className = 'hud';
+    let left = 400;
+    root.getBoundingClientRect = () => ({ left });
+    const { trigger } = setup();
+    expect(trigger.style.getPropertyValue('--wd-left')).toBe('400px');
+    left = 120; fireEvent(window, new Event('resize'));
+    expect(trigger.style.getPropertyValue('--wd-left')).toBe('120px');
+    left = -5; fireEvent(document, new Event('scroll'));
+    expect(trigger.style.getPropertyValue('--wd-left')).toBe('0px');
+  });
+
+  it('reveals for a mouse or pen regardless of media queries, but touch activates directly', () => {
+    const { trigger } = setup();
+    function enter(pointerType) {
+      const event = new Event('pointerover', { bubbles: true });
+      Object.defineProperty(event, 'pointerType', { value: pointerType });
+      fireEvent(trigger, event);
+    }
+    for (const type of ['mouse', 'pen']) {
+      enter(type);
+      expect(trigger.dataset.hovered).toBe('true');
+      expect(screen.queryByRole('dialog')).toBeNull();
+      fireEvent.pointerOut(trigger);
+      expect(trigger.dataset.hovered).toBe('false');
+    }
+    enter('touch');
+    expect(trigger.dataset.hovered).toBe('false');
+    fireEvent.click(trigger);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('keeps intensity unset and allows clearing a selection before saving', () => {
+    const { trigger, onSave } = setup({ intensity: '' });
+    fireEvent.click(trigger);
+    expect(screen.getAllByRole('radio').every(r => !r.checked)).toBe(true);
+    fireEvent.click(screen.getByLabelText('High'));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear intensity' }));
+    fireEvent.submit(screen.getByLabelText('Workout Name').closest('form'));
+    expect(onSave.mock.calls[0][0].intensity).toBe('');
+  });
+
   it('opens only on activation, traps focus, and restores it after Escape', () => {
     const { trigger, onSave } = setup();
     fireEvent.mouseEnter(trigger);

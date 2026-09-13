@@ -1,28 +1,31 @@
 /* Shared visual contract for the live builder and PR 357 mockup.
-   Idle 12×88 visual / 44×96 hit zone; hover expands for readable horizontal text. */
+   Idle 12×88 visual / 56×96 hit zone; hover expands for readable horizontal text. */
 .wd-trigger {
-  --wd-reveal: 0; position: fixed; left: 0; top: max(calc(env(safe-area-inset-top, 0px) + 64px), var(--wd-top, 170px));
-  z-index: 700; width: 44px; height: 96px; padding: 0; border: 0; border-radius: 0 10px 10px 0;
+  --wd-reveal: 0; position: fixed; left: var(--wd-left, 0px); top: max(calc(env(safe-area-inset-top, 0px) + 64px), var(--wd-top, 170px));
+  z-index: 700; width: 56px; height: 96px; padding: 0; border: 0; border-radius: 0 10px 10px 0;
   background: transparent; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   color: #d8b6a5; font-family: 'Inter', sans-serif; transition: width 220ms ease-out;
 }
 .wd-handle {
-  position: absolute; left: 0; top: 4px; width: 104px; height: 88px; overflow: hidden;
+  position: absolute; left: 0; top: 4px; height: 88px; overflow: hidden; box-sizing: border-box; pointer-events: none;
   border: 1px solid #483931; border-left: 0; border-radius: 0 11px 11px 0;
   background: linear-gradient(110deg, #0d0c10 6%, #19171b 60%, #29201e 95%, #38271e);
-  box-shadow: inset -1px 0 0 #98604755, 4px 0 18px #d66a2f18, 9px 0 30px #55356f0d;
-  transform: translateX(calc(-92px + var(--wd-reveal) * 92px)) translateY(calc(var(--wd-reveal) * -1px));
-  transition: transform 220ms cubic-bezier(.16,1,.3,1), box-shadow 220ms, border-color 220ms;
+  border-right: 2px solid #d87843;
+  box-shadow: inset -1px 0 0 #98604777, 4px 0 18px #d66a2f38, 9px 0 30px #55356f20;
+  width: calc(12px + var(--wd-reveal) * 92px);
+  transition: width 220ms cubic-bezier(.16,1,.3,1), box-shadow 220ms, border-color 220ms;
 }
 .wd-handle::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: radial-gradient(ellipse at right, #d66a2f22, transparent 70%); animation: wd-breathe 6.5s ease-in-out infinite; }
 .wd-label-vertical { position: absolute; right: 0; top: 50%; writing-mode: vertical-rl; transform: translateY(-50%) rotate(180deg);
-  font-size: 8px; font-weight: 600; line-height: 11px; letter-spacing: 1.6px; opacity: calc(1 - var(--wd-reveal)); transition: opacity 140ms; }
+  font-size: 9px; font-weight: 600; line-height: 10px; letter-spacing: 1.6px; opacity: calc(.75 * (1 - var(--wd-reveal))); transition: opacity 140ms; }
 .wd-label-horizontal { display: flex; align-items: center; justify-content: center; gap: 9px; height: 100%;
   font-size: 11px; letter-spacing: 1.5px; font-weight: 600; opacity: var(--wd-reveal); transition: opacity 180ms; }
 .wd-label-horizontal svg { width: 13px; height: 13px; }
-.wd-trigger:focus-visible { --wd-reveal: 1; width: 104px; outline: 2px solid #d66a2f; outline-offset: 3px; }
-@media (hover: hover) and (pointer: fine) {
+.wd-trigger[data-hovered='true'], .wd-trigger:focus-visible { --wd-reveal: 1; width: 104px; }
+.wd-trigger:focus-visible { outline: 2px solid #d66a2f; outline-offset: 3px; }
+.wd-trigger[data-hovered='true'] .wd-handle, .wd-trigger:focus-visible .wd-handle { border-color: #d87843; box-shadow: inset -1px 0 0 #f0783c66, 6px 0 25px #d66a2f45, 14px 0 40px #55356f22; }
+@media (hover: hover) {
   .wd-trigger:hover { --wd-reveal: 1; width: 104px; }
   .wd-trigger:hover .wd-handle { border-color: #996347; box-shadow: inset -1px 0 0 #f0783c66, 6px 0 25px #d66a2f30, 14px 0 40px #55356f22; }
 }
@@ -87,7 +90,13 @@ fieldset.wd-field { margin: 0; padding: 0; border: 0; display: block; }
 .wd-fire::before { content: ''; position: absolute; left: -40px; top: calc(var(--wd-origin, 200px) - 60px); width: 110px; height: 120px; background: radial-gradient(ellipse, #f0783c55, #55356f22 35%, transparent 70%); opacity: 0; }
 .wd-opening .wd-fire::before { animation: wd-charge 180ms ease-out; }
 @keyframes wd-charge { 0% { opacity: .4; } 65% { opacity: 1; } 100% { opacity: 0; } }
-.wd-fire::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 0 35%, #d66a2f12, transparent 40%), radial-gradient(ellipse at 100% 0, #55356f0e, transparent 50%); }
+.wd-fire::after { content: ''; position: absolute; inset: 0;
+  box-shadow: inset 0 0 2px #f09a5c99;
+  background: radial-gradient(ellipse 65px 65% at 0 40%, #d66a2f55, transparent 100%),
+    radial-gradient(ellipse 65% 48px at 45% 0, #df793e55, transparent 100%),
+    radial-gradient(ellipse 56px 65% at 100% 55%, #d66a2f50, transparent 100%),
+    radial-gradient(ellipse 70% 54px at 55% 100%, #d66a2f55, transparent 100%),
+    radial-gradient(ellipse 35% 35px at 85% 0, #7a3d8240, transparent 100%); }
 .wd-fire canvas { position: absolute; left: -22px; top: -3%; width: 155px; height: 106%; opacity: .27; transform-origin: 22px var(--wd-origin, 200px); }
 .wd-opening .wd-fire canvas { animation: wd-fire-sweep 620ms cubic-bezier(.2,.6,.25,1) both; }
 .wd-fire .wd-spark { left: 18px; top: 78%; animation-delay: 1s; animation-duration: 8s; }
@@ -110,8 +119,10 @@ fieldset.wd-field { margin: 0; padding: 0; border: 0; display: block; }
 }
 @media (max-width: 420px) { .wd-dialog > .ui-sheet-header { padding-bottom: 16px; } .wd-form { gap: 20px; } }
 
-/* Keep the invisible edge hit zone clear of the existing workout icon. */
-@media (max-width: 560px) { .wb-section.wb-details-identity { padding-left: 32px; } }
+/* The builder-edge hit zone must stay clear of the icon at every width. */
+.wb-section.wb-details-identity { padding-left: 48px; }
+.wd-clear-intensity { margin-top: 10px; padding: 8px 12px; border-radius: 7px; }
+.workout-intensity { align-self: center; color: #dfad8f; border: 1px solid #d66a2f55; background: #d66a2f12; border-radius: 6px; padding: 2px 6px; font-size: 11px; }
 
 .wd-labels { display: flex; flex-wrap: wrap; gap: 8px; }
 .wd-labels [aria-pressed='true'] { border-color: #d66a2f88; background: #d66a2f20; }

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Sheet from '../../components/ui/Sheet';
 import { ExIcon } from '../../components/ExIcon';
 import { normalizeHHMM } from '../../utils/time';
@@ -11,6 +12,7 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 
 export default function WorkoutDetails({ name, notes, intensity, exercises, allExById, onSave, session, availableLabels = [] }) {
   const [phase, setPhase] = useState('idle');
+  const [hovered, setHovered] = useState(false);
   const [origin, setOrigin] = useState(200);
   const [newLabel, setNewLabel] = useState('');
   const [draft, setDraft] = useState({ name: '', notes: '', intensity: '' });
@@ -19,18 +21,23 @@ export default function WorkoutDetails({ name, notes, intensity, exercises, allE
   const timer = useRef(null), positionAnchor = useRef(null);
   const id = useId();
   const active = phase !== 'idle';
+  // Escape scroll-area clipping, but stay inside #root so the modal stack
+  // makes this trigger inert alongside the rest of the app while a sheet opens.
+  const triggerHost = document.getElementById('root') || document.body;
 
-  // Inline anchor follows the name panel; fixed positioning stays flush to the
-  // viewport even inside the app's centered desktop content column.
+  // Follow the name panel vertically and the builder's edge horizontally.
   useEffect(() => {
     const anchor = positionAnchor.current;
+    const hud = anchor.closest('.hud');
     function position() {
       const rect = anchor.getBoundingClientRect();
       trigger.current?.style.setProperty('--wd-top', `${Math.max(100, Math.min(rect.top + 8, window.innerHeight - 120))}px`);
+      trigger.current?.style.setProperty('--wd-left', `${Math.max(0, hud?.getBoundingClientRect().left || 0)}px`);
     }
     position();
     const observer = new ResizeObserver(position);
     observer.observe(document.body);
+    if (hud) observer.observe(hud);
     window.addEventListener('resize', position);
     document.addEventListener('scroll', position, true);
     return () => { observer.disconnect(); window.removeEventListener('resize', position); document.removeEventListener('scroll', position, true); };
@@ -60,6 +67,7 @@ export default function WorkoutDetails({ name, notes, intensity, exercises, allE
 
   function open() {
     if (active) return;
+    setHovered(false);
     // Safari does not focus buttons on pointer click; explicitly capture this
     // trigger before Sheet's lifecycle records the return-focus element.
     trigger.current.focus({ preventScroll: true });
@@ -112,12 +120,14 @@ export default function WorkoutDetails({ name, notes, intensity, exercises, allE
 
   return <>
     <span ref={positionAnchor} aria-hidden="true" />
-    <button ref={trigger} type="button" className={`wd-trigger${paused ? ' wd-paused' : ''}`} data-open={active}
+    {createPortal(<button ref={trigger} type="button" className={`wd-trigger${paused ? ' wd-paused' : ''}`} data-open={active} data-hovered={hovered}
+      onPointerEnter={e => { if (e.pointerType !== 'touch') setHovered(true); }}
+      onPointerLeave={() => setHovered(false)} onPointerCancel={() => setHovered(false)}
       aria-label="Open workout details" aria-haspopup="dialog" aria-expanded={active} aria-controls={`${id}-dialog`} onClick={open}>
       <span className="wd-handle" aria-hidden="true"><span className="wd-label-vertical">DETAILS</span>
         <span className="wd-label-horizontal">DETAILS<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m6 3 5 5-5 5" /></svg></span>
       </span><span className="wd-spark" aria-hidden="true" />
-    </button>
+    </button>, triggerHost)}
     <Sheet open={active} onClose={close} placement="fullscreen" navOffset={false} showHandle={false} sheetRef={dialog} onKeyDown={trapTab}
       id={`${id}-dialog`} title="WORKOUT DETAILS" ariaLabel="Workout details" ariaDescribedBy={`${id}-subtitle`}
       className="wd-dialog" backdropClassName={`wd-backdrop wd-${phase}${paused ? ' wd-paused' : ''}`}
@@ -138,9 +148,9 @@ export default function WorkoutDetails({ name, notes, intensity, exercises, allE
               <div><strong>{badge && <span className="wd-group-badge">{badge} </span>}{definition?.name || 'Exercise unavailable'}</strong><small>{ex.exId === 'rest_day' ? 'Recovery' : noSets ? `${ex.reps || 0} min` : `${setCount} sets · ${ex.reps || 0} ${timed ? 'min' : 'reps'}${ex.extraRows?.length ? ' + varied sets' : ''}`}</small></div></li>;
           })}</ul> : <p className="wd-empty">Add exercises in the builder to shape this session.</p>}
         </section>
-        <fieldset className="wd-field"><legend>Intensity</legend><div className="wd-intensity">{['Low', 'Moderate', 'High'].map(level => <label key={level}>
+        <fieldset className="wd-field"><legend>Intensity · optional</legend><div className="wd-intensity">{['Low', 'Moderate', 'High'].map(level => <label key={level}>
           <input type="radio" name={`${id}-intensity`} value={level.toLowerCase()} checked={draft.intensity === level.toLowerCase()} onChange={e => setDraft({ ...draft, intensity: e.target.value })} /><span>{level}</span>
-        </label>)}</div></fieldset>
+        </label>)}</div>{draft.intensity && <button type="button" className="wd-secondary wd-clear-intensity" onClick={() => setDraft({ ...draft, intensity: '' })}>Clear intensity</button>}</fieldset>
         <div className="wd-field"><label htmlFor={`${id}-notes`}>Notes</label><textarea id={`${id}-notes`} value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} placeholder="Set your intention. Pace, form, or anything to remember…" rows={4} /></div>
         {draft.session && <>
           <section className="wd-field" aria-labelledby={`${id}-labels-title`}>
