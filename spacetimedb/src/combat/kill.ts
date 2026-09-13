@@ -60,14 +60,21 @@ export type CreditKillToQuests = (
  * melee fallback so the client can tell the two apart.
  *
  * `creditKill` exists for the dot-kill case (M6-4 review M-4). A scheduled
- * reducer has no player sender, so `tickAuras` can only pass the MODULE's own
- * identity as the killer. Running the loot/quest half with that identity
- * materialises `playerWallet` / `playerItemStack` / quest-progress rows owned
- * by a non-player identity — rows nothing ever reads and nothing ever reaps.
- * With `creditKill: false` the mob still dies and still respawns; nobody is
- * credited, which is the already-recorded `mobAura.appliedBy` gap, not a new
- * one. Returns the `mobAura` ids it deleted so a caller iterating a snapshot
- * can skip them (review M-1).
+ * reducer has no player sender, so `tickAuras` cannot use `ctx.sender` as the
+ * killer — that is the MODULE's own identity, and running the loot/quest half
+ * with it materialises `playerWallet` / `playerItemStack` / quest-progress
+ * rows owned by a non-player identity, rows nothing ever reads and nothing
+ * ever reaps.
+ *
+ * M9-6 gave `mobAura` an `appliedBy` column, so the common case now passes a
+ * real player and `creditKill: true`. The flag stays because two cases still
+ * have no one to credit: a row written by the pre-M9-6 module (its
+ * `appliedBy` backfills to the zero identity) and an applier whose `player`
+ * row is gone. With `creditKill: false` the mob still dies and still
+ * respawns; nobody is credited.
+ *
+ * Returns the `mobAura` ids it deleted so a caller iterating a snapshot can
+ * skip them (review M-1).
  */
 export function applyMobKill(
   ctx: KillCtx,

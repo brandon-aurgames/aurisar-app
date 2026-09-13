@@ -224,10 +224,35 @@ describe('CastThrottleAndLazyRegen', () => {
     expect(occurrences(castById, 'equippedAttributes(')).toBe(0);
   });
 
-  it('skips loot and quest credit on a dot kill', () => {
-    expect(tickAuras).toContain('false, // creditKill: no player landed this blow');
+  it('credits a dot kill to mobAura.appliedBy, and only to a live player', () => {
+    // M9-6 closed the M6-4 review M-4 gap: `mobAura.appliedBy` names the
+    // caster, so a bleed-out drops loot and moves the quest counter. The two
+    // fallbacks are what this pins — a row from the pre-M9-6 module backfills
+    // `appliedBy` to the zero identity, and an applier can log out and be
+    // reaped between the cast and the killing tick. Either way the credit half
+    // must be skipped rather than run against an identity no client owns.
+    expect(tickAuras).toContain('const applier = row.appliedBy;');
+    expect(tickAuras).toContain('!Identity.zero().isEqual(applier)');
+    expect(tickAuras).toContain('ctx.db.player.identity.find(applier) != null');
+    expect(tickAuras).toContain('creditKill, // false only when no live player owns this dot');
+    // The kill path keeps the flag, so a future caller cannot credit by accident.
+    expect(killSrc).toContain('creditKill: boolean = true,');
     expect(tickAuras).toContain('const removedAuraIds = new Set<bigint>();');
     expect(tickAuras).toContain('if (removedAuraIds.has(row.id)) continue;');
+  });
+
+  it('appends appliedBy as the LAST mobAura column', () => {
+    // Adding a column mid-list is a manual migration on a live public table;
+    // appending one with a default is not. The same rule the `player` table
+    // carries, now pinned for `mobAura` too.
+    const table = indexSrc.slice(
+      indexSrc.indexOf('mobAura: table('),
+      indexSrc.indexOf('combatEvent: table('),
+    );
+    expect(table.length).toBeGreaterThan(0);
+    const cols = [...table.matchAll(/^\s{6}(\w+):\s+t\./gm)].map((m) => m[1]);
+    expect(cols[cols.length - 1]).toBe('appliedBy');
+    expect(table).toContain('t.identity().default(Identity.zero())');
   });
 
   it('keeps lastRegenAt as the last player column', () => {
