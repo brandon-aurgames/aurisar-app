@@ -31,6 +31,7 @@ import { secToHHMMSplit, combineHHMMSec } from '../../utils/time';
  *   doDeleteWorkout(id)           ConfirmDeleteModal's workout branch
  */
 const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabContainer({
+  isActive = true,
   profile,
   setProfile,
   allExercises,
@@ -131,6 +132,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       setWbIntensity(base.intensity || "");
       setWbExercises(normalizeSupersetGroups(base.exercises.map(e => ({ ...e }))));
       setWbEditId(base.id);
+      setWbIsOneOff(!!base.oneOff);
       const split = base.durationMin ? secToHHMMSplit(Number(base.durationMin)) : { hhmm: "", sec: "" };
       const hasSec = split.sec && split.sec !== 0 && split.sec !== "";
       setWbDuration(hasSec ? `${split.hhmm}:${String(split.sec).padStart(2, "0")}` : (split.hhmm || ""));
@@ -305,10 +307,12 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
 
   // ── Reorder (group-id model — pairs AND 2–4 member runs) ──
   function reorderSupersetPair(gid, direction) {
+    setSsChecked(new Set());
     setWbExercises(exs => moveGroup(exs, gid, direction === "up" ? -1 : 1));
   }
 
   function reorderWbEx(fromIdx, toIdx) {
+    setSsChecked(new Set());
     setWbExercises(exs => reorderExercise(exs, fromIdx, toIdx));
   }
 
@@ -335,6 +339,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
   return (
     <>
       <WorkoutsTab
+        isActive={isActive}
         workoutView={workoutView}
         setWorkoutView={setWorkoutView}
         workoutSubTab={workoutSubTab}

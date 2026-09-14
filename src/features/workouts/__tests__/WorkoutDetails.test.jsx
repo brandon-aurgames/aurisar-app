@@ -31,9 +31,9 @@ describe('Workout Details interaction', () => {
     root.getBoundingClientRect = () => ({ left });
     const { trigger } = setup();
     expect(trigger.style.getPropertyValue('--wd-left')).toBe('400px');
-    left = 120; fireEvent(window, new Event('resize'));
+    left = 120; fireEvent(window, new Event('resize')); advance(20);
     expect(trigger.style.getPropertyValue('--wd-left')).toBe('120px');
-    left = -5; fireEvent(document, new Event('scroll'));
+    left = -5; fireEvent(document, new Event('scroll')); advance(20);
     expect(trigger.style.getPropertyValue('--wd-left')).toBe('0px');
   });
 

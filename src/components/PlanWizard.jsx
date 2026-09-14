@@ -429,7 +429,6 @@ function PlanWizard(props) {
     startTransition(()=>{ dispatch({ type: A.REORDER_WEEKS, fromWeek, toWeek }); setBDayIdx(toWeek*7); });
   }
 
-  function reorderPlanEx(dayIdx,fromIdx,toIdx){ if(fromIdx===toIdx) return; startTransition(()=>{ dispatch({ type: A.MOVE_EX, dayIdx, fromIdx, toIdx }); }); }
 
   function addExToDay(exId){ const exd=allExById[exId]||{}; startTransition(()=>{ dispatch({ type: A.ADD_EXERCISES, dayIdx: bDayIdx, exercises: [{exId,sets:(exd.defaultSets!=null?exd.defaultSets:3),reps:(exd.defaultReps!=null?exd.defaultReps:10),weightLbs:exd.defaultWeightLbs||null,durationMin:exd.defaultDurationMin||null,distanceMi:exd.defaultDistanceMi||null,hrZone:exd.defaultHrZone||null,weightPct:exd.defaultWeightPct||100}] }); }); setExPickerOpen(false); }
 

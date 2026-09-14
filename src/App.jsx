@@ -5380,6 +5380,7 @@ function App() {
               ref must also stay live for cross-tab entry points (StagingTray
               forge, stats-prompt Back, completion sub-tab jumps). */}
           <WorkoutsTabContainer
+            isActive={activeTab === "workouts"}
             ref={workoutsRef}
             profile={profile}
             setProfile={setProfile}

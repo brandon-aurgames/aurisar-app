@@ -1184,7 +1184,7 @@
     .wb-ex-row.placeholder>*{opacity:.4}
     .wb-ex-row.shift-up{transform:translateY(-5px)}
     .wb-ex-row.shift-down{transform:translateY(5px)}
-    .drag-handle{cursor:grab;color:#8a8478;font-size:.9rem;flex-shrink:0;touch-action:none;padding:6px 3px;line-height:1;border-radius:5px;user-select:none}
+    .drag-handle{cursor:grab;color:#8a8478;font-size:.9rem;flex-shrink:0;touch-action:pan-y;padding:6px 3px;line-height:1;border-radius:5px;user-select:none}
     .drag-handle:hover{color:#b4ac9e}
     body.wb-dragging,body.wb-dragging .drag-handle{cursor:grabbing;user-select:none}
     .ss-band{display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(138,143,150,.07);border:1px solid rgba(138,143,150,.22);border-bottom:1px solid rgba(138,143,150,.1);border-radius:11px 11px 0 0}

@@ -5,7 +5,6 @@ import { getMuscleColor, calcExercisePBs } from '../../utils/xp';
 import { _optionalChain, uid } from '../../utils/helpers';
 import { S, R, FS } from '../../utils/tokens';
 import { UI_COLORS, HR_ZONES } from '../../data/constants';
-import { groupedExIds } from '../workouts/supersetModel';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 
 // Lazy TrendsTab — same pattern as App.jsx so recharts stays out of the
@@ -284,12 +283,8 @@ const HistoryTab = memo(function HistoryTab({
             transition: "transform .22s ease",
             transform: collapsed ? "rotate(0deg)" : "rotate(180deg)"
           }}><defs><linearGradient id={"cg5"} x1={"0"} y1={"0"} x2={"0"} y2={"1"}><stop offset={"0%"} stopColor={"#b4ac9e"} /><stop offset={"100%"} stopColor={"#7a4e1a"} /></linearGradient></defs><polyline points={"3,5 7,9 11,5"} stroke={"url(#cg5)"} strokeWidth={"1.8"} strokeLinecap={"round"} strokeLinejoin={"round"} /></svg></div>{!collapsed && <div className={"log-group-body"}>{(() => {
-            /* Detect supersets from source workout */
-            const srcWo = (profile.workouts || []).find(w => w.id === first.sourceWorkoutId);
-            const srcPlan = !srcWo && (profile.plans || []).find(p => p.id === first.sourcePlanId);
-            const srcExs = srcWo ? srcWo.exercises : srcPlan ? (srcPlan.days || []).flatMap(d => d.exercises) : [];
-            const ssSet = groupedExIds(srcExs);
-            return entries.map((e, i) => <EntryRow key={i} e={e} showSource={false} isSuperset={ssSet.has(e.exId)} />);
+            /* Use membership saved with each completion, independent of later template edits. */
+            return entries.map((e, i) => <EntryRow key={i} e={e} showSource={false} isSuperset={!!e.ssGroupId} />);
           })()}</div>}</div>;
     }
     if (sortedGroups.length === 0) return <div className={"empty"}>{"No workout completions logged yet."}<br />{"Complete a workout to see it here."}</div>;

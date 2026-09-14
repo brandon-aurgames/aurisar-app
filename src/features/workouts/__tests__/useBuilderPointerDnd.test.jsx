@@ -47,3 +47,46 @@ it.each(['pointercancel', 'blur'])('cancels an armed merge on %s without changin
   expect(document.querySelector('.wb-drag-ghost')).toBeNull();
   expect(view.container.querySelector('.ss-target')).toBeNull();
 });
+
+function touch(target, type, y, cancelable = true) {
+  const point = { identifier: 1, clientX: 20, clientY: y };
+  const event = new Event(type, { bubbles: true, cancelable });
+  Object.defineProperties(event, {
+    touches: { value: type === 'touchend' ? [] : [point] },
+    changedTouches: { value: [point] },
+  });
+  fireEvent(target, event);
+  return event;
+}
+function touchFixture() {
+  const onReorder = vi.fn(), onMerge = vi.fn();
+  const view = render(<Fixture onReorder={onReorder} onMerge={onMerge} />);
+  const cards = view.container.querySelectorAll('.wb-ex-row');
+  cards.forEach((card, i) => { card.getBoundingClientRect = () => ({ left: 0, top: 100 + i * 100, bottom: 200 + i * 100, width: 400, height: 100 }); });
+  touch(cards[0].firstChild, 'touchstart', 150);
+  return { onReorder, onMerge, view };
+}
+it('allows a quick touch flick to scroll without arming a drag', () => {
+  const { onMerge, onReorder } = touchFixture();
+  expect(touch(window, 'touchmove', 170).defaultPrevented).toBe(false);
+  act(() => vi.advanceTimersByTime(200));
+  expect(document.querySelector('.wb-drag-ghost')).toBeNull();
+  touch(window, 'touchend', 170);
+  expect(onMerge).not.toHaveBeenCalled();
+  expect(onReorder).not.toHaveBeenCalled();
+});
+it('takes over touch movement after a hold and commits the intended merge', () => {
+  const { onMerge } = touchFixture();
+  act(() => vi.advanceTimersByTime(160));
+  expect(touch(window, 'touchmove', 350).defaultPrevented).toBe(true);
+  touch(window, 'touchend', 350);
+  expect(onMerge).toHaveBeenCalledWith(0, 2);
+});
+it('abandons a held drag if native scrolling already owns the touch', () => {
+  const { onMerge, onReorder } = touchFixture();
+  act(() => vi.advanceTimersByTime(160));
+  touch(window, 'touchmove', 350, false);
+  touch(window, 'touchend', 350);
+  expect(onMerge).not.toHaveBeenCalled();
+  expect(onReorder).not.toHaveBeenCalled();
+});

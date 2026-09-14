@@ -225,12 +225,7 @@ export function reorderExercise(list, fromIdx, toIdx) {
   if (fromIdx >= list.length || toIdx >= list.length) return list;
   const item = { ...list[fromIdx] };
   const rest = list.filter((_, i) => i !== fromIdx);
-  const at = fromIdx < toIdx ? toIdx : toIdx; // splice(from) then splice(to) with original to
-  // After removal, original toIdx still works the way Array#splice did in
-  // reorderWbEx: insert AT toIdx in the post-removal array when from < to
-  // actually needs toIdx-?  Old code:
-  //   splice(from); splice(to, 0, moved) using the ORIGINAL toIdx.
-  // [A,B,C,D] from 0 to 2 → splice(0) [B,C,D]; splice(2,0,A) [B,C,A,D]
+  // toIdx is the insertion slot after removing the source row.
   const insertAt = toIdx > rest.length ? rest.length : toIdx;
   const prev = rest[insertAt - 1];
   const next = rest[insertAt];

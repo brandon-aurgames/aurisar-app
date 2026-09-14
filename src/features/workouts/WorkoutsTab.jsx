@@ -158,6 +158,7 @@ const WbExCard = React.memo(function WbExCard({
     }));
   }
   function removeEx() {
+    setSsChecked(new Set());
     setWbExercises(exs => removeExercise(exs, i));
   }
   function toggleCollapse() {
@@ -167,6 +168,7 @@ const WbExCard = React.memo(function WbExCard({
     }));
   }
   function reorder(dir) {
+    setSsChecked(new Set());
     setWbExercises(exs => moveExercise(exs, i, dir));
   }
   const noSetsEx = NO_SETS_EX_IDS.has(exD.id);
@@ -255,6 +257,7 @@ const WbExCard = React.memo(function WbExCard({
 });
 
 const WorkoutsTab = memo(function WorkoutsTab({
+  isActive = true,
   // View state
   workoutView, setWorkoutView,
   workoutSubTab, setWorkoutSubTab,
@@ -345,9 +348,12 @@ const wbListRef = useRef(null);
 useBuilderPointerDnd({
   listRef: wbListRef,
   exercises: wbExercises,
-  enabled: workoutView === "builder",
+  enabled: isActive && workoutView === "builder",
   onReorder: reorderWbEx,
-  onMerge: (from, onto) => setWbExercises(xs => mergeOnto(xs, from, onto)),
+  onMerge: (from, onto) => {
+    setSsChecked(new Set());
+    setWbExercises(xs => mergeOnto(xs, from, onto));
+  },
 });
 // ── LIST ───────────────────────────────
 if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div style={{
@@ -952,7 +958,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
     }}><div className={"builder-nav-title"}>{wbIsOneOff ? wbEditId ? "✎ Edit One-Off" : "⚡ New One-Off Workout" : wbEditId ? "✎ Edit Workout" : wbCopySource ? "⎘ Copy Workout" : "⚔ New Workout"}</div>{wbCopySource && <div className={"builder-nav-sub"}>{"Forging from: "}{wbCopySource}</div>}</div></div>
   {
     /* Name stays on the canvas. Optional session fields live in Workout Details. */
-  }<WorkoutDetails name={wbName} notes={wbDesc} intensity={wbIntensity}
+  }{isActive && <WorkoutDetails name={wbName} notes={wbDesc} intensity={wbIntensity}
     availableLabels={profile.workoutLabels || []}
     session={{ labels: wbLabels, duration: wbDuration, durationSec: wbDurSec, activeCal: wbActiveCal, totalCal: wbTotalCal }}
     onSave={draft => {
@@ -964,7 +970,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
         for (const label of draft.session.labels) if (!labels.some(l => l.toLowerCase() === label.toLowerCase())) labels.push(label);
         return labels.length === (p.workoutLabels || []).length ? p : { ...p, workoutLabels: labels };
       });
-    }} /><div className={"wb-section wb-details-identity"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input className={"inp"} value={wbName} onChange={e => setWbName(e.target.value)} placeholder={"e.g. Morning Push Day…"} /></div></div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
+    }} />}<div className={"wb-section wb-details-identity"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input className={"inp"} value={wbName} onChange={e => setWbName(e.target.value)} placeholder={"e.g. Morning Push Day…"} /></div></div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
     /* Exercise list */
   }<div className={"wo-section-hdr"} style={{
     marginTop: S.s18,
@@ -1037,7 +1043,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       showToast("Add at least one exercise.");
       return;
     }
-    const updated = {
+    const updated = buildWorkoutObject({
       id: wbEditId,
       name: wbName.trim(),
       icon: wbIcon,
@@ -1046,8 +1052,11 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       exercises: normalizeSupersetGroups(wbExercises),
       createdAt: todayStr(),
       oneOff: true,
-      labels: wbLabels
-    };
+      labels: wbLabels,
+      durationMin: combineHHMMSec(wbDuration, wbDurSec),
+      activeCal: wbActiveCal,
+      totalCal: wbTotalCal,
+    });
     setProfile(p => ({
       ...p,
       workouts: (p.workouts || []).find(w => w.id === wbEditId) ? (p.workouts || []).map(w => w.id === wbEditId ? updated : w) : [...(p.workouts || []), updated],

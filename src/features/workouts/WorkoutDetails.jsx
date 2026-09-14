@@ -26,18 +26,22 @@ export default function WorkoutDetails({ name, notes, intensity, onSave, session
   useEffect(() => {
     const anchor = positionAnchor.current;
     const hud = anchor.closest('.hud');
+    let frame = 0;
+    function schedulePosition() {
+      if (!frame) frame = requestAnimationFrame(() => { frame = 0; position(); });
+    }
     function position() {
       const rect = anchor.getBoundingClientRect();
       trigger.current?.style.setProperty('--wd-top', `${Math.max(100, Math.min(rect.top + 8, window.innerHeight - 120))}px`);
       trigger.current?.style.setProperty('--wd-left', `${Math.max(0, hud?.getBoundingClientRect().left || 0)}px`);
     }
     position();
-    const observer = new ResizeObserver(position);
+    const observer = new ResizeObserver(schedulePosition);
     observer.observe(document.body);
     if (hud) observer.observe(hud);
-    window.addEventListener('resize', position);
-    document.addEventListener('scroll', position, true);
-    return () => { observer.disconnect(); window.removeEventListener('resize', position); document.removeEventListener('scroll', position, true); };
+    window.addEventListener('resize', schedulePosition);
+    document.addEventListener('scroll', schedulePosition, true);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener('resize', schedulePosition); document.removeEventListener('scroll', schedulePosition, true); };
   }, []);
 
   useEffect(() => {

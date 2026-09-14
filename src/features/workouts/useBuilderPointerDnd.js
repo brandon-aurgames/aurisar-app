@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { canMerge } from './supersetModel';
 
 /**
@@ -24,18 +24,15 @@ function reducedMotion() {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function isCoarse() {
-  return typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-}
-
 export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, enabled = true }) {
-  const dragRef = useRef(null);
   const exercisesRef = useRef(exercises);
-  exercisesRef.current = exercises;
   const onReorderRef = useRef(onReorder);
-  onReorderRef.current = onReorder;
   const onMergeRef = useRef(onMerge);
-  onMergeRef.current = onMerge;
+  useLayoutEffect(() => {
+    exercisesRef.current = exercises;
+    onReorderRef.current = onReorder;
+    onMergeRef.current = onMerge;
+  }, [exercises, onReorder, onMerge]);
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -128,7 +125,6 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
       const snapshot = drag;
       drag = null;
       if (scrollRaf) { cancelAnimationFrame(scrollRaf); scrollRaf = null; }
-      dragRef.current = null;
       document.body.classList.remove('wb-dragging');
       snapshot.el.classList.remove('gripping', 'placeholder');
       if (snapshot.ghost) snapshot.ghost.remove();
@@ -146,6 +142,12 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
     }
 
     function onPointerDown(e) {
+      if (e.pointerType === 'touch') return; // Touch has its own cancellable path below.
+      begin(e, false);
+    }
+
+    function begin(e, coarse, touchId = null) {
+      if (drag) return;
       if (e.button !== undefined && e.button !== 0) return;
       const handle = e.target.closest('[data-drag-handle]');
       if (!handle || !root.contains(handle)) return;
@@ -154,6 +156,8 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
       const r = card.getBoundingClientRect();
       drag = {
         el: card,
+        coarse,
+        touchId,
         fromIdx: Number(card.dataset.wbIdx),
         startX: e.clientX,
         startY: e.clientY,
@@ -165,17 +169,21 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
         slots: null,
         lineIdx: null,
         mergeIdx: null,
-        timer: setTimeout(() => { if (drag && !drag.armed) arm(); }, isCoarse() ? COARSE_ARM_MS : FINE_ARM_MS),
+        timer: setTimeout(() => { if (drag && !drag.armed) arm(); }, coarse ? COARSE_ARM_MS : FINE_ARM_MS),
       };
-      dragRef.current = drag;
       card.classList.add('gripping');
     }
 
     function onPointerMove(e) {
+      if (e.pointerType === 'touch' || drag?.touchId != null) return;
+      move(e);
+    }
+
+    function move(e) {
       if (!drag) return;
       if (!drag.armed) {
         const dist = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY);
-        if (isCoarse()) {
+        if (drag.coarse) {
           if (dist > COARSE_CANCEL_PX) end(false);
           return;
         }
@@ -216,7 +224,12 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
       positionLine(insertAt, drag.slots);
     }
 
-    function onPointerUp() {
+    function onPointerUp(e) {
+      if (e?.pointerType === 'touch' || drag?.touchId != null) return;
+      drop();
+    }
+
+    function drop() {
       if (!drag) return;
       if (drag.armed) {
         suppressClick = true;
@@ -232,7 +245,29 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
       }
     }
 
-    function onCancel() { end(false); }
+    function onCancel(e) {
+      if (e?.type === 'pointercancel' && e.pointerType === 'touch') return;
+      end(false);
+    }
+
+    // touch-action cannot change ownership midway through a gesture. Let a
+    // quick flick pan natively; only cancel touchmove after a stationary hold
+    // has armed the drag, before the browser takes over scrolling.
+    function onTouchStart(e) {
+      if (e.touches.length !== 1) { end(false); return; }
+      const t = e.touches[0];
+      begin({ target: e.target, clientX: t.clientX, clientY: t.clientY }, true, t.identifier);
+    }
+    function onTouchMove(e) {
+      if (drag?.touchId == null) return;
+      if (e.touches.length !== 1 || !e.cancelable) { end(false); return; }
+      const t = [...e.touches].find(t => t.identifier === drag.touchId);
+      if (t) move({ clientX: t.clientX, clientY: t.clientY, preventDefault: () => e.preventDefault() });
+    }
+    function onTouchEnd(e) {
+      if (drag?.touchId != null && [...e.changedTouches].some(t => t.identifier === drag.touchId)) drop();
+    }
+    function onTouchCancel() { end(false); }
 
     function onClickCapture(e) {
       if (!suppressClick) return;
@@ -241,6 +276,10 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
     }
 
     root.addEventListener('pointerdown', onPointerDown);
+    root.addEventListener('touchstart', onTouchStart, { passive: true });
+    addEventListener('touchmove', onTouchMove, { passive: false });
+    addEventListener('touchend', onTouchEnd);
+    addEventListener('touchcancel', onTouchCancel);
     addEventListener('pointermove', onPointerMove, { passive: false });
     addEventListener('pointerup', onPointerUp);
     addEventListener('pointercancel', onCancel);
@@ -249,6 +288,10 @@ export function useBuilderPointerDnd({ listRef, exercises, onReorder, onMerge, e
     root.addEventListener('click', onClickCapture, true);
     return () => {
       root.removeEventListener('pointerdown', onPointerDown);
+      root.removeEventListener('touchstart', onTouchStart);
+      removeEventListener('touchmove', onTouchMove);
+      removeEventListener('touchend', onTouchEnd);
+      removeEventListener('touchcancel', onTouchCancel);
       removeEventListener('pointermove', onPointerMove);
       removeEventListener('pointerup', onPointerUp);
       removeEventListener('pointercancel', onCancel);
