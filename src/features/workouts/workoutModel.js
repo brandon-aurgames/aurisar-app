@@ -1,4 +1,5 @@
 import { uid } from '../../utils/helpers';
+import { normalizeSupersetGroups } from './supersetModel';
 
 /**
  * The one place that knows what a workout object looks like.
@@ -20,6 +21,7 @@ export function buildWorkoutObject({
   name,
   icon,
   desc = "",
+  intensity,
   exercises,
   createdAt,
   durationMin = null,
@@ -33,13 +35,14 @@ export function buildWorkoutObject({
     name: (name || "").trim(),
     icon,
     desc: (desc || "").trim(),
-    exercises,
+    exercises: normalizeSupersetGroups(Array.isArray(exercises) ? exercises : []),
     createdAt,
     durationMin: durationMin || null,
     activeCal: activeCal || null,
     totalCal: totalCal || null,
     labels,
   };
+  if (["low", "moderate", "high"].includes(intensity)) w.intensity = intensity;
   if (oneOff) w.oneOff = true;
   return w;
 }
