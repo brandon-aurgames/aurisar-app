@@ -82,6 +82,15 @@ export interface ClampedMove {
  * @param nextX  claimed position (px), already clamped to world bounds
  * @param nextY  claimed position (px)
  * @param elapsedMicros  now - player.lastMoveAt
+ * @param speedMultiplier  scales the whole allowance; 1 = unimpaired. M9-6
+ *   feeds `slowMultiplier(magnitude)` from a live `slow` aura in here (see
+ *   combat/auras.ts — `magnitude` is a PERCENT 0-90, and that helper is the
+ *   only conversion). The jitter grace is scaled with the speed term rather
+ *   than held constant: the client applies the same slow to its own local
+ *   integration, so its per-call delta shrinks by the same factor and a fixed
+ *   grace would hand a slowed player a proportionally larger free budget than
+ *   an unslowed one. Values <= 0 are treated as 1 — a caller that has no
+ *   opinion must not accidentally freeze the player.
  */
 export function clampMoveToMaxSpeed(
   prevX: number,
@@ -89,6 +98,7 @@ export function clampMoveToMaxSpeed(
   nextX: number,
   nextY: number,
   elapsedMicros: bigint,
+  speedMultiplier: number = 1,
 ): ClampedMove {
   // A non-positive elapsed means clock skew or a same-instant replay: give it
   // the grace term only, never a negative allowance.
@@ -99,9 +109,12 @@ export function clampMoveToMaxSpeed(
         ? MOVE_MAX_CREDIT_MICROS
         : elapsedMicros;
 
+  const mult =
+    Number.isFinite(speedMultiplier) && speedMultiplier > 0 ? speedMultiplier : 1;
+
   const allowancePx =
-    MAX_MOVE_SPEED_MPS * PX_PER_M * (Number(budgetMicros) / 1_000_000) +
-    MOVE_JITTER_GRACE_M * PX_PER_M;
+    (MAX_MOVE_SPEED_MPS * PX_PER_M * (Number(budgetMicros) / 1_000_000) +
+      MOVE_JITTER_GRACE_M * PX_PER_M) * mult;
 
   const dx = nextX - prevX;
   const dy = nextY - prevY;
