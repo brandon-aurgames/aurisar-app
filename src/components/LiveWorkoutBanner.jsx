@@ -3,6 +3,7 @@ import { isMetric, lbsToKg, kgToLbs, weightLabel } from '../utils/units';
 import Sheet from './ui/Sheet';
 import ConfirmSheet from './ui/ConfirmSheet';
 import SetsEditor from './ui/SetsEditor';
+import { isGroupStart, isGrouped } from '../features/workouts/supersetModel';
 
 export default function LiveWorkoutBanner({
   liveWorkout,
@@ -157,8 +158,8 @@ export default function LiveWorkoutBanner({
 
             <div className="lw-ex-list">
               {exercises.map((ex, i) => {
-                const isFirstOfSuperset = ex.supersetWith !== null && ex.supersetWith > i;
-                const isInSuperset = ex.supersetWith !== null;
+                const isFirstOfSuperset = isGroupStart(exercises, i);
+                const isInSuperset = isGrouped(ex);
                 const expanded = expandedIdx === i;
                 const canEdit = ex.exId !== 'rest_day';
 

@@ -26,7 +26,7 @@
  */
 
 import { schema, table, t } from 'spacetimedb/server';
-import { ScheduleAt } from 'spacetimedb';
+import { Identity, ScheduleAt } from 'spacetimedb';
 import {
   CLASS_IDS,
   MOBS,
@@ -118,7 +118,11 @@ import {
 import {
   advanceTick,
   applyResolvedAuras,
+  auraStatBonuses,
   AURA_TICK_MICROS,
+  buffedAttributes,
+  consumeAbsorb,
+  movementRestriction,
   partitionAuraWork,
 } from './combat/auras.js';
 import {
@@ -570,7 +574,18 @@ const spacetimedb = schema({
     }
   ),
 
-  /** M6 — the same, carried by a mob instead of a player (D86). */
+  /**
+   * M6 — the same, carried by a mob instead of a player (D86).
+   *
+   * M9-6 appends `appliedBy`: a mob aura has no owner (it belongs to the mob),
+   * so a dot that killed its host named no player and the kill credited
+   * nobody — the gap `tickAuras` used to carry a comment about. The column is
+   * APPENDED, never inserted mid-list, and carries `.default(Identity.zero())`
+   * so rows written by the pre-M9-6 module backfill rather than failing the
+   * publish. A zero identity reads as "nobody applied this", which is exactly
+   * what those rows mean, and the kill path falls back to the old
+   * no-credit behaviour for them.
+   */
   mobAura: table(
     { public: true },
     {
@@ -583,6 +598,8 @@ const spacetimedb = schema({
       expiresAt:  t.u64(),
       nextTickAt: t.u64(),
       tickSec:    t.f32(),
+      // Appended in M9-6 — must stay LAST. See the note above.
+      appliedBy:  t.identity().default(Identity.zero()),
     }
   ),
 
@@ -915,6 +932,27 @@ function recoverNearStoredFloor(wx: number, wz: number, claimedY: number, stored
   return recovered;
 }
 
+/**
+ * Every `playerAura` row belonging to `owner`, taken as ONE pass (M9-6).
+ *
+ * `playerAura` has no index by owner, so each consumer that "just needs the
+ * stuns" or "just needs the shields" would otherwise cost its own full scan.
+ * The three consumers — `movePlayer`'s control check, `castAbilityById`'s buff
+ * fold and `applyMobHit`'s absorb drain — each take this snapshot once and
+ * read whatever they need out of it.
+ *
+ * Expired rows are NOT filtered here: `tickAuras` sweeps them at 1 Hz and each
+ * helper in `combat/auras.ts` re-checks `expiresAt` against the caller's own
+ * `nowMicros`, which is stricter than anything a stale sweep could give.
+ */
+function playerAuraRows(ctx: any, owner: any): any[] {
+  const out: any[] = [];
+  for (const row of ctx.db.playerAura.iter()) {
+    if (row.owner.isEqual(owner)) out.push(row);
+  }
+  return out;
+}
+
 export const movePlayer = spacetimedb.reducer(
   {
     x:         t.f32(),
@@ -944,6 +982,25 @@ export const movePlayer = spacetimedb.reducer(
       return;
     }
 
+    // ── Control auras (M9-6) ────────────────────────────────────────────────
+    // The FIRST real caller of `slowMultiplier` (combat/auras.ts): `magnitude`
+    // on a slow row is a PERCENT in 0..90, not a fraction, and that helper is
+    // the only place the conversion happens.
+    //
+    // Placed after the 40 ms rate floor so the `playerAura` scan is paid at
+    // most 25 Hz per player, and before the speed clamp because the clamp is
+    // what the multiplier scales.
+    //
+    // stun/root REJECT rather than clamp, which is the one deliberate
+    // exception to moveGuard.ts's "clamp, never reject" rule: a stun that let
+    // the row creep forward at 10 % speed would not be a stun. The desync it
+    // causes is bounded — the client can see the aura row and stops locally,
+    // and the first move after the aura lapses is measured from the stored
+    // position with MOVE_MAX_CREDIT_MICROS of budget, so the row re-converges
+    // within a few calls instead of being stranded.
+    const control = movementRestriction(playerAuraRows(ctx, identity), nowMicros);
+    if (control.blocked) return;
+
     // World bounds: 64000x64000 px (2km x 2km world), with 32px player half-width buffer.
     // See header for derivation from world_build_config.tiling_streaming.
     const boundedX = Math.max(WORLD_MIN_PX, Math.min(WORLD_MAX_PX, x));
@@ -964,6 +1021,7 @@ export const movePlayer = spacetimedb.reducer(
     const elapsedMicros = existing.lastMoveAt > 0n ? nowMicros - existing.lastMoveAt : 0n;
     const guarded = clampMoveToMaxSpeed(
       existing.x, existing.y, boundedX, boundedY, elapsedMicros,
+      control.speedMultiplier,
     );
     let clampedX = guarded.x;
     let clampedY = guarded.y;
@@ -1675,14 +1733,29 @@ export const castAbilityById = spacetimedb.reducer(
     // the resource pool all read from it (review L-1). The table has no owner
     // index, so each extra helper call was a full table scan.
     const snapshot = equippedSnapshot(ctx, player.identity);
-    const resourceMax = maxResourceFrom(snapshot.attrs, player.classType, level);
+    // ── Buff consumption (M9-6) ───────────────────────────────────────────
+    // Live `selfBuff` / `buffTarget` auras are folded into the attribute block
+    // the resolver will derive from, so `content/formulas/combat.ts` stays a
+    // pure function of attributes (D121 — the root vitest suite depends on
+    // that) and `deriveStats` needs no aura parameter.
+    //
+    // `buffedAttributes` documents why the fold is exact and why an `armor`
+    // buff is NOT folded (CON drives maxHp as well as armor).
+    //
+    // These attributes feed `resourceMax` too, deliberately: an INT/WIS buff
+    // that raised the pool for the damage roll but not for the cost check
+    // would be two different casters in one reducer.
+    const auraBuffs = auraStatBonuses(playerAuraRows(ctx, player.identity), nowMicros);
+    const buffedAttrs = buffedAttributes(snapshot.attrs, auraBuffs);
+    const buffedSnapshot = { ...snapshot, attrs: buffedAttrs };
+    const resourceMax = maxResourceFrom(buffedAttrs, player.classType, level);
     // D94: regeneration is settled HERE, lazily, from `lastRegenAt` — not by a
     // 1 Hz sweep. The caster validates and spends against the regenerated
     // value, and the row below stores it.
     const resourceNow = regeneratedResource(
       player.resource, resourceMax, player.lastRegenAt, nowMicros,
     );
-    const caster = buildCasterState(ctx, player, level, snapshot, resourceNow);
+    const caster = buildCasterState(ctx, player, level, buffedSnapshot, resourceNow);
     if (!caster) {
       // classType is a free string column; a row carrying a retired class id
       // has no kit, so no ability can belong to it.
@@ -1894,10 +1967,27 @@ export const tickAuras = spacetimedb.reducer(
       }
       ctx.db.mobAura.id.update({ ...row, nextTickAt: advanceTick(row, nowMicros) });
       if (row.effectKind !== 'dot') continue;
+      // M9-6 closes the M6-4 review M-4 gap. `appliedBy` now records who cast
+      // the dot, so a bleed-out credits a real player instead of the module's
+      // own identity. Two things still have to be true before the credit half
+      // runs, and both are checked rather than assumed:
+      //   • the identity is not the zero default, which is what rows written
+      //     by the pre-M9-6 module backfill to ("nobody applied this");
+      //   • that player still has a `player` row — an applier who logged out
+      //     and was reaped must not materialise wallet / stack / quest rows
+      //     owned by an identity nothing will ever read again.
+      // When either fails the behaviour is exactly the old one: the mob dies
+      // and respawns, and nobody is credited.
+      const applier = row.appliedBy;
+      const creditKill =
+        !Identity.zero().isEqual(applier) &&
+        ctx.db.player.identity.find(applier) != null;
       const amount = Math.max(1, Math.round(row.magnitude));
       emitCombatEvent(ctx, {
         at: nowMicros,
-        actor: ctx.sender,
+        // The dot's caster, not `ctx.sender` — a scheduled reducer's sender is
+        // the module, which no client can render a floating number for.
+        actor: creditKill ? applier : ctx.sender,
         abilityId: row.abilityId,
         targetMobId: row.mobId,
         kind: 'tick',
@@ -1905,25 +1995,15 @@ export const tickAuras = spacetimedb.reducer(
       });
       const newHp = mob.hp - amount;
       if (newHp <= 0) {
-        // Loot and quest credit for a dot kill would go to the caster of the
-        // dot, but a mobAura row carries no caster identity (D86's shape is
-        // deliberately owner-less on the mob side), so the only killer this
-        // scheduled reducer can name is the MODULE's own identity. Crediting
-        // that identity would materialise wallet / stack / quest-progress rows
-        // owned by a non-player, which nothing reads and nothing reaps, so the
-        // credit half is skipped entirely (review M-4): the mob still dies and
-        // still respawns, it simply drops nothing. Giving mobAura an
-        // `appliedBy` column is the real fix and is a table addition, not a
-        // live-table migration.
         for (const id of applyMobKill(
           ctx,
-          ctx.sender,
+          creditKill ? applier : ctx.sender,
           mob,
           nowMicros,
           (at) => ScheduleAt.time(at),
           creditKillToQuests,
           row.abilityId,
-          false, // creditKill: no player landed this blow
+          creditKill, // false only when no live player owns this dot
         )) removedAuraIds.add(id);
       } else {
         ctx.db.mob.mobId.update({ ...mob, hp: newHp });
@@ -2387,18 +2467,69 @@ function mobInteriorStepPx(
 }
 
 /**
- * Apply a mob melee hit to a player by identity. Handles lethal damage by
- * setting hp=0, scheduling respawn, and stamping deadUntil.
+ * Apply a mob hit to a player by identity. Handles lethal damage by setting
+ * hp=0, scheduling respawn, and stamping deadUntil.
  *
  * Idempotent if called twice in the same tick for the same target — second
  * call sees hp<=0 and returns early.
+ *
+ * M9-6: absorb shields are spent FIRST. This is the module's only
+ * inbound-damage path — boss AoE pulses and wolf bites both arrive here — so
+ * it is the one place an `absorb` aura can be consumed. Before M9-6 a shield
+ * was placed, ticked and expired without ever stopping a point of damage.
+ *
+ * Order is shields-then-hp, and the shield drain is published as the existing
+ * `'absorbed'` combat event (combat/events.ts) rather than inferred from the
+ * hp that did not move — a fully absorbed hit changes no hp at all, so there
+ * is no delta for a client to read.
+ *
+ * The `'absorbed'` event is anchored on the *shielded player*, so it carries
+ * `targetMobId: 0n` — the module's player-anchored convention, same as the
+ * `healed` events in `castAbilityById` and `tickAuras`. The mob that swung is
+ * deliberately not named: the client floats any combat event with a non-zero
+ * `targetMobId` over that mob, which would put the absorb number on the
+ * attacker instead of on the player whose shield ate the hit.
  */
-function applyMobHit(ctx: any, targetIdentity: any, nowMicros: bigint, damage: number): void {
+function applyMobHit(
+  ctx: any,
+  targetIdentity: any,
+  nowMicros: bigint,
+  damage: number,
+): void {
   const player = ctx.db.player.identity.find(targetIdentity);
   if (!player) return;
   if (player.hp <= 0) return; // already dead
 
-  const newHp = player.hp - damage;
+  let incoming = Math.max(0, Math.round(damage));
+  if (incoming > 0) {
+    const shields = consumeAbsorb(
+      playerAuraRows(ctx, targetIdentity), incoming, nowMicros,
+    );
+    if (shields.absorbed > 0) {
+      for (const { row, magnitude } of shields.drained) {
+        ctx.db.playerAura.id.update({ ...row, magnitude });
+      }
+      // An exhausted pool is deleted, not left at 0: a spent shield must stop
+      // rendering and stop costing a scan on every subsequent hit.
+      for (const row of shields.spent) ctx.db.playerAura.id.delete(row.id);
+      emitCombatEvent(ctx, {
+        at: nowMicros,
+        actor: targetIdentity,
+        // The shield that ate the hit, not the ability that threw the punch —
+        // the client renders this on the absorbing player.
+        abilityId: shields.absorbedBy,
+        targetMobId: 0n,
+        kind: 'absorbed',
+        amount: shields.absorbed,
+      });
+    }
+    incoming = shields.remaining;
+  }
+  // Fully absorbed: no hp write at all, so no row delta fans out to every
+  // subscriber for a hit that changed nothing.
+  if (incoming <= 0) return;
+
+  const newHp = player.hp - incoming;
   if (newHp <= 0) {
     const respawnAt = nowMicros + PLAYER_RESPAWN_MICROS;
     ctx.db.player.identity.update({
