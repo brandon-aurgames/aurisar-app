@@ -1,16 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Sheet from '../../components/ui/Sheet';
-import { ExIcon } from '../../components/ExIcon';
 import { normalizeHHMM } from '../../utils/time';
-import { memberBadge } from './supersetModel';
-import { NO_SETS_EX_IDS } from '../../data/constants';
 import { createDetailsFire } from './detailsFire';
 import './workout-details.css';
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export default function WorkoutDetails({ name, notes, intensity, exercises, allExById, onSave, session, availableLabels = [] }) {
+export default function WorkoutDetails({ name, notes, intensity, onSave, session, availableLabels = [] }) {
   const [phase, setPhase] = useState('idle');
   const [hovered, setHovered] = useState(false);
   const [origin, setOrigin] = useState(200);
@@ -137,21 +134,10 @@ export default function WorkoutDetails({ name, notes, intensity, exercises, allE
       <form id={`${id}-form`} className="wd-form" onSubmit={e => { e.preventDefault(); save(); }}>
         <div className="wd-field"><label htmlFor={`${id}-name`}>Workout Name</label>
           <input id={`${id}-name`} className="inp" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} placeholder="Name this session" required maxLength={120} /></div>
-        <section className="wd-field" aria-labelledby={`${id}-exercises`}><h2 id={`${id}-exercises`} className="wd-section-label" style={{ margin: 0 }}>Exercises · {exercises.length}</h2>
-          {exercises.length ? <ul className="wd-exercises">{exercises.map((ex, i) => {
-            const definition = allExById[ex.exId];
-            const noSets = NO_SETS_EX_IDS.has(ex.exId);
-            const badge = memberBadge(exercises, i);
-            const timed = definition?.category === 'cardio' || definition?.category === 'flexibility';
-            const setCount = Number(ex.sets || 0) + (ex.extraRows || []).reduce((total, row) => total + Number(row.sets || 0), 0);
-            return <li key={`${ex.exId}-${i}`} className="wd-exercise"><span className="wd-ex-icon" aria-hidden="true">{definition ? <ExIcon ex={definition} size="1rem" color="currentColor" /> : '—'}</span>
-              <div><strong>{badge && <span className="wd-group-badge">{badge} </span>}{definition?.name || 'Exercise unavailable'}</strong><small>{ex.exId === 'rest_day' ? 'Recovery' : noSets ? `${ex.reps || 0} min` : `${setCount} sets · ${ex.reps || 0} ${timed ? 'min' : 'reps'}${ex.extraRows?.length ? ' + varied sets' : ''}`}</small></div></li>;
-          })}</ul> : <p className="wd-empty">Add exercises in the builder to shape this session.</p>}
-        </section>
         <fieldset className="wd-field"><legend>Intensity · optional</legend><div className="wd-intensity">{['Low', 'Moderate', 'High'].map(level => <label key={level}>
           <input type="radio" name={`${id}-intensity`} value={level.toLowerCase()} checked={draft.intensity === level.toLowerCase()} onChange={e => setDraft({ ...draft, intensity: e.target.value })} /><span>{level}</span>
         </label>)}</div>{draft.intensity && <button type="button" className="btn btn-ghost wd-secondary wd-clear-intensity" onClick={() => setDraft({ ...draft, intensity: '' })}>Clear intensity</button>}</fieldset>
-        <div className="wd-field"><label htmlFor={`${id}-notes`}>Notes</label><textarea id={`${id}-notes`} value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} placeholder="Set your intention. Pace, form, or anything to remember…" rows={4} /></div>
+        <div className="wd-field"><label htmlFor={`${id}-notes`}>Notes</label><textarea className="inp" id={`${id}-notes`} value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} placeholder="Set your intention. Pace, form, or anything to remember…" rows={4} /></div>
         {draft.session && <>
           <section className="wd-field" aria-labelledby={`${id}-labels-title`}>
             <h2 className="wd-section-label" id={`${id}-labels-title`}>Labels</h2>

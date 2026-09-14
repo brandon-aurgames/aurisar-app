@@ -953,7 +953,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
   {
     /* Name stays on the canvas. Optional session fields live in Workout Details. */
   }<WorkoutDetails name={wbName} notes={wbDesc} intensity={wbIntensity}
-    exercises={wbExercises} allExById={allExById} availableLabels={profile.workoutLabels || []}
+    availableLabels={profile.workoutLabels || []}
     session={{ labels: wbLabels, duration: wbDuration, durationSec: wbDurSec, activeCal: wbActiveCal, totalCal: wbTotalCal }}
     onSave={draft => {
       setWbName(draft.name); setWbDesc(draft.notes); setWbIntensity(draft.intensity);

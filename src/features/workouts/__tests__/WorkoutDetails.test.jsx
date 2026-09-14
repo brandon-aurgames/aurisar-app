@@ -126,14 +126,14 @@ describe('Workout Details interaction', () => {
     expect(fx.destroy).toHaveBeenCalled();
   });
 
-  it('retains PR 358 session fields and group summaries without mutating exercises', () => {
+  it('retains session fields without listing or mutating builder exercises', () => {
     reduce = true;
     const exercises = Array.from({ length: 4 }, () => ({ exId: 'test', ssGroupId: 'group-1', sets: 3, reps: 12, extraRows: [{ sets: 2, reps: 8 }] }));
     const snapshot = structuredClone(exercises);
     const { trigger, onSave } = setup({ exercises, availableLabels: ['Push'], session: { labels: ['Push'], duration: '00:45', durationSec: '', activeCal: '300', totalCal: '400' } });
     fireEvent.click(trigger);
-    expect(screen.getByText('A4')).toBeTruthy();
-    expect(screen.getAllByText('5 sets · 12 reps + varied sets')).toHaveLength(4);
+    expect(screen.queryByRole('heading', { name: /Exercises/ })).toBeNull();
+    expect(screen.queryByText('Push Ups')).toBeNull();
     fireEvent.change(screen.getByLabelText('Duration'), { target: { value: '01:70:90' } });
     fireEvent.change(screen.getByLabelText('Active Cal'), { target: { value: '350' } });
     fireEvent.change(screen.getByLabelText('New label'), { target: { value: 'Strength' } });
