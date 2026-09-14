@@ -3,6 +3,7 @@ import { uid, todayStr } from '../utils/helpers';
 import { calcExXP, checkQuestCompletion } from '../utils/xp';
 import { perkAward } from '../utils/gearPerks';
 import { formatXP } from '../utils/format';
+import { normalizeSupersetGroups } from '../features/workouts/supersetModel';
 import { QUESTS } from '../data/constants';
 
 const MARK_START = 'workout-completion:start';
@@ -79,7 +80,7 @@ export function useWorkoutCompletion({
       // honest XP is routed through the shared perkAward seam (hard-capped).
       const equipPerks = profile.equipPerks;
 
-      const entries = wo.exercises.flatMap(ex => {
+      const entries = normalizeSupersetGroups(wo.exercises).flatMap(ex => {
         const exData = allExById[ex.exId];
         if (!exData) return [];
         const isC = exData.category === "cardio";
@@ -137,6 +138,7 @@ export function useWorkoutCompletion({
             sourceWorkoutIcon: wo.icon,
             sourceWorkoutType: wo.oneOff ? "oneoff" : "reusable",
             sourceGroupId: batchId,
+            ssGroupId: ex.ssGroupId || null,
             sourceTotalCal: wo.totalCal || null,
             sourceActiveCal: wo.activeCal || null,
             sourceDurationSec: wo.durationMin || null

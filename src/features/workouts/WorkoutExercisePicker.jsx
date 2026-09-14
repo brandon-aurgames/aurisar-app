@@ -178,6 +178,24 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
               <div style={{ fontSize: FS.fs62, color: "#8a8478", marginBottom: S.s6, textAlign: "right", flexShrink: 0 }}>
                 {filtered.length + " match" + (filtered.length !== 1 ? "es" : "")}
               </div>
+              {pickerSelected.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: S.s4, marginBottom: S.s8, flexShrink: 0 }}>
+                  {pickerSelected.map(sel => {
+                    const named = allExercises.find(e => e.id === sel.exId);
+                    return (
+                      <button
+                        type="button"
+                        key={sel.exId}
+                        className="wo-label-chip sel"
+                        onClick={() => pickerToggleEx(sel.exId)}
+                        title="Remove from selection"
+                      >
+                        {(named && named.name) || sel.exId}{" ✕"}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               {/* The virtualized list is the sheet's ONLY scroller (the
                   Sheet body is scroll="none") — no more scroll-in-scroll. */}
               <div style={{ flex: "1 1 auto", minHeight: 120 }}>

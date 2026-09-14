@@ -53,6 +53,23 @@ describe('useWorkoutCompletion — cardio/timed metadata through completion', ()
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
+  it('snapshots grouped and ungrouped membership on every logged set row', async () => {
+    const exercises = [
+      { exId: 'bench', sets: 3, reps: 10, supersetWith: 1, extraRows: [{ sets: 1, reps: 8 }] },
+      { exId: 'run', sets: 1, reps: 20, supersetWith: 0 },
+      { exId: 'bench', sets: 1, reps: 5 },
+    ];
+    const getLog = setup({ id: 'w', name: 'Session', exercises });
+    await vi.runAllTimersAsync();
+    const log = getLog();
+    expect(log[0].ssGroupId).toBeTruthy();
+    expect(log.slice(0, 3).every(row => row.ssGroupId === log[0].ssGroupId)).toBe(true);
+    expect(log[3].ssGroupId).toBeNull();
+    exercises.forEach(ex => { ex.supersetWith = null; ex.ssGroupId = 'edited-source'; });
+    expect(log[0].ssGroupId).not.toBe('edited-source');
+    expect(log[3].ssGroupId).toBeNull();
+  });
+
   it('derives reps-as-minutes from seconds for a blank-reps cardio row, and keeps distanceMi/hrZone/seconds', async () => {
     const getLog = setup({
       id: 'w1', name: 'Cardio Day', icon: '🏃', oneOff: true,

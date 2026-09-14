@@ -1,3 +1,4 @@
+import { normalizeSupersetGroups } from '../features/workouts/supersetModel';
 import React, { useState, useEffect, useMemo, useCallback, useImperativeHandle } from 'react';
 import { PLAN_TEMPLATES, HR_ZONES, NO_SETS_EX_IDS, RUNNING_EX_ID, UI_COLORS, QUESTS } from '../data/constants';
 import { CLASSES } from '../data/exercises';
@@ -190,7 +191,7 @@ const PlansTabContainer = React.memo(React.forwardRef(function PlansTabContainer
     // so gear boosts its XP too. No-op unless perk-bearing gear is equipped.
     const equipPerks = profile.equipPerks;
     plan.days.forEach(day => {
-      day.exercises.forEach(ex => {
+      normalizeSupersetGroups(day.exercises).forEach(ex => {
         const exData = allExById[ex.exId];
         if (!exData) return;
         const preGearXp = calcExXP(ex.exId, ex.sets, ex.reps, clsKey, allExById, null, ex.weightLbs || null, null);
@@ -208,6 +209,7 @@ const PlansTabContainer = React.memo(React.forwardRef(function PlansTabContainer
           exId: ex.exId,
           sourcePlanId: plan.id, sourcePlanName: plan.name, sourcePlanIcon: plan.icon,
           sourceGroupId: batchId,
+          ssGroupId: ex.ssGroupId || null,
           sourceTotalCal: day.totalCal || null, sourceActiveCal: day.activeCal || null,
           sourceDurationSec: day.durationMin || null,
         });
