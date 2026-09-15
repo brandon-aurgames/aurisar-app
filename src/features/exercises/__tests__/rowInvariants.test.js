@@ -121,7 +121,7 @@ describe('picker virtualizes against a definite box', () => {
     // The old, broken shape: the List styled with a percentage height. If this
     // ever comes back, the list stops virtualizing.
     expect(
-      /rowComponent=\{WbExPickerRow\}[\s\S]*?height:\s*['"]100%['"]/.test(picker),
+      /rowComponent=\{WbPickerItem\}[\s\S]*?height:\s*['"]100%['"]/.test(picker),
       'picker List must not use a percentage height — it will not virtualize'
     ).toBe(false);
   });

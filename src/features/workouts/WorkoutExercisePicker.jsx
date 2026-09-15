@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useDeferredValue, useMemo } from 'react';
+import React, { memo, useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { List } from 'react-window';
 import { UI_COLORS } from '../../data/constants';
 import { getMuscleColor, getTypeColor } from '../../utils/xp';
@@ -11,6 +11,7 @@ import { matchesAll, facetCounts as countFacet, NO_FACET, muscleKeys, typeKeys, 
 import {
   TYPE_OPTS, TYPE_LABELS, MUSCLE_OPTS, EQUIP_OPTS, muscleLabel, equipLabel,
 } from '../exercises/exerciseFilterOptions';
+import { buildGroupedItems } from './pickerGrouping';
 
 // Module scope so the memo'd FilterDropdown sees a stable optionLabel identity.
 const typeLabel = v => TYPE_LABELS[v];
@@ -25,15 +26,36 @@ const typeLabel = v => TYPE_LABELS[v];
  * Uses createPortal to render into document.body.
  */
 
-// Row adapter for the virtualised list. The row itself is the shared
-// ExerciseRow — this only maps react-window's props onto it. The picker used
-// to carry its own hand-written copy that had already drifted from the
-// library's.
-const WbExPickerRow = React.memo(function WbExPickerRow({
-  ariaAttributes, index, style, exercises, selIds, onToggle
+const HEADER_H = 40;
+const ROW_H = 60;
+
+// One row adapter for the virtualised list. Each item is either a collapsible
+// muscle-group header or an exercise row (the shared ExerciseRow) — react-window
+// renders a single flat list, so grouping stays virtualized: a collapsed group
+// contributes only its header, never its (up to ~370) rows.
+const WbPickerItem = React.memo(function WbPickerItem({
+  ariaAttributes, index, style, items, selIds, onToggle, onToggleGroup
 }) {
-  const ex = exercises[index];
-  if (!ex) return null;
+  const it = items[index];
+  if (!it) return null;
+  if (it.kind === 'header') {
+    return (
+      <div style={style} {...ariaAttributes}>
+        <button
+          type="button"
+          className={"wb-ex-group-hdr"}
+          style={{ "--mg-color": getMuscleColor(it.muscle) }}
+          aria-expanded={it.expanded}
+          onClick={() => onToggleGroup(it.muscle)}
+        >
+          <span className={"wb-ex-group-chevron"} aria-hidden={"true"}>{it.expanded ? "▾" : "▸"}</span>
+          <span className={"wb-ex-group-name"}>{it.label}</span>
+          <span className={"wb-ex-group-count"}>{it.count}</span>
+        </button>
+      </div>
+    );
+  }
+  const ex = it.ex;
   return (
     <div style={{ ...style, paddingTop: 4, paddingBottom: 4 }} {...ariaAttributes}>
       <ExerciseRow
@@ -91,12 +113,40 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
     [allExercises, deferredQ, pickerMuscle, pickerTypeFilter, pickerEquipFilter]
   );
   const selIds = useMemo(() => new Set(pickerSelected.map(e => e.exId)), [pickerSelected]);
+
+  // ── Muscle grouping (collapsible sections) ──
+  // Sections default collapsed so the picker opens as a short muscle menu; an
+  // active search force-expands every section so matches are never hidden, and
+  // a lone section (e.g. the Muscle facet narrowed to one) opens on its own.
+  const [expandedGroups, setExpandedGroups] = useState(() => new Set());
+  const searching = deferredQ.trim() !== '';
+  const isExpanded = useCallback(
+    (muscle, groupCount) => searching || groupCount === 1 || expandedGroups.has(muscle),
+    [searching, expandedGroups]
+  );
+  const { groups, items } = useMemo(() => buildGroupedItems(filtered, isExpanded), [filtered, isExpanded]);
+  const toggleGroup = useCallback(muscle => setExpandedGroups(prev => {
+    const n = new Set(prev);
+    n.has(muscle) ? n.delete(muscle) : n.add(muscle);
+    return n;
+  }), []);
+  const allExpanded = groups.length > 0 && groups.every(g => expandedGroups.has(g.muscle));
+  const expandAll = useCallback(() => setExpandedGroups(new Set(groups.map(g => g.muscle))), [groups]);
+  const collapseAll = useCallback(() => setExpandedGroups(new Set()), []);
+
   // Stable rowProps identity so the memo'd rows only re-render when the data
   // they show actually changes.
   const rowProps = useMemo(
-    () => ({ exercises: filtered, selIds, onToggle: pickerToggleEx }),
-    [filtered, selIds, pickerToggleEx]
+    () => ({ items, selIds, onToggle: pickerToggleEx, onToggleGroup: toggleGroup }),
+    [items, selIds, pickerToggleEx, toggleGroup]
   );
+  // Headers are shorter than exercise rows; react-window reads this per index.
+  const rowHeight = useCallback((index, props) => (props.items[index]?.kind === 'header' ? HEADER_H : ROW_H), []);
+  const rowKey = useCallback((index, data) => {
+    const it = data.items[index];
+    if (!it) return index;
+    return it.kind === 'header' ? 'h:' + it.muscle : 'r:' + it.ex.id;
+  }, []);
 
   return (
     // onClose is closePicker — the FULL teardown (search, facets, selection),
@@ -194,13 +244,22 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
           </div>
         </div>
 
-        {/* ── Exercise list (virtualized) ── */}
+        {/* ── Exercise list (virtualized, grouped by muscle) ── */}
         {filtered.length === 0 ? (
           <div className={"empty"} style={{ padding: "20px 0" }}>{"No exercises found."}</div>
         ) : (
           <>
-            <div style={{ fontSize: FS.fs62, color: "#8a8478", marginBottom: S.s6, textAlign: "right", flexShrink: 0 }}>
-              {filtered.length + " match" + (filtered.length !== 1 ? "es" : "")}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: S.s8, marginBottom: S.s6, flexShrink: 0 }}>
+              {!searching && groups.length > 1 ? (
+                <button
+                  type="button"
+                  className={"btn btn-ghost btn-xs"}
+                  onClick={allExpanded ? collapseAll : expandAll}
+                >{allExpanded ? "Collapse all" : "Expand all"}</button>
+              ) : <span />}
+              <span style={{ fontSize: FS.fs62, color: "#8a8478", textAlign: "right" }}>
+                {filtered.length + " match" + (filtered.length !== 1 ? "es" : "")}
+              </span>
             </div>
             {/* The virtualized list is the sheet's ONLY scroller (the Sheet
                 body is scroll="none") — no more scroll-in-scroll. The List is
@@ -209,12 +268,15 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
                 content-sized flex chain as `auto`, so the List element
                 inflated to full content height (~92,000px), react-window
                 measured that as its viewport, and every one of ~1,500 rows
-                mounted on open and re-rendered on every keystroke. */}
+                mounted on open and re-rendered on every keystroke.
+                Muscle headers and exercise rows share this one flat list, so a
+                collapsed section costs a single header row, not its members. */}
             <div style={{ flex: "1 1 auto", minHeight: 120, position: "relative" }}>
               <List
-                rowCount={filtered.length}
-                rowHeight={60}
-                rowComponent={WbExPickerRow}
+                rowCount={items.length}
+                rowHeight={rowHeight}
+                rowKey={rowKey}
+                rowComponent={WbPickerItem}
                 rowProps={rowProps}
                 overscanCount={6}
                 style={{ position: "absolute", inset: 0, width: "100%", overscrollBehavior: "contain" }}
