@@ -98,6 +98,35 @@ describe('picker dismissal runs the full teardown', () => {
   });
 });
 
+describe('picker virtualizes against a definite box', () => {
+  // Layout regression guard (audit finding #7): the react-window List was
+  // styled height:100% inside a content-sized flex chain, so the percentage
+  // resolved to `auto`, the List inflated to full content height, and every
+  // one of ~1,500 rows mounted on open and re-rendered on every keystroke.
+  // jsdom has no layout engine, so this can only be asserted at the source
+  // level — the List must sit in a definite box, not a percentage height.
+  const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
+
+  it('gives the picker sheet a definite height so the flex chain resolves', () => {
+    // A `max-height`-only (tall) sheet is content-sized; the List needs the
+    // chain above it to be definite. height:100% fills the nav-padded backdrop.
+    expect(picker, 'picker Sheet must set an explicit height').toMatch(/height:\s*['"]100%['"]/);
+  });
+
+  it('bounds the List in a positioned wrapper instead of a percentage height', () => {
+    // The wrapper is position:relative and the List is absolutely inset, so
+    // react-window measures real pixels regardless of the flex chain.
+    expect(picker).toMatch(/position:\s*["']relative["']/);
+    expect(picker, 'List must be absolutely inset').toMatch(/position:\s*["']absolute["'][^}]*inset:\s*0/);
+    // The old, broken shape: the List styled with a percentage height. If this
+    // ever comes back, the list stops virtualizing.
+    expect(
+      /rowComponent=\{WbExPickerRow\}[\s\S]*?height:\s*['"]100%['"]/.test(picker),
+      'picker List must not use a percentage height — it will not virtualize'
+    ).toBe(false);
+  });
+});
+
 describe('filter vocabulary has a single source', () => {
   it('no surface declares its own muscle or equipment option list', () => {
     // Every private copy so far has drifted. The shared module is the only
