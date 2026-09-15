@@ -11,6 +11,13 @@ import { buildWorkoutObject } from '../workoutModel';
 const EXS = [{ exId: 'pushup', sets: 3, reps: 10 }];
 
 describe('buildWorkoutObject', () => {
+  it('saves intensity without losing four-way groups or varied sets', () => {
+    const exercises = Array.from({ length: 4 }, (_, i) => ({ exId: `ex-${i}`, ssGroupId: 'g', sets: 3, reps: 10, extraRows: [{ sets: 1, reps: 8 }] }));
+    const w = buildWorkoutObject({ name: 'Grouped', intensity: 'high', exercises, oneOff: true });
+    expect(w.intensity).toBe('high');
+    expect(w.exercises).toEqual(exercises);
+    expect(buildWorkoutObject({ name: 'Legacy', exercises: EXS })).not.toHaveProperty('intensity');
+  });
   it('builder save/update shape (localized createdAt, no oneOff key)', () => {
     const w = buildWorkoutObject({
       id: 'w1', name: '  Push Day ', icon: '💪', desc: ' chest focus ',
@@ -52,13 +59,15 @@ describe('buildWorkoutObject', () => {
     expect('oneOff' in w).toBe(false);
   });
 
-  it('empty-string stats normalize to null exactly like the originals ("" || null)', () => {
+  it('migrates legacy supersetWith pairs onto ssGroupId', () => {
     const w = buildWorkoutObject({
-      name: 'A', icon: 'x', exercises: EXS, createdAt: 'c',
-      durationMin: '', activeCal: '', totalCal: '',
+      name: 'SS', icon: '💪', createdAt: 'c',
+      exercises: [
+        { exId: 'bench', sets: 3, reps: 10, supersetWith: 1 },
+        { exId: 'row', sets: 3, reps: 10, supersetWith: 0 },
+      ],
     });
-    expect(w.durationMin).toBeNull();
-    expect(w.activeCal).toBeNull();
-    expect(w.totalCal).toBeNull();
+    expect(w.exercises[0].ssGroupId).toBe(w.exercises[1].ssGroupId);
+    expect(w.exercises.every(e => !('supersetWith' in e))).toBe(true);
   });
 });

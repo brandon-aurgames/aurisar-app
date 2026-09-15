@@ -316,7 +316,7 @@ return <><div className={"rpg-sec-header rpg-sec-header-center"} style={{
               return <div className={"log-group-body"}>{consolidated.map((exEntries, ci) => {
                   const ef = exEntries[0];
                   const exXP = exEntries.reduce((s, e) => s + e.xp, 0);
-                  const isSuperset = exEntries.some(e => entries.some((o, oi) => o.exId !== e.exId && o.sourceGroupId === e.sourceGroupId && (o.supersetWith != null || e.supersetWith != null)));
+                  const isSuperset = exEntries.some(entry => !!entry.ssGroupId);
                   const efData = allExById[ef.exId];
                   const efMgColor = getMuscleColor(efData && efData.muscleGroup);
                   return <div key={ci} className={"h-entry"} style={{

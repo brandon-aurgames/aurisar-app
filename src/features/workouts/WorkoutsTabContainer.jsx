@@ -2,6 +2,11 @@ import React, { useState, useMemo, useCallback, useImperativeHandle } from 'reac
 import WorkoutsTab from './WorkoutsTab';
 import WorkoutExercisePicker from './WorkoutExercisePicker';
 import { buildWorkoutObject } from './workoutModel';
+import {
+  normalizeSupersetGroups,
+  reorderExercise,
+  moveGroup,
+} from './supersetModel';
 import { uid } from '../../utils/helpers';
 import { calcExEntryXP } from '../../utils/xp';
 import { secToHHMMSplit, combineHHMMSec } from '../../utils/time';
@@ -26,6 +31,7 @@ import { secToHHMMSplit, combineHHMMSec } from '../../utils/time';
  *   doDeleteWorkout(id)           ConfirmDeleteModal's workout branch
  */
 const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabContainer({
+  isActive = true,
   profile,
   setProfile,
   allExercises,
@@ -55,6 +61,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
   const [wbIcon, setWbIcon] = useState("💪");
   const [wbIconPickerOpen, setWbIconPickerOpen] = useState(false);
   const [wbDesc, setWbDesc] = useState("");
+  const [wbIntensity, setWbIntensity] = useState("");
   const [wbExercises, setWbExercises] = useState([]); // [{exId,sets,reps,weightLbs,durationMin,...}]
   const [wbEditId, setWbEditId] = useState(null); // id of workout being edited
   const [wbCopySource, setWbCopySource] = useState(null);
@@ -99,6 +106,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setWbIcon("💪");
     setWbIconPickerOpen(false);
     setWbDesc("");
+    setWbIntensity("");
     setWbExercises([]);
     setWbEditId(null);
     setWbCopySource(null);
@@ -121,8 +129,10 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       setWbName(base.name);
       setWbIcon(base.icon);
       setWbDesc(base.desc || "");
-      setWbExercises(base.exercises.map(e => ({ ...e })));
+      setWbIntensity(base.intensity || "");
+      setWbExercises(normalizeSupersetGroups(base.exercises.map(e => ({ ...e }))));
       setWbEditId(base.id);
+      setWbIsOneOff(!!base.oneOff);
       const split = base.durationMin ? secToHHMMSplit(Number(base.durationMin)) : { hhmm: "", sec: "" };
       const hasSec = split.sec && split.sec !== 0 && split.sec !== "";
       setWbDuration(hasSec ? `${split.hhmm}:${String(split.sec).padStart(2, "0")}` : (split.hhmm || ""));
@@ -160,6 +170,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       name: wbName,
       icon: wbIcon,
       desc: wbDesc,
+      intensity: wbIntensity,
       exercises: wbExercises,
       createdAt: new Date().toLocaleDateString(),
       durationMin: combineHHMMSec(wbDuration, wbDurSec) || null,
@@ -196,6 +207,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       name: wbName,
       icon: wbIcon,
       desc: wbDesc,
+      intensity: wbIntensity,
       exercises: wbExercises,
       createdAt: new Date().toLocaleDateString(),
       durationMin: combineHHMMSec(wbDuration, wbDurSec) || null,
@@ -215,7 +227,8 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setWbName("Copy of " + wo.name);
     setWbIcon(wo.icon);
     setWbDesc(wo.desc || "");
-    setWbExercises(wo.exercises.map(e => ({ ...e })));
+    setWbIntensity(wo.intensity || "");
+    setWbExercises(normalizeSupersetGroups(wo.exercises.map(e => ({ ...e }))));
     setWbEditId(null); // new id on save
     setWbCopySource(wo.name);
     setWbLabels(wo.labels || []);
@@ -292,75 +305,15 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     closePicker();
   }
 
-  // ── Reorder (bodies relocated verbatim from App.jsx) ──
-  function reorderSupersetPair(anchorIdx, partnerIdx, direction) {
-    setWbExercises(exs => {
-      const arr = [...exs];
-      const minI = Math.min(anchorIdx, partnerIdx);
-      const maxI = Math.max(anchorIdx, partnerIdx);
-      if (maxI - minI !== 1) {
-        const [moved] = arr.splice(maxI, 1);
-        arr.splice(minI + 1, 0, moved);
-        const idxMap = {};
-        const temp = exs.map((_, i) => i);
-        const [movedI] = temp.splice(maxI, 1);
-        temp.splice(minI + 1, 0, movedI);
-        temp.forEach((oldI, newI) => {
-          idxMap[oldI] = newI;
-        });
-        arr.forEach((e, ei) => {
-          if (e.supersetWith != null && idxMap[e.supersetWith] != null) arr[ei] = {
-            ...e,
-            supersetWith: idxMap[e.supersetWith]
-          };
-        });
-        return arr;
-      }
-      if (direction === "up" && minI > 0) {
-        const above = arr[minI - 1];
-        arr[minI - 1] = arr[minI];
-        arr[minI] = arr[minI + 1];
-        arr[minI + 1] = above;
-        arr.forEach((e, ei) => {
-          if (e.supersetWith === minI - 1) arr[ei] = { ...e, supersetWith: minI + 1 };
-          else if (e.supersetWith === minI) arr[ei] = { ...e, supersetWith: minI - 1 };
-          else if (e.supersetWith === minI + 1) arr[ei] = { ...e, supersetWith: minI };
-        });
-      } else if (direction === "down" && maxI < arr.length - 1) {
-        const below = arr[maxI + 1];
-        arr[maxI + 1] = arr[maxI];
-        arr[maxI] = arr[minI];
-        arr[minI] = below;
-        arr.forEach((e, ei) => {
-          if (e.supersetWith === minI) arr[ei] = { ...e, supersetWith: minI + 1 };
-          else if (e.supersetWith === minI + 1) arr[ei] = { ...e, supersetWith: minI + 2 };
-          else if (e.supersetWith === maxI + 1) arr[ei] = { ...e, supersetWith: minI };
-        });
-      }
-      return arr;
-    });
+  // ── Reorder (group-id model — pairs AND 2–4 member runs) ──
+  function reorderSupersetPair(gid, direction) {
+    setSsChecked(new Set());
+    setWbExercises(exs => moveGroup(exs, gid, direction === "up" ? -1 : 1));
   }
 
   function reorderWbEx(fromIdx, toIdx) {
-    if (fromIdx === toIdx) return;
-    setWbExercises(exs => {
-      const arr = [...exs];
-      const [moved] = arr.splice(fromIdx, 1);
-      arr.splice(toIdx, 0, moved);
-      const indexMap = {};
-      const temp = exs.map((_, i) => i);
-      const [movedIdx] = temp.splice(fromIdx, 1);
-      temp.splice(toIdx, 0, movedIdx);
-      temp.forEach((oldIdx, newIdx) => {
-        indexMap[oldIdx] = newIdx;
-      });
-      return arr.map(e => {
-        if (e.supersetWith != null && indexMap[e.supersetWith] != null) {
-          return { ...e, supersetWith: indexMap[e.supersetWith] };
-        }
-        return e;
-      });
-    });
+    setSsChecked(new Set());
+    setWbExercises(exs => reorderExercise(exs, fromIdx, toIdx));
   }
 
   // ── The external write surface ──
@@ -375,7 +328,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
       // Full reset first (keep-alive container may hold an abandoned draft's
       // duration/labels/calories/superset state), THEN seed the staged rows.
       resetBuilderFields();
-      setWbExercises(entries);
+      setWbExercises(normalizeSupersetGroups(entries));
       setWorkoutView("builder");
     },
     doDeleteWorkout: _doDeleteWorkout,
@@ -386,6 +339,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
   return (
     <>
       <WorkoutsTab
+        isActive={isActive}
         workoutView={workoutView}
         setWorkoutView={setWorkoutView}
         workoutSubTab={workoutSubTab}
@@ -416,6 +370,8 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         setWbName={setWbName}
         wbIcon={wbIcon}
         setWbIcon={setWbIcon}
+        wbIntensity={wbIntensity}
+        setWbIntensity={setWbIntensity}
         wbDesc={wbDesc}
         setWbDesc={setWbDesc}
         wbExercises={wbExercises}
