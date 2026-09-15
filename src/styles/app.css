@@ -889,6 +889,30 @@
       border-left-color:color-mix(in srgb,var(--mg-color) 70%,transparent);
       box-shadow:0 0 0 1.5px color-mix(in srgb,var(--mg-color) 35%,transparent),0 4px 16px color-mix(in srgb,var(--mg-color) 12%,rgba(0,0,0,.3))
     }
+    /* Collapsible muscle-section header inside the virtualized picker list.
+       Lives in a react-window row, so it fills the row box (height comes from
+       the List's per-index rowHeight); the muscle colour keys it to its rows. */
+    .wb-ex-group-hdr{
+      --mg-color:#B0A090;
+      width:100%;height:100%;display:flex;align-items:center;gap:8px;
+      padding:0 10px;margin:0;background:none;border:none;cursor:pointer;font:inherit;
+      color:#d4cec4;text-align:left;border-radius:8px;-webkit-tap-highlight-color:transparent
+    }
+    .wb-ex-group-hdr:hover{background:color-mix(in srgb,var(--mg-color) 12%,transparent)}
+    .wb-ex-group-hdr:focus-visible{outline:2px solid var(--cls-color,#c49428);outline-offset:-2px}
+    .wb-ex-group-chevron{flex-shrink:0;width:14px;text-align:center;color:var(--mg-color);font-size:.7rem}
+    .wb-ex-group-name{
+      flex:1;min-width:0;font-family:'Inter',sans-serif;font-weight:700;font-size:.74rem;
+      letter-spacing:.08em;text-transform:uppercase;
+      color:color-mix(in srgb,var(--mg-color) 55%,#d4cec4);
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+    }
+    .wb-ex-group-count{
+      flex-shrink:0;font-size:.66rem;font-weight:700;color:#8a8478;
+      background:color-mix(in srgb,var(--mg-color) 14%,rgba(45,42,36,.5));
+      border:1px solid color-mix(in srgb,var(--mg-color) 22%,transparent);
+      border-radius:999px;padding:1px 8px;min-width:22px;text-align:center
+    }
     .picker-ex-orb{
       width:34px;height:34px;border-radius:9px;flex-shrink:0;
       display:flex;align-items:center;justify-content:center;
