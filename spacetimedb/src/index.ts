@@ -1321,9 +1321,14 @@ export const buildCampfire = spacetimedb.reducer(
     if (player.hp <= 0 || player.deadUntil > nowMicros) return; // dead can't build
 
     // Must be placed within reach of where the server thinks the player is.
+    // Inverted (`!(... <= R*R)`, not `... > R*R`) so a non-finite x/y — the BSATN f32 decode is a
+    // bare DataView.getFloat32 with no validation, so a malformed client packet can send NaN —
+    // fails closed. `NaN > anything` is false, so the un-inverted guard let NaN through to
+    // resolveZone(NaN, NaN), which places a working, lit campfire at the first zone's centre on
+    // behalf of a player standing anywhere on the map (PR #363 review, finding M1).
     const dx = x - player.x;
     const dy = y - player.y;
-    if (dx * dx + dy * dy > CAMPFIRE_PLACE_RANGE_PX * CAMPFIRE_PLACE_RANGE_PX) return;
+    if (!(dx * dx + dy * dy <= CAMPFIRE_PLACE_RANGE_PX * CAMPFIRE_PLACE_RANGE_PX)) return;
 
     // Same per-zone bounds the move path uses. The fire is placed within 3 m
     // of the builder, so this only ever trims a claim the builder's own row
@@ -2352,6 +2357,12 @@ export const clientConnected = spacetimedb.clientConnected((ctx) => {
       // Regen resumes from the connect; the pool itself was settled above through
       // regeneratedResource(), so time away counts at the same D94 rate.
       lastRegenAt: ctx.timestamp.microsSinceUnixEpoch,
+      // D157: backfills a row still carrying the legacy hub/training/plaza/wilderness scheme
+      // (0/1/2/3) to the content ZoneDef.id — this is the only always-reached write path for a
+      // player who reconnects without moving first (setPlayerInfo's existing-player branch
+      // spreads ...existing and movePlayer only runs after a move); every returning player's
+      // zoneId converges to the new scheme within one connect (PR #363 review, finding M2).
+      zoneId: resolveZone(existing.x, existing.y).zoneId,
     });
   }
   // If no row exists, setPlayerInfo will create one.
