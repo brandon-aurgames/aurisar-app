@@ -8,8 +8,9 @@ import { DUNGEONS } from '../content/dungeons/index.js';
 import { CASTLE_ASHWOOD_ENTRY, CASTLE_ASHWOOD_SPAWNS } from '../content/dungeons/castleAshwood.generated.js';
 import { CASTLE_LEVELS, CASTLE_ROOM_FLOOR_Y } from '../castle/navGrids.js';
 import type { DungeonDef, DungeonSpawnDef, MobDef } from '../content/types.js';
+import { contentPosToPx, WORLD_ORIGIN_PX } from '../world/zones.js';
 
-export const WORLD_CENTER_PX = 1600;
+export const WORLD_CENTER_PX = WORLD_ORIGIN_PX;
 export const PX_PER_M = 32;
 export const CASTLE_INTERIOR_ANCHOR = { x: 840, z: 0 } as const;
 export const DUNGEON_MAX_PLAYERS = 5;
@@ -44,14 +45,19 @@ export function interiorLocalToPx(local: { x: number; z: number }): { x: number;
   };
 }
 
+/**
+ * The overworld px the dungeon's gate stands on.
+ *
+ * This used to inline its own origin-offset arithmetic as
+ * `const ox = zoneId === 1 ? 0 : 0;` — both branches zero, so every dungeon
+ * resolved against zone 1's origin no matter which zone its entrance named,
+ * and a zone-2 dungeon's gate would have landed ~3000 m away inside zone 1.
+ * It now defers to the one copy of that math in world/zones.ts, which reads
+ * the offset from the manifest.
+ */
 export function zoneEntranceToPx(dungeon: DungeonDef): { x: number; y: number } {
   const { zoneId, pos } = dungeon.entrance;
-  const ox = zoneId === 1 ? 0 : 0; // zone 1 origin for now
-  const oz = zoneId === 1 ? 0 : 0;
-  return {
-    x: Math.round((pos.x + ox) * PX_PER_M + WORLD_CENTER_PX),
-    y: Math.round((pos.z + oz) * PX_PER_M + WORLD_CENTER_PX),
-  };
+  return contentPosToPx(zoneId, pos);
 }
 
 export function castleSpawnPx(): { x: number; y: number } {

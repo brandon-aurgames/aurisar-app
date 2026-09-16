@@ -276,7 +276,14 @@ export interface ZoneGate {
 }
 
 export interface ZoneDef {
-  /** Server `player.zoneId` value. 0 is reserved for the legacy hub. */
+  /**
+   * Zone id, and — since D157 — the value the server writes to
+   * `player.zoneId`. That column used to carry a separate hub/training/plaza
+   * scheme derived from hardcoded pixel rectangles, which is what the
+   * namespace collision this comment used to warn about actually was; those
+   * rectangles are gone (spacetimedb/src/world/zones.ts) and the two id spaces
+   * are now one.
+   */
   id: number;
   key: string;
   /** Placeholder display name — story pass rewrites. */
@@ -287,6 +294,14 @@ export interface ZoneDef {
    * (zone k at x ≈ k·3000 m so STDB px never collide across zones).
    */
   originOffsetM: { x: number; z: number };
+  /**
+   * Half-width, in meters, of this zone's square playable box measured from
+   * `originOffsetM` — the server clamps player movement to it (D156).
+   * Omitted means the legacy global ±1000 m box every player was clamped to
+   * before bounds were per-zone, which is why zone 1 does not set it: leaving
+   * it unset keeps zone 1's accept region exactly as it shipped.
+   */
+  boundsHalfExtentM?: number;
   /** Worldgen config under src/features/world/worldgen/configs/. */
   worldConfig: string;
   spawnPos: { x: number; z: number };

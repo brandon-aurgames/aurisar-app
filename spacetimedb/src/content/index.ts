@@ -167,9 +167,13 @@ export function validateContent(): string[] {
   }
 
   // Zones
+  const DEFAULT_ZONE_HALF_EXTENT_M = 1000;
   for (const zone of ZONES as ZoneDef[]) {
     if (zone.levelBand[0] > zone.levelBand[1]) {
       err(`zone ${zone.key}: levelBand min > max`);
+    }
+    if (zone.boundsHalfExtentM !== undefined && !(zone.boundsHalfExtentM > 0)) {
+      err(`zone ${zone.key}: boundsHalfExtentM must be > 0 when set`);
     }
     for (const gate of zone.gates) {
       const target = ZONES_BY_ID[gate.toZoneId];
@@ -177,6 +181,31 @@ export function validateContent(): string[] {
       // the back-link when the target zone exists.
       if (target && !target.gates.some((g) => g.id === gate.toGateId)) {
         err(`zone ${zone.key}: gate ${gate.id} targets missing gate ${gate.toGateId} in zone ${gate.toZoneId}`);
+      }
+    }
+  }
+
+  // Zone boxes may not overlap. The server resolves a px pair to a zone by
+  // asking which box contains it (spacetimedb/src/world/zones.ts); two boxes
+  // sharing a point would make that answer depend on manifest order, and the
+  // losing zone's players would be silently reassigned. Cheap O(n²) — the
+  // manifest is a handful of entries.
+  const zoneSpans = (ZONES as ZoneDef[]).map((z) => {
+    const half = z.boundsHalfExtentM ?? DEFAULT_ZONE_HALF_EXTENT_M;
+    return { zone: z, half };
+  });
+  for (let i = 0; i < zoneSpans.length; i++) {
+    for (let j = i + 1; j < zoneSpans.length; j++) {
+      const a = zoneSpans[i];
+      const b = zoneSpans[j];
+      const reach = a.half + b.half;
+      const gapX = Math.abs(a.zone.originOffsetM.x - b.zone.originOffsetM.x);
+      const gapZ = Math.abs(a.zone.originOffsetM.z - b.zone.originOffsetM.z);
+      if (gapX < reach && gapZ < reach) {
+        err(
+          `zone ${a.zone.key} and zone ${b.zone.key}: playable boxes overlap ` +
+          `(origins ${gapX}/${gapZ} m apart on x/z, need at least ${reach} m on one axis)`,
+        );
       }
     }
   }
