@@ -33,6 +33,40 @@
           "toGateId": "z2_south_pass"
         }
       ]
+    },
+    {
+      "id": 2,
+      "key": "zone2",
+      "name": "Zone Two",
+      "levelBand": [
+        7,
+        14
+      ],
+      "originOffsetM": {
+        "x": 3000,
+        "z": 0
+      },
+      "boundsHalfExtentM": 400,
+      "worldConfig": "zone2_world.json",
+      "spawnPos": {
+        "x": 0,
+        "z": -120
+      },
+      "graveyardPos": {
+        "x": -26,
+        "z": -150
+      },
+      "gates": [
+        {
+          "id": "z2_south_pass",
+          "pos": {
+            "x": 0,
+            "z": -170
+          },
+          "toZoneId": 1,
+          "toGateId": "z1_north_pass"
+        }
+      ]
     }
   ],
   "npcs": [
@@ -165,6 +199,50 @@
         "q_mine"
       ],
       "greeting": "Whole dig's crawling with those candle-headed vermin!"
+    },
+    {
+      "id": "warden_kesk",
+      "zoneId": 2,
+      "name": "Warden Kesk",
+      "title": "Keeper of the South Pass",
+      "pos": {
+        "x": -9,
+        "z": -145
+      },
+      "facingRad": 0.4,
+      "questIds": [],
+      "greeting": "You came up through the pass, $C? Then you already know the moor is worse."
+    },
+    {
+      "id": "quartermaster_ivet",
+      "zoneId": 2,
+      "name": "Quartermaster Ivet",
+      "title": "Hold Quartermaster",
+      "pos": {
+        "x": -21,
+        "z": -133
+      },
+      "facingRad": -2.3,
+      "questIds": [],
+      "greeting": "Everything here is carried up the pass on someone's back, $N. Prices reflect it.",
+      "vendorItemIds": [
+        "baked_bread",
+        "spring_water",
+        "roasted_boar"
+      ]
+    },
+    {
+      "id": "scout_arren",
+      "zoneId": 2,
+      "name": "Scout Arren",
+      "title": "Moor Scout",
+      "pos": {
+        "x": -11,
+        "z": -124
+      },
+      "facingRad": 1.9,
+      "questIds": [],
+      "greeting": "Three things move out there: stalkers, the raiders, and whatever the cairns let out."
     }
   ],
   "mobs": [
@@ -559,6 +637,101 @@
       ],
       "copperMin": 100,
       "copperMax": 100
+    },
+    {
+      "mobType": "moor_stalker",
+      "name": "Moor Stalker",
+      "family": "beast",
+      "level": 8,
+      "maxHp": 212,
+      "dmgMin": 23,
+      "dmgMax": 26,
+      "attackSpeedSec": 1.9,
+      "moveSpeedMps": 4.6,
+      "aggroRadiusM": 11,
+      "leashRadiusM": 38,
+      "respawnSec": 45,
+      "glbKey": "wolf",
+      "social": true,
+      "lootTable": [
+        {
+          "itemId": "wolf_fang",
+          "chance": 0.5,
+          "min": 1,
+          "max": 1
+        },
+        {
+          "itemId": "linen_scrap",
+          "chance": 0.25,
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "copperMin": 40,
+      "copperMax": 40
+    },
+    {
+      "mobType": "cairn_wight",
+      "name": "Cairn Wight",
+      "family": "undead",
+      "level": 10,
+      "maxHp": 264,
+      "dmgMin": 29,
+      "dmgMax": 32,
+      "attackSpeedSec": 2.3,
+      "moveSpeedMps": 3.6,
+      "aggroRadiusM": 12,
+      "leashRadiusM": 36,
+      "respawnSec": 60,
+      "glbKey": "skeleton_minion",
+      "lootTable": [
+        {
+          "itemId": "bone_fragments",
+          "chance": 0.6,
+          "min": 1,
+          "max": 2
+        },
+        {
+          "itemId": "ghostly_essence",
+          "chance": 0.55,
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "copperMin": 52,
+      "copperMax": 52
+    },
+    {
+      "mobType": "frostbound_raider",
+      "name": "Frostbound Raider",
+      "family": "humanoid",
+      "level": 12,
+      "maxHp": 316,
+      "dmgMin": 35,
+      "dmgMax": 38,
+      "attackSpeedSec": 2,
+      "moveSpeedMps": 4,
+      "aggroRadiusM": 12,
+      "leashRadiusM": 42,
+      "respawnSec": 60,
+      "glbKey": "tribal",
+      "social": true,
+      "lootTable": [
+        {
+          "itemId": "bandit_bandana",
+          "chance": 0.5,
+          "min": 1,
+          "max": 1
+        },
+        {
+          "itemId": "linen_scrap",
+          "chance": 0.35,
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "copperMin": 64,
+      "copperMax": 64
     }
   ],
   "spawns": [
@@ -715,6 +888,39 @@
       },
       "count": 8,
       "radiusM": 18
+    },
+    {
+      "netId": "z2_stalkers",
+      "mobType": "moor_stalker",
+      "zoneId": 2,
+      "pos": {
+        "x": -70,
+        "z": -40
+      },
+      "count": 6,
+      "radiusM": 20
+    },
+    {
+      "netId": "z2_wights",
+      "mobType": "cairn_wight",
+      "zoneId": 2,
+      "pos": {
+        "x": 60,
+        "z": 10
+      },
+      "count": 5,
+      "radiusM": 18
+    },
+    {
+      "netId": "z2_raiders",
+      "mobType": "frostbound_raider",
+      "zoneId": 2,
+      "pos": {
+        "x": -20,
+        "z": 80
+      },
+      "count": 5,
+      "radiusM": 18
     }
   ],
   "waypoints": [
@@ -807,6 +1013,46 @@
       },
       "radiusM": 16,
       "label": "Mourner's Rest"
+    },
+    {
+      "id": "poi_kestrel_hold",
+      "zoneId": 2,
+      "pos": {
+        "x": 0,
+        "z": -120
+      },
+      "radiusM": 24,
+      "label": "Kestrel Hold"
+    },
+    {
+      "id": "poi_hollowmoor",
+      "zoneId": 2,
+      "pos": {
+        "x": -70,
+        "z": -40
+      },
+      "radiusM": 22,
+      "label": "Hollowmoor"
+    },
+    {
+      "id": "poi_cairnfield",
+      "zoneId": 2,
+      "pos": {
+        "x": 60,
+        "z": 10
+      },
+      "radiusM": 20,
+      "label": "Cairnfield"
+    },
+    {
+      "id": "poi_windward_scarp",
+      "zoneId": 2,
+      "pos": {
+        "x": -20,
+        "z": 80
+      },
+      "radiusM": 20,
+      "label": "Windward Scarp"
     }
   ],
   "landmarks": [
