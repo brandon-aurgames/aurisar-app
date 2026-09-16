@@ -106,6 +106,7 @@ import {
 } from './world/chest.js';
 import { clampMoveToMaxSpeed } from './world/moveGuard.js';
 import { contentPosToPx, resolveZone, WORLD_ORIGIN_PX } from './world/zones.js';
+import { resolveGateTravel } from './world/travel.js';
 import {
   equipItemForPlayer,
   unequipSlotForPlayer,
@@ -1215,6 +1216,67 @@ export const leaveDungeon = spacetimedb.reducer(
     });
 
     cleanupDungeonInstanceIfEmpty(ctx, leavingInstance);
+  }
+);
+
+/**
+ * Gate-based zone-to-zone travel (D155). Zone 2+ are offset regions on the
+ * shared px plane, not a contiguous terrain extension and not a dungeon
+ * instance — this reducer is the transition D155 calls for, modeled directly
+ * on enterDungeon/leaveDungeon above as the working mechanism to follow.
+ *
+ * Guard order mirrors enterDungeon's own chain:
+ *   • player exists and is alive — dead (hp/deadUntil) and stunned/rooted
+ *     (movementRestriction), the same guards movePlayer applies;
+ *   • the named gate resolves in the CURRENT zone (player.zoneId, D157), the
+ *     caller is within range of it, the destination zone/gate both actually
+ *     exist in the manifest (defensive — content validation should already
+ *     guarantee this, but a reducer must not trust content shape blindly at
+ *     runtime either), and the caller's level clears the destination zone's
+ *     levelBand floor — see world/travel.ts's resolveGateTravel for that
+ *     chain, kept there (not inlined) so it is unit-testable without a
+ *     spacetimedb/server runtime.
+ *
+ * Takes only the gate id the player claims to be standing at; the
+ * destination is derived from the gate's own toZoneId/toGateId. The
+ * proximity check reads the player's own stored x/y, never a client-supplied
+ * coordinate, so — unlike buildCampfire (PR #363 review, finding M1) — there
+ * is no spoofable claim here for a non-finite value to bypass.
+ *
+ * Inert today: zone 1's only gate (z1_north_pass) names toZoneId: 2, which
+ * has no manifest entry yet, so every call resolves to resolveGateTravel's
+ * 'bad-destination' rejection until a second zone ships (M10-2+).
+ */
+export const travelToZone = spacetimedb.reducer(
+  { gateId: t.string() },
+  (ctx, { gateId }) => {
+    const identity = ctx.sender;
+    const player = ctx.db.player.identity.find(identity);
+    if (!player) return;
+
+    const now = ctx.timestamp.microsSinceUnixEpoch;
+    if (player.hp <= 0 || player.deadUntil > now) return;
+    if (movementRestriction(playerAuraRows(ctx, identity), now).blocked) return;
+
+    const outcome = resolveGateTravel(player, player.zoneId, gateId, getPlayerLevel(ctx, identity));
+    if (!outcome.ok) return;
+
+    ctx.db.player.identity.update({
+      ...player,
+      x: outcome.x,
+      y: outcome.y,
+      isMoving: false,
+      // Re-derived from the position we are actually about to store, same as
+      // movePlayer/enterDungeon/leaveDungeon: the zoneId written must come
+      // from resolveZone, not trusted straight off the content's own
+      // toZoneId, in case a gate's declared position doesn't actually fall
+      // inside its destination zone's playable box.
+      zoneId: resolveZone(outcome.x, outcome.y).zoneId,
+      floorYM: 0,
+      // Teleports bypass the speed guard by writing the row directly, but
+      // must still restart its clock — see enterDungeon/leaveDungeon.
+      lastMoveAt: now,
+    });
   }
 );
 
