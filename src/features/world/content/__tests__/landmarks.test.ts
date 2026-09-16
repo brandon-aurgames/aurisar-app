@@ -34,6 +34,14 @@ import { EXTERIOR, ENTRY, INTERIOR_ANCHOR } from '../../castle/castlePlan.js';
 const dist = (a: { x: number; z: number }, b: { x: number; z: number }) =>
   Math.hypot(a.x - b.x, a.z - b.z);
 
+// Every assertion below is about ZONE 1's ground: LANDMARKS is zone 1's
+// generated landmark table, and `wg` is zone 1's worldgen. ALL_WAYPOINTS and
+// SPAWNS are cross-zone lists whose positions are zone-LOCAL metres, so a zone
+// 2 row measured against zone 1's terrain is a category error, not a finding.
+// Zone 2's equivalents live in zone2.test.ts; a zone 3 needs its own again.
+const zone1Waypoints = ALL_WAYPOINTS.filter((w) => w.zoneId === 1);
+const zone1Spawns = SPAWNS.filter((s) => s.zoneId === 1);
+
 describe('landmark integrity', () => {
   it('every landmark has a finite, uniquely-placed position', () => {
     for (const l of ALL_LANDMARKS) {
@@ -95,7 +103,7 @@ describe('waypoints resolve to landmarks', () => {
   };
 
   it('every POI sits exactly on the landmark it names', () => {
-    for (const w of ALL_WAYPOINTS) {
+    for (const w of zone1Waypoints) {
       const id = expected[w.id];
       expect(id, `waypoint ${w.id} has no landmark mapping`).toBeTruthy();
       expect(w.pos, `waypoint ${w.id}`).toEqual(landmarkPos(id));
@@ -103,7 +111,7 @@ describe('waypoints resolve to landmarks', () => {
   });
 
   it('covers every waypoint (no POI left hand-placed)', () => {
-    expect(ALL_WAYPOINTS.map((w) => w.id).sort()).toEqual(Object.keys(expected).sort());
+    expect(zone1Waypoints.map((w) => w.id).sort()).toEqual(Object.keys(expected).sort());
   });
 });
 
@@ -130,18 +138,18 @@ describe('mob camps', () => {
   };
 
   it('realize to their pinned positions', () => {
-    for (const s of SPAWNS) {
+    for (const s of zone1Spawns) {
       const want = REALIZED_SPAWNS[s.netId];
       expect(want, `spawn ${s.netId} missing from the position pin`).toBeTruthy();
       expect(s.pos, `spawn ${s.netId} moved`).toEqual(want);
     }
-    expect(SPAWNS.length).toBe(Object.keys(REALIZED_SPAWNS).length);
+    expect(zone1Spawns.length).toBe(Object.keys(REALIZED_SPAWNS).length);
   });
 
   it('sit within reach of the landmark they are anchored to', () => {
     // A camp more than 40 m from every landmark is orphaned — it belongs to no
     // POI, so no quest breadcrumb or map label can lead a player to it.
-    for (const s of SPAWNS) {
+    for (const s of zone1Spawns) {
       const nearest = Math.min(...ALL_LANDMARKS.map((l) => dist(s.pos, l)));
       expect(nearest, `spawn ${s.netId} is ${nearest.toFixed(1)}m from any landmark`)
         .toBeLessThanOrEqual(40);
@@ -157,13 +165,16 @@ describe('danger ↔ spawn coupling', () => {
   //
   //   expectedLevel = 1 + danger * 6,  |mobLevel - expectedLevel| <= 2
   //
+  // That is zone 1's level band [1,7] written out: band[0] + danger * span.
+  // Zone 2 asserts the same rule against its own band in zone2.test.ts.
+  //
   // Fix a failure by MOVING THE CAMP (its landmark offset) or retuning that
   // biome's danger — not by widening the tolerance.
   const TOLERANCE = 2;
   const wg = createWorldgen(zone1Config);
 
   it('every camp\'s mob level matches its biome danger', () => {
-    for (const s of SPAWNS) {
+    for (const s of zone1Spawns) {
       const mob = MOBS[s.mobType];
       expect(mob, `spawn ${s.netId}: unknown mobType ${s.mobType}`).toBeTruthy();
       const biome = wg.biomeAt(s.pos.x, s.pos.z);
