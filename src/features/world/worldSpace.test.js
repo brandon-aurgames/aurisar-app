@@ -49,17 +49,24 @@ describe('worldSpace — mapBounds', () => {
 
 describe('worldSpace — client/server constant parity', () => {
   // These constants are baked into live SpacetimeDB rows; the client (worldSpace)
-  // and the server (spacetimedb/src/index.ts) keep separate copies across the
-  // module boundary. This guard fails if they ever silently drift.
+  // and the server keep separate copies across the module boundary. This guard
+  // fails if they ever silently drift.
+  //
+  // The origin moved out of spacetimedb/src/index.ts (where it was
+  // WORLD_CENTER_PX, alongside the retired global movement clamp) into
+  // world/zones.ts, which is now the server's single definition of the px
+  // plane — per-zone boxes are all measured from it.
+  const zones = readFileSync(join(repoRoot, 'spacetimedb/src/world/zones.ts'), 'utf8');
   const server = readFileSync(join(repoRoot, 'spacetimedb/src/index.ts'), 'utf8');
-  const num = (re) => Number(server.match(re)?.[1]);
+  const num = (src, re) => Number(src.match(re)?.[1]);
 
-  it('WORLD_CENTER_PX matches worldSpace WORLD_ORIGIN_PX', () => {
-    expect(num(/WORLD_CENTER_PX\s*=\s*(\d+)/)).toBe(WORLD_ORIGIN_PX);
+  it('WORLD_ORIGIN_PX matches worldSpace WORLD_ORIGIN_PX', () => {
+    expect(num(zones, /WORLD_ORIGIN_PX\s*=\s*(\d+)/)).toBe(WORLD_ORIGIN_PX);
   });
 
-  it('PX_PER_M matches worldSpace PX_PER_M', () => {
-    expect(num(/const\s+PX_PER_M\s*=\s*(\d+)/)).toBe(PX_PER_M);
+  it('PX_PER_M matches worldSpace PX_PER_M in both server copies', () => {
+    expect(num(zones, /const\s+PX_PER_M\s*=\s*(\d+)/)).toBe(PX_PER_M);
+    expect(num(server, /const\s+PX_PER_M\s*=\s*(\d+)/)).toBe(PX_PER_M);
   });
 });
 

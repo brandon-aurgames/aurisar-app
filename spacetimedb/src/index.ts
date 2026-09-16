@@ -14,15 +14,17 @@
  *   world units → STDB px:   units * 32 + 1600    (client toStdb)
  *   Spawn at STDB (1600, 1600) = world origin.
  *
- * Server MOVEMENT bounds are an intentionally symmetric legacy clamp — distinct
- * from tile coverage. The tiling grid (world_build_config.tiling_streaming.
- * world_bounds_m) spans -1000..+1048 m (8 × 256), while the server clamps player
- * movement to a symmetric ±1000 m box; both comfortably contain the ~520 m
- * playable disc, so the difference is not player-visible. The px/meter/origin
- * constants mirror src/features/world/worldSpace.js (client source of truth).
- *   ±1000 world units → in STDB px: 1600 ± 32000 → [-30400, 33600]
- *   With 32 px (= 1 world unit) player half-width buffer: clamp to
- *   [-30368, 33568] on both axes.
+ * Server MOVEMENT bounds are PER-ZONE and derived from the content manifest —
+ * see world/zones.ts, which owns both the bounds and the px → zone mapping.
+ * Each zone gets a square box of ZoneDef.boundsHalfExtentM (default 1000 m)
+ * around its originOffsetM, less a 32 px (= 1 world unit) player half-width.
+ * Zone 1 sits at the origin and does not set the field, so its box is
+ * [-30368, 33568] on both axes — exactly the single global clamp this
+ * replaced. The tiling grid (world_build_config.tiling_streaming.
+ * world_bounds_m) spans -1000..+1048 m (8 × 256); both comfortably contain the
+ * ~520 m playable disc, so the difference is not player-visible. The
+ * px/meter/origin constants mirror src/features/world/worldSpace.js (client
+ * source of truth).
  */
 
 import { schema, table, t } from 'spacetimedb/server';
@@ -34,7 +36,6 @@ import {
   QUESTS,
   SPAWNS,
   WAYPOINTS,
-  ZONES_BY_ID,
 } from './content/index.js';
 import type { MobDef, QuestDef, QuestObjective, SpawnDef } from './content/types.js';
 import { worldLevelFromFitnessXp } from './content/formulas/xp.js';
@@ -104,6 +105,7 @@ import {
   playerNearLitCampfire,
 } from './world/chest.js';
 import { clampMoveToMaxSpeed } from './world/moveGuard.js';
+import { contentPosToPx, resolveZone, WORLD_ORIGIN_PX } from './world/zones.js';
 import {
   equipItemForPlayer,
   unequipSlotForPlayer,
@@ -142,12 +144,10 @@ import {
 } from './content/formulas/abilityResolve.js';
 import { mulberry32, seedFrom } from './content/formulas/combat.js';
 
-// World bounds in STDB px. Derived from world_build_config — see header.
-const WORLD_HALF_PX = 32000;        // 1000 world units * 32 px/unit
-const WORLD_CENTER_PX = 1600;       // legacy origin offset; mirrors client worldSpace.js WORLD_ORIGIN_PX
-const PLAYER_HALF_PX = 32;          // 1 world unit player half-width
-const WORLD_MIN_PX = WORLD_CENTER_PX - WORLD_HALF_PX + PLAYER_HALF_PX; // -30368
-const WORLD_MAX_PX = WORLD_CENTER_PX + WORLD_HALF_PX - PLAYER_HALF_PX; // 33568
+// World bounds are per-zone and content-derived — see world/zones.ts. The
+// constants that used to live here (WORLD_HALF_PX / WORLD_CENTER_PX /
+// PLAYER_HALF_PX / WORLD_MIN_PX / WORLD_MAX_PX) described one global box
+// around the origin; WORLD_ORIGIN_PX is imported from that module now.
 
 // ── Slice 5c combat / AI constants ───────────────────────────────────────────
 //
@@ -209,20 +209,6 @@ for (const spawn of SPAWNS) {
   for (let i = 0; i < spawn.count; i++) {
     spawnByNetId.set(`${spawn.netId}_${i}`, { spawn, mobDef, instanceIndex: i });
   }
-}
-
-/**
- * Content positions are zone-local meters; zones share one STDB px plane
- * offset by their manifest originOffsetM (zone 1 = origin for now).
- */
-function contentPosToPx(zoneId: number, pos: { x: number; z: number }): { x: number; y: number } {
-  const zone = ZONES_BY_ID[zoneId];
-  const ox = zone ? zone.originOffsetM.x : 0;
-  const oz = zone ? zone.originOffsetM.z : 0;
-  return {
-    x: Math.round((pos.x + ox) * PX_PER_M + WORLD_CENTER_PX),
-    y: Math.round((pos.z + oz) * PX_PER_M + WORLD_CENTER_PX),
-  };
 }
 
 /**
@@ -307,7 +293,13 @@ const spacetimedb = schema({
       y:            t.f32(),        // world Y position (pixels)
       direction:    t.u8(),         // 0=down 1=up 2=left 3=right
       isMoving:     t.bool(),       // for animation state
-      zoneId:       t.u8(),         // 0=hub 1=training 2=plaza
+      // Content ZoneDef.id of the zone this player is standing in (D157).
+      // Previously a separate hub/training/plaza scheme produced by
+      // detectZone's hardcoded pixel rectangles; nothing read those values, so
+      // the column was repurposed in place — same t.u8(), same position, no
+      // ADD COLUMN and no manual migration. Indexed because the zone-scoped
+      // player subscription filters on it.
+      zoneId:       t.u8().index('btree'),
       online:       t.bool(),       // true while connection is active
       // Appended columns — declared after the originals so the live table
       // gets ADD COLUMN semantics, not a manual reorder migration.
@@ -683,18 +675,19 @@ export const setPlayerInfo = spacetimedb.reducer(
         online: true,
       });
     } else {
-      // Spawn in the hub zone center
+      // Spawn at the world origin (zone 1's own origin, for now — ZoneDef's
+      // spawnPos is still unread; see manifest.ts).
       ctx.db.player.insert({
         identity,
         username: safeName,
         classType: safeClass,
         avatarColor,
         avatarConfig,
-        x: 1600,
-        y: 1600,
+        x: WORLD_ORIGIN_PX,
+        y: WORLD_ORIGIN_PX,
         direction: 0,
         isMoving: false,
-        zoneId: 0,
+        zoneId: resolveZone(WORLD_ORIGIN_PX, WORLD_ORIGIN_PX).zoneId,
         online: true,
         lastChatAt: 0n,
         lastAttackAt: 0n,
@@ -1001,10 +994,16 @@ export const movePlayer = spacetimedb.reducer(
     const control = movementRestriction(playerAuraRows(ctx, identity), nowMicros);
     if (control.blocked) return;
 
-    // World bounds: 64000x64000 px (2km x 2km world), with 32px player half-width buffer.
-    // See header for derivation from world_build_config.tiling_streaming.
-    const boundedX = Math.max(WORLD_MIN_PX, Math.min(WORLD_MAX_PX, x));
-    const boundedY = Math.max(WORLD_MIN_PX, Math.min(WORLD_MAX_PX, y));
+    // Per-zone world bounds (D156). resolveZone answers "which zone owns this
+    // px pair, and is it inside that zone's box" in one pass and hands back
+    // the claim clamped into it. Clamp, not reject: that is what the single
+    // global box did for zone 1 and what moveGuard.ts's own doc comment
+    // explains — a rejected move strands the stored row while the client keeps
+    // walking. An out-of-bounds claim is pulled to the nearest edge of the
+    // nearest zone, so no position the retired clamp accepted is refused here.
+    const bounded = resolveZone(x, y);
+    const boundedX = bounded.x;
+    const boundedY = bounded.y;
 
     // Speed ceiling on the claimed position. Bounds-clamping alone let a
     // modified client rewrite this row to anywhere in the disc between calls,
@@ -1092,8 +1091,10 @@ export const movePlayer = spacetimedb.reducer(
       nextFloorYM = 0;
     }
 
-    // Zone detection based on position
-    const zoneId = detectZone(clampedX, clampedY);
+    // Zone id from the content manifest, resolved against the position we are
+    // actually about to store — the speed guard and the castle-interior
+    // resolution above can both move the point after the bounds pass.
+    const zoneId = resolveZone(clampedX, clampedY).zoneId;
 
     // No-op dead-band: a row update is broadcast to EVERY subscriber, so a
     // call that changes nothing (client resend, isMoving heartbeat) must not
@@ -1164,7 +1165,7 @@ export const enterDungeon = spacetimedb.reducer(
       x: spawnPx.x,
       y: spawnPx.y,
       isMoving: false,
-      zoneId: detectZone(spawnPx.x, spawnPx.y),
+      zoneId: resolveZone(spawnPx.x, spawnPx.y).zoneId,
       dungeonInstanceId: instanceId,
       floorYM: CASTLE_LEVELS[1].y,
       // Teleports bypass the speed guard by writing the row directly, but they
@@ -1199,7 +1200,7 @@ export const leaveDungeon = spacetimedb.reducer(
     }
 
     const dungeon = DUNGEONS_BY_ID[instance.dungeonId];
-    const gatePx = dungeon ? zoneEntranceToPx(dungeon) : { x: WORLD_CENTER_PX, y: WORLD_CENTER_PX };
+    const gatePx = dungeon ? zoneEntranceToPx(dungeon) : { x: WORLD_ORIGIN_PX, y: WORLD_ORIGIN_PX };
     const leavingInstance = player.dungeonInstanceId;
 
     ctx.db.player.identity.update({
@@ -1207,7 +1208,7 @@ export const leaveDungeon = spacetimedb.reducer(
       x: gatePx.x,
       y: gatePx.y,
       isMoving: false,
-      zoneId: detectZone(gatePx.x, gatePx.y),
+      zoneId: resolveZone(gatePx.x, gatePx.y).zoneId,
       dungeonInstanceId: 0n,
       floorYM: 0,
       lastMoveAt: ctx.timestamp.microsSinceUnixEpoch,
@@ -1320,12 +1321,21 @@ export const buildCampfire = spacetimedb.reducer(
     if (player.hp <= 0 || player.deadUntil > nowMicros) return; // dead can't build
 
     // Must be placed within reach of where the server thinks the player is.
+    // Inverted (`!(... <= R*R)`, not `... > R*R`) so a non-finite x/y — the BSATN f32 decode is a
+    // bare DataView.getFloat32 with no validation, so a malformed client packet can send NaN —
+    // fails closed. `NaN > anything` is false, so the un-inverted guard let NaN through to
+    // resolveZone(NaN, NaN), which places a working, lit campfire at the first zone's centre on
+    // behalf of a player standing anywhere on the map (PR #363 review, finding M1).
     const dx = x - player.x;
     const dy = y - player.y;
-    if (dx * dx + dy * dy > CAMPFIRE_PLACE_RANGE_PX * CAMPFIRE_PLACE_RANGE_PX) return;
+    if (!(dx * dx + dy * dy <= CAMPFIRE_PLACE_RANGE_PX * CAMPFIRE_PLACE_RANGE_PX)) return;
 
-    const fx = Math.max(WORLD_MIN_PX, Math.min(WORLD_MAX_PX, x));
-    const fy = Math.max(WORLD_MIN_PX, Math.min(WORLD_MAX_PX, y));
+    // Same per-zone bounds the move path uses. The fire is placed within 3 m
+    // of the builder, so this only ever trims a claim the builder's own row
+    // could not have reached.
+    const placed = resolveZone(x, y);
+    const fx = placed.x;
+    const fy = placed.y;
 
     // Scan the caller's fires once for both the cooldown and the cap.
     let count = 0;
@@ -2279,11 +2289,11 @@ export const respawnPlayer = spacetimedb.reducer(
 
     ctx.db.player.identity.update({
       ...p,
-      x: WORLD_CENTER_PX,
-      y: WORLD_CENTER_PX,
+      x: WORLD_ORIGIN_PX,
+      y: WORLD_ORIGIN_PX,
       direction: 0,
       isMoving: false,
-      zoneId: detectZone(WORLD_CENTER_PX, WORLD_CENTER_PX),
+      zoneId: resolveZone(WORLD_ORIGIN_PX, WORLD_ORIGIN_PX).zoneId,
       hp: p.maxHp > 0 ? p.maxHp : PLAYER_MAX_HP,
       deadUntil: 0n,
       dungeonInstanceId: 0n,
@@ -2347,6 +2357,12 @@ export const clientConnected = spacetimedb.clientConnected((ctx) => {
       // Regen resumes from the connect; the pool itself was settled above through
       // regeneratedResource(), so time away counts at the same D94 rate.
       lastRegenAt: ctx.timestamp.microsSinceUnixEpoch,
+      // D157: backfills a row still carrying the legacy hub/training/plaza/wilderness scheme
+      // (0/1/2/3) to the content ZoneDef.id — this is the only always-reached write path for a
+      // player who reconnects without moving first (setPlayerInfo's existing-player branch
+      // spreads ...existing and movePlayer only runs after a move); every returning player's
+      // zoneId converges to the new scheme within one connect (PR #363 review, finding M2).
+      zoneId: resolveZone(existing.x, existing.y).zoneId,
     });
   }
   // If no row exists, setPlayerInfo will create one.
@@ -2372,24 +2388,10 @@ export const clientDisconnected = spacetimedb.clientDisconnected((ctx) => {
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Returns the zone ID for a given world position.
- *
- * Original gameplay zones occupy the inner 3200×3200 px area (their fixed
- * STDB px ranges). The surrounding 2km × 2km world is all Wilderness — that
- * is where the castle-approach biome lives and where future zones can attach.
- *
- *   Zone 0 — The Aurisar Hub:     (1200-2000, 1200-2000)
- *   Zone 1 — Training Grounds:    (0-1200, 0-1200)
- *   Zone 2 — Leaderboard Plaza:   (2000-3200, 2000-3200)
- *   Zone 3 — Wilderness:          everywhere else, including all new bounds
- */
-function detectZone(x: number, y: number): number {
-  if (x >= 1200 && x <= 2000 && y >= 1200 && y <= 2000) return 0; // Hub
-  if (x >= 0 && x <= 1200 && y >= 0 && y <= 1200) return 1;       // Training
-  if (x >= 2000 && x <= 3200 && y >= 2000 && y <= 3200) return 2; // Plaza
-  return 3; // Wilderness
-}
+// detectZone lived here: four hardcoded pixel rectangles (hub / training /
+// plaza / wilderness) that predated the content package and shared no ids with
+// it. Replaced by world/zones.ts's resolveZone (D157), which answers from the
+// manifest instead.
 
 function getPlayerLevel(ctx: any, identity: any): number {
   const row = ctx.db.playerProgress.identity.find(identity);
