@@ -28,6 +28,7 @@
     "terrain/zone1_tile_3_2.r16": "2d21ca311f0f18498a9c55a35933bf8a07a21295455d7b714119898325be0058",
     "terrain/zone1_tile_3_3.r16": "2d21ca311f0f18498a9c55a35933bf8a07a21295455d7b714119898325be0058",
     "worldgen/zone1_world.json": "18d5c870bd903ac6ea102b1a5d166ccff90fa59e0304f3e68da4888aac68b3e7",
-    "zones.json": "a006524d2e6ea50c97e4030ba35898e8eacb06e7c091c50ab6de71fd4f0f25af"
+    "worldgen/zone2_world.json": "54776584f4d3ae7840b9f3a97619a584779b05fb70d02c5de103b3736b4a79bd",
+    "zones.json": "42856dc3f75d673aaecffc154633141db2f2b4b42689be1c082bb6978c3e2f19"
   }
 }

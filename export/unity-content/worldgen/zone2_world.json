@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "name": "Zone Two",
+    "version": 1,
+    "source": "Original Aurisar layout. A cold moor plateau reached through Zone 1's northern pass; differentiated from Zone 1 by heightfield, biome weights and scatter density only — it reuses Zone 1's eight terrain layers and its one shared TerrainLit material (D159).",
+    "units": "1 unit = 1 meter = 32 SpacetimeDB px; zone origin = ZoneDef.originOffsetM (zone 2 = +3000 m on x) = STDB (97600,1600)",
+    "notes": "First-pass, deliberately thin (D162): three camps, one outpost, one switchback. scatter.chestCount is 0 on purpose — world chests are mirrored to the server through spacetimedb/src/manifests/world_chests.json, which is emitted from zone1_world.json only (scripts/emit_world_chests.mjs); giving zone 2 chests before that emitter is per-zone would create chests no reducer can open. Not read by the Unity exporter yet: scripts/lib/unity_export/content.mjs hardcodes worldgen/zone1_world.json (M10-3)."
+  },
+  "seed": 20260916,
+  "radius": 360,
+  "dayLengthSec": 1200,
+  "zones": {
+    "wildwood": { "x": -46, "z": 140, "r": 48, "margin": 56 },
+    "mountain": { "x": 150, "z": 175, "r": 165, "margin": 176, "peakH": 86 }
+  },
+  "lake": {
+    "name": "Blackmere",
+    "x": -120, "z": 40,
+    "bowlR": 22, "blend": 14, "depth": 2.2,
+    "level": -0.5, "lip": 0.06, "waterR": 19
+  },
+  "mountainPaths": [
+    { "w": 16, "pts": [
+      [95, 110, 6], [118, 138, 18], [140, 160, 34], [152, 178, 52]
+    ] }
+  ],
+  "plateaus": [
+    [0, -120, 26, 14, 1.2],
+    [-70, -40, 20, 12, 1.8],
+    [60, 10, 18, 12, 2.4],
+    [-20, 80, 18, 12, 3.2],
+    [152, 178, 30, 20, 52]
+  ],
+  "trails": [
+    [[0, -170], [0, -152], [0, -136], [0, -122]],
+    [[-6, -116], [-30, -90], [-54, -62], [-70, -44]],
+    [[6, -116], [30, -84], [50, -42], [60, 6]]
+  ],
+  "trailHalfWidth": 3.1,
+  "biomes": [
+    {
+      "name": "Kestrel Vale",
+      "ground": [0.62, 0.68, 0.44], "fog": "#97a084",
+      "grass": 0.9, "grassCol": [0.26, 0.4, 0.16],
+      "treeSkip": 0.7, "trees": ["broadleaf", "pine"],
+      "rockSkip": 0.66, "danger": 0.15
+    },
+    {
+      "name": "Cairnfield",
+      "ground": [0.55, 0.54, 0.48], "fog": "#6d6a63",
+      "grass": 0.3, "grassCol": [0.3, 0.3, 0.2],
+      "treeSkip": 0.78, "trees": ["dead"],
+      "rockSkip": 0.22, "danger": 0.45
+    },
+    {
+      "name": "Windward Scarp",
+      "ground": [0.6, 0.62, 0.62], "fog": "#7c8590",
+      "grass": 0.2, "grassCol": [0.3, 0.34, 0.22],
+      "treeSkip": 0.6, "trees": ["pine", "dead"],
+      "rockSkip": 0.1, "danger": 0.7
+    }
+  ],
+  "scatter": {
+    "treeCount": 420,
+    "rockCount": 300,
+    "bushCount": 140,
+    "detailCount": 440,
+    "ruinCount": 3,
+    "caveCount": 2,
+    "chestCount": 0,
+    "pondCount": 3,
+    "pondRadius": [5.5, 9]
+  },
+  "anchors": {
+    "kestrel_hold": { "x": 0, "z": -120, "name": "Kestrel Hold" },
+    "south_pass": { "x": 0, "z": -170, "name": "The South Pass" },
+    "graveyard": { "x": -26, "z": -150, "name": "Kestrel Rest" },
+    "hollowmoor": { "x": -70, "z": -40, "name": "Hollowmoor" },
+    "cairnfield": { "x": 60, "z": 10, "name": "Cairnfield" },
+    "windward_scarp": { "x": -20, "z": 80, "name": "Windward Scarp" }
+  },
+  "colors": {
+    "lakebedSilt": "#1b2220",
+    "trailDirt": "#6a5a44",
+    "beachSand": "#c9bea0"
+  },
+  "exclusions": [],
+  "biomeAnchors": [
+    { "x": 0, "z": -140, "b": 0, "note": "Kestrel Hold — sheltered vale floor" },
+    { "x": -70, "z": -40, "b": 0, "note": "Hollowmoor stalker ground" },
+    { "x": -120, "z": 40, "b": 0, "note": "Blackmere shore" },
+    { "x": 60, "z": 10, "b": 1, "note": "Cairnfield barrows" },
+    { "x": 110, "z": -60, "b": 1, "note": "east scree approach" },
+    { "x": -20, "z": 80, "b": 2, "note": "Windward Scarp raider camp" },
+    { "x": 120, "z": 160, "b": 2, "note": "scarp shoulder under the switchback" }
+  ]
+}

@@ -13,7 +13,7 @@ import { mulberry32 } from '../../../src/features/world/worldgen/rng.js';
 import { loadValidatedContent } from './loader.mjs';
 import { exportContent } from './content.mjs';
 import { exportWorldgen, SITE_KINDS } from './worldgen.mjs';
-import { exportTerrain, terrainPaths } from './terrain.mjs';
+import { exportTerrain, terrainPaths, hasTerrain } from './terrain.mjs';
 import { addManifest, jsonBytes, normalizeText, retainTerrain, sha256, writeOrCheck } from './manifest.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
@@ -40,8 +40,11 @@ function withFixture(run) {
 
 test('native TS loader validates content and exports ordered, lossless data', async () => {
   const c = await loadValidatedContent();
-  const { realized } = exportWorldgen(repoRoot);
-  const files = await exportContent(c, realized, repoRoot);
+  const realizedByZone = {};
+  for (const zone of c.ZONES) {
+    realizedByZone[zone.id] = exportWorldgen(repoRoot, zone).realized;
+  }
+  const files = await exportContent(c, realizedByZone, repoRoot);
   const parsed = (path) => JSON.parse(files.get(path));
   assert.deepEqual(parsed('classes.json').classes, c.CLASS_IDS.map((id) => c.CLASS_KITS[id]));
   assert.deepEqual(parsed('classes.json').abilities.map((ability) => ability.id),
@@ -54,8 +57,12 @@ test('native TS loader validates content and exports ordered, lossless data', as
         c.CLASS_IDS.filter((id) => quest.reward.itemIdsByClass[id] !== undefined));
     }
   }
-  assert.deepEqual(parsed('zones.json').realized, realized);
-  assert.deepEqual(Object.keys(parsed('zones.json').realized), SITE_KINDS);
+  assert.deepEqual(parsed('zones.json').schemaVersion, 2);
+  assert.deepEqual(parsed('zones.json').realized, realizedByZone);
+  assert.deepEqual(Object.keys(parsed('zones.json').realized), c.ZONES.map((zone) => String(zone.id)));
+  for (const zone of c.ZONES) {
+    assert.deepEqual(Object.keys(parsed('zones.json').realized[zone.id]), SITE_KINDS);
+  }
   assert.deepEqual(parsed('dungeons.json').dungeons, c.DUNGEONS);
 
   // Mutate the in-memory source graph only; no canonical files are edited.
@@ -124,6 +131,30 @@ test('terrain rejects non-finite/out-of-range heights and excessive sampled inte
     /Terrain analytic\/grid error exceeds/);
 });
 
+test('unbaked zones are skipped rather than exported or crashed on (M10-3, M10-8 bakes zone2 later)', async () => {
+  assert.equal(hasTerrain('zone1'), true);
+  assert.equal(hasTerrain('zone2'), false);
+  assert.throws(() => exportTerrain({ surfaceY: () => 0 }, 'zone2'), /not baked yet/);
+  assert.throws(() => terrainPaths('zone2'), /not baked yet/);
+
+  const c = await loadValidatedContent();
+  assert.deepEqual(c.ZONES.map((zone) => zone.key), ['zone1', 'zone2']);
+  const manifestPaths = Object.keys(JSON.parse(readFileSync(join(outputRoot, 'manifest.json'))).files);
+  assert.ok(manifestPaths.some((path) => path.startsWith('terrain/zone1_')));
+  assert.ok(manifestPaths.every((path) => !path.startsWith('terrain/zone2_')),
+    'zone2 has no baked terrain yet; the exporter must not invent placeholder terrain files');
+  assert.ok(manifestPaths.includes('worldgen/zone2_world.json'),
+    'zone2 worldgen config still exports even though its terrain does not');
+
+  const zones = JSON.parse(readFileSync(join(outputRoot, 'zones.json')));
+  assert.equal(zones.schemaVersion, 2);
+  assert.deepEqual(Object.keys(zones.realized), ['1', '2']);
+  assert.deepEqual(Object.keys(zones.realized['2']), SITE_KINDS);
+  // Zone 2 has no world-chest emitter of its own yet (scatter.chestCount: 0);
+  // an empty realized chest list for it is correct, not a bug.
+  assert.deepEqual(zones.realized['2'].chests, []);
+});
+
 test('committed pack hashes, raw castle copy, tile edges, all grid samples, and sidecar agree', () => {
   const manifest = JSON.parse(readFileSync(join(outputRoot, 'manifest.json')));
   assert.equal(manifest.schemaVersion, 1);
@@ -135,8 +166,8 @@ test('committed pack hashes, raw castle copy, tile edges, all grid samples, and 
     assert.equal(sha256(bytes), hash, path);
     if (!path.endsWith('.r16') && !path.endsWith('.bin')) {
       assert.deepEqual(bytes, normalizeText(bytes), path);
-      // The world config is a verbatim authored document, not reserialized JSON.
-      if (path !== 'worldgen/zone1_world.json') {
+      // Every zone's world config is a verbatim authored document, not reserialized JSON.
+      if (!path.startsWith('worldgen/')) {
         assert.equal(bytes.toString(), JSON.stringify(JSON.parse(bytes), null, 2) + '\n', path);
       }
     }
@@ -153,7 +184,7 @@ test('committed pack hashes, raw castle copy, tile edges, all grid samples, and 
   const tiles = new Map(sidecar.tiles.map((tile) =>
     [`${tile.ix},${tile.iz}`, readFileSync(join(outputRoot, 'terrain', tile.file))]));
   const at = (ix, iz, col, row) => tiles.get(`${ix},${iz}`).readUInt16LE((row * 513 + col) * 2);
-  const { wg } = exportWorldgen(repoRoot);
+  const { wg } = exportWorldgen(repoRoot, { key: 'zone1', worldConfig: 'zone1_world.json' });
   let min = Infinity, max = -Infinity, quantizationError = 0;
   for (const tile of sidecar.tiles) {
     assert.equal(tiles.get(`${tile.ix},${tile.iz}`).length, 526338);

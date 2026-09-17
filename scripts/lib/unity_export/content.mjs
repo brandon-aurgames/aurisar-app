@@ -37,7 +37,7 @@ async function formulas() {
   return { schemaVersion: 1, constants, tables };
 }
 
-export async function exportContent(content, realized, repoRoot) {
+export async function exportContent(content, realizedByZone, repoRoot) {
   const c = content;
   const classes = c.CLASS_IDS.map((id) => c.CLASS_KITS[id]);
   const abilitiesById = new Map(c.ALL_ABILITIES.map((ability) => [ability.id, ability]));
@@ -64,23 +64,28 @@ export async function exportContent(content, realized, repoRoot) {
     ['classes.json', jsonBytes({ schemaVersion: 1, classes, abilities })],
     ['items.json', jsonBytes({ schemaVersion: 1, items: c.ALL_ITEMS })],
     ['quests.json', jsonBytes({ schemaVersion: 1, quests })],
+    // schemaVersion 2 (M10-3): `realized` is now keyed by zone id (string) rather
+    // than being one flat site-kind object for the single zone that used to exist.
     ['zones.json', jsonBytes({
-      schemaVersion: 1,
+      schemaVersion: 2,
       zones: c.ZONES,
       npcs: c.ALL_NPCS,
       mobs: c.ALL_MOBS,
       spawns: c.SPAWNS,
       waypoints: c.ALL_WAYPOINTS,
       landmarks: c.ALL_LANDMARKS,
-      realized,
+      realized: realizedByZone,
     })],
     ['dungeons.json', jsonBytes({ schemaVersion: 1, dungeons: c.DUNGEONS })],
     ['formulas.json', jsonBytes(await formulas())],
   ]);
   // D50: preserve authored JSON formatting; only normalize Windows line endings.
-  files.set('worldgen/zone1_world.json', normalizeText(
-    readFileSync(join(repoRoot, 'src/features/world/config/zone1_world.json')),
-  ));
+  // Every zone the manifest defines ships its own worldConfig verbatim, not just zone1's.
+  for (const zone of c.ZONES) {
+    files.set(`worldgen/${zone.worldConfig}`, normalizeText(
+      readFileSync(join(repoRoot, 'src/features/world/config/', zone.worldConfig)),
+    ));
+  }
   for (const dungeon of c.DUNGEONS) {
     // M1 has one layout source. Fail on new layouts rather than guess their location.
     if (dungeon.layoutManifest !== 'castle_ashwood.json') {
