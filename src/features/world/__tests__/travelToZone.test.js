@@ -3,13 +3,24 @@
  *
  * Split the same way M10-1's own tests are (zoneBounds.test.js vs.
  * zoneOriginOffset.test.js): this file exercises `resolveGateTravel` against
- * the REAL, live content manifest (only zone 1 ships today), plus a
- * source-text check that the `travelToZone` reducer in index.ts actually
- * wires that helper in with the right guards. The multi-zone success/level/
- * wrong-zone cases that need a second zone live in
- * travelToZoneMultiZone.test.js instead, via the same manifest-mocking
- * technique zoneOriginOffset.test.js uses — real zone 2 content doesn't
- * exist on `main` yet (M10-2).
+ * the REAL, live content manifest, plus a source-text check that the
+ * `travelToZone` reducer in index.ts actually wires that helper in with the
+ * right guards. The multi-zone success/wrong-zone cases that don't depend on
+ * whatever real content happens to ship live in travelToZoneMultiZone.test.js
+ * instead, via the same manifest-mocking technique zoneOriginOffset.test.js
+ * uses.
+ *
+ * UPDATED (M10-2, PR #364 merging M10-1+M10-11+real Zone 2 content together):
+ * this file was originally written when zone 2 did not exist on `main` yet,
+ * and used that fact to test the destination-exists guard against real
+ * content (a well-formed claim through z1_north_pass came back
+ * 'bad-destination' because zone 2 was not in the manifest at all). Now that
+ * zone 2 is real (`levelBand: [7, 14]`, this same PR), that specific claim
+ * clears the destination-exists guard and is refused one guard later instead
+ * — 'level-too-low' — for a level-1 caller. The two cases below were updated
+ * to match; they still prove the same thing about guard ORDER (range, then
+ * destination-exists, then level), just against a different downstream
+ * reason now that there is a real destination to have a level floor at all.
  *
  * `resolveGateTravel` is pure (no `ctx`, no `spacetimedb/server` import), so
  * it is imported and called directly, same as `resolveZone`/`contentPosToPx`.
@@ -50,11 +61,14 @@ describe('resolveGateTravel against the real, live manifest (zone 1 only)', () =
     expect(NORTH_PASS.toGateId).toBe('z2_south_pass');
   });
 
-  it('is inert today: zone 2 does not exist yet, so a perfectly legal claim is refused', () => {
-    // The exact scenario the PR description calls out: this is the one case
-    // real content can exercise before Zone 2 ships (M10-2+).
+  it('zone 2 is real now (M10-2): a well-formed claim clears the destination-exists guard and is refused for level instead', () => {
+    // Was 'bad-destination' when zone 2 did not exist; now that it does
+    // (levelBand: [7, 14]), a level-1 caller clears every earlier guard and
+    // is refused by the level floor instead. Proves the destination-exists
+    // guard is satisfied, not skipped, now that there is a real zone 2 to
+    // find z2_south_pass in.
     const outcome = resolveGateTravel(gatePx, ZONE_1.id, 'z1_north_pass', 1);
-    expect(outcome).toEqual({ ok: false, reason: 'bad-destination' });
+    expect(outcome).toEqual({ ok: false, reason: 'level-too-low' });
   });
 
   it('rejects a nonexistent gate id', () => {
@@ -79,10 +93,10 @@ describe('resolveGateTravel against the real, live manifest (zone 1 only)', () =
   it('accepts a claim exactly on the range boundary (inclusive, like playerNearChest/playerNearNpc)', () => {
     const onBoundary = { x: gatePx.x + ZONE_GATE_RANGE_PX, y: gatePx.y };
     const outcome = resolveGateTravel(onBoundary, ZONE_1.id, 'z1_north_pass', 1);
-    // In range, but still refused downstream for the same bad-destination
+    // In range, and now (M10-2) refused downstream for the same level-too-low
     // reason as the direct-hit case above — proves range is checked BEFORE
-    // the destination-exists guard, per the reducer's documented order.
-    expect(outcome).toEqual({ ok: false, reason: 'bad-destination' });
+    // the destination-exists/level guards, per the reducer's documented order.
+    expect(outcome).toEqual({ ok: false, reason: 'level-too-low' });
   });
 
   it('rejects just past the range boundary', () => {

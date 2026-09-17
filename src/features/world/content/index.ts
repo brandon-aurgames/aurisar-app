@@ -26,6 +26,9 @@ import { MOBS as ZONE1_MOBS, SPAWNS as ZONE1_SPAWNS } from './zones/zone1/mobs';
 import { NPCS as ZONE1_NPCS } from './zones/zone1/npcs';
 import { QUESTS as ZONE1_QUESTS } from './zones/zone1/quests';
 import { WAYPOINTS as ZONE1_WAYPOINTS } from './zones/zone1/waypoints';
+import { MOBS as ZONE2_MOBS, SPAWNS as ZONE2_SPAWNS } from './zones/zone2/mobs';
+import { NPCS as ZONE2_NPCS } from './zones/zone2/npcs';
+import { WAYPOINTS as ZONE2_WAYPOINTS } from './zones/zone2/waypoints';
 import { DUNGEONS } from './dungeons/index';
 import { LANDMARKS, ALL_LANDMARKS } from './zones/zone1/landmarks.generated';
 
@@ -43,12 +46,19 @@ export type { LandmarkDef, LandmarkId } from './zones/zone1/landmarks.generated'
 // The raw ALL_* arrays keep authoring mistakes visible: the keyed maps
 // below would silently last-wins-swallow duplicate ids, so the validator
 // always checks the arrays.
+//
+// These are CROSS-ZONE lists. Every entry carries its own zoneId and its pos
+// is in that zone's local metres, so anything that maps a position onto zone
+// 1's terrain (its worldgen, its landmarks, its prop colliders, its map) must
+// filter by zoneId first — two zones' local frames are 3000 m apart on the
+// shared px plane, and an unfiltered consumer silently plots zone 2 content on
+// zone 1's ground.
 
-export const ALL_NPCS: NpcDef[] = [...ZONE1_NPCS];
+export const ALL_NPCS: NpcDef[] = [...ZONE1_NPCS, ...ZONE2_NPCS];
 export const ALL_QUESTS: QuestDef[] = [...ZONE1_QUESTS];
-export const ALL_MOBS: MobDef[] = [...ZONE1_MOBS];
-export const ALL_WAYPOINTS: WaypointDef[] = [...ZONE1_WAYPOINTS];
-export const SPAWNS: SpawnDef[] = [...ZONE1_SPAWNS];
+export const ALL_MOBS: MobDef[] = [...ZONE1_MOBS, ...ZONE2_MOBS];
+export const ALL_WAYPOINTS: WaypointDef[] = [...ZONE1_WAYPOINTS, ...ZONE2_WAYPOINTS];
+export const SPAWNS: SpawnDef[] = [...ZONE1_SPAWNS, ...ZONE2_SPAWNS];
 
 export const NPCS: Record<string, NpcDef> = Object.fromEntries(
   ALL_NPCS.map((n) => [n.id, n]),
@@ -173,10 +183,20 @@ export function validateContent(): string[] {
     }
     for (const gate of zone.gates) {
       const target = ZONES_BY_ID[gate.toZoneId];
-      // Gates may point at zones that ship in a later phase — only verify
-      // the back-link when the target zone exists.
-      if (target && !target.gates.some((g) => g.id === gate.toGateId)) {
+      // Gates may point at zones that ship in a later phase — the target-zone
+      // check stays tolerant of that. What is NOT tolerated is a half-wired
+      // pair once both ends exist: travel is a reducer that runs in both
+      // directions (M10-11), so a gate whose partner points somewhere else
+      // strands the player on the far side with no way home.
+      if (!target) continue;
+      const back = target.gates.find((g) => g.id === gate.toGateId);
+      if (!back) {
         err(`zone ${zone.key}: gate ${gate.id} targets missing gate ${gate.toGateId} in zone ${gate.toZoneId}`);
+      } else if (back.toZoneId !== zone.id || back.toGateId !== gate.id) {
+        err(
+          `zone ${zone.key}: gate ${gate.id} → zone ${gate.toZoneId}/${gate.toGateId}, ` +
+          `but that gate returns to zone ${back.toZoneId}/${back.toGateId}`,
+        );
       }
     }
   }
