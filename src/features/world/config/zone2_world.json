@@ -4,7 +4,7 @@
     "version": 1,
     "source": "Original Aurisar layout. A cold moor plateau reached through Zone 1's northern pass; differentiated from Zone 1 by heightfield, biome weights and scatter density only — it reuses Zone 1's eight terrain layers and its one shared TerrainLit material (D159).",
     "units": "1 unit = 1 meter = 32 SpacetimeDB px; zone origin = ZoneDef.originOffsetM (zone 2 = +3000 m on x) = STDB (97600,1600)",
-    "notes": "First-pass, deliberately thin (D162): three camps, one outpost, one switchback. scatter.chestCount is 0 on purpose — world chests are mirrored to the server through spacetimedb/src/manifests/world_chests.json, which is emitted from zone1_world.json only (scripts/emit_world_chests.mjs); giving zone 2 chests before that emitter is per-zone would create chests no reducer can open. Not read by the Unity exporter yet: scripts/lib/unity_export/content.mjs hardcodes worldgen/zone1_world.json (M10-3)."
+    "notes": "First-pass, deliberately thin (D162): three camps, one outpost, one switchback. scatter.chestCount is 0 on purpose — world chests are mirrored to the server through spacetimedb/src/manifests/world_chests.json, which is emitted from zone1_world.json only (scripts/emit_world_chests.mjs); giving zone 2 chests before that emitter is per-zone would create chests no reducer can open. Read by the Unity exporter as of M10-3 (scripts/lib/unity_export/content.mjs loops every zone's worldConfig); Zone 2 has no baked terrain yet, so its export/unity-content/terrain/zone2_* files don't exist until M10-8."
   },
   "seed": 20260916,
   "radius": 360,
