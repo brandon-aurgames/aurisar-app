@@ -43,6 +43,14 @@ describe('stretched-row overlay safeguard', () => {
     expect(css).toMatch(/\.stretch-row\s*\{[^}]*position:\s*relative/);
   });
 
+  it('clamps the exercise name so it cannot overflow a fixed virtualized row', () => {
+    // The picker renders fixed-height react-window rows. Before the clamp, a
+    // two-line name on a narrow phone overflowed its 60px slot and the cards
+    // overlapped (reported on deploy-preview-362). The name button must stay
+    // line-clamped so this can't come back.
+    expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?-webkit-line-clamp:\s*2/);
+  });
+
   it('applies .stretch-row wherever the stretched primary action is used', () => {
     for (const file of STRETCH_ROW_FILES) {
       const src = read(file);
