@@ -35,3 +35,6 @@ assets-source/terrain/**
 
 # Generated world plan vectors (regenerate with `pnpm run plan`); PNGs are kept.
 docs/world-plans/*.svg
+
+# Agent-managed git worktrees (never track; each is its own nested repo)
+.claude/worktrees/
