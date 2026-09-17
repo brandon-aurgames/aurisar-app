@@ -434,7 +434,10 @@
     .scroll-area.lib-list-locked{display:flex;flex-direction:column;overflow:hidden;padding-bottom:0;-webkit-mask-image:none;mask-image:none;overscroll-behavior:contain}
     .lib-tab-root--filtered{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
     .lib-filtered-view{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
-    .lib-vlist-wrap{flex:1 1 auto;min-height:0}
+    /* Height is set precisely in JS (measured against the viewport); this dvh
+       value is only the pre-measure fallback so the list is never zero-height
+       and always scrolls even before the ResizeObserver fires. */
+    .lib-vlist-wrap{flex:0 0 auto;min-height:0;position:relative;height:calc(100dvh - 280px)}
     .lib-vlist-wrap > [role="list"]{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 
     /* LIBRARY HOME SCROLL */
