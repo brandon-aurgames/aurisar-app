@@ -2,9 +2,10 @@ import { mulberry32 } from '../../../src/features/world/worldgen/rng.js';
 import { jsonBytes } from './manifest.mjs';
 
 // Per-zone bake parameters. Only zones with an entry here have had their
-// terrain baked (M10-8 adds Zone 2's); a zone missing here is skipped by the
-// exporter rather than treated as an error — its terrain simply doesn't
-// exist yet, which is the correct current state, not a bug.
+// terrain baked (M10-8 adds Zone 2's Unity-side bake, keyed off this export);
+// a zone missing here is skipped by the exporter rather than treated as an
+// error — its terrain simply doesn't exist yet, which is the correct current
+// state, not a bug.
 const ZONE_TERRAIN = {
   zone1: {
     tileCount: 4,
@@ -14,6 +15,32 @@ const ZONE_TERRAIN = {
     minHeight: -8,
     maxHeight: 136,
     sidecarSeed: 0x5EED1000,
+  },
+  // Zone 2 (M10-7a): playable area is much smaller than zone 1's — worldgen
+  // radius 360 (zone2_world.json), server accept box boundsHalfExtentM 400
+  // (content/zones/manifest.ts) — so the grid is scaled down from zone 1's,
+  // not copied. Same convention as zone1: resolution = tileSize + 1 (a valid
+  // Unity heightmap size, 2^n+1) and origin = -(tileCount*tileSize/2).
+  // tileCount*tileSize/2 = 512 m half-extent, comfortably covering the 400 m
+  // accept box (28% margin) the way zone1's 1024 m grid covers its 1000 m
+  // box. Height range picked from a direct surfaceY(x,z) sample sweep of the
+  // zone's own footprint (step=1 m, |x|,|z| <= 512), not guessed: measured
+  // min -2.6400 m at (-128, 37), max 59.9964 m at (147, 131) — mtnH's own
+  // gate (`d >= M.r` in heightfield.js) caps the mountain's influence at its
+  // r=165 radius, so this is the true, seed-stable range for this config;
+  // sampling out to a 640 m half-extent reproduced the identical min/max,
+  // confirming nothing further out grows the range. minHeight/maxHeight give
+  // ~1.4 m / ~4 m of headroom over that measured range. sidecarSeed is a
+  // distinct constant from zone1's so the two zones' independent RNG sample
+  // streams can never collide.
+  zone2: {
+    tileCount: 4,
+    tileSize: 256,
+    resolution: 257,
+    origin: -512,
+    minHeight: -4,
+    maxHeight: 64,
+    sidecarSeed: 0x5EED2000,
   },
 };
 
@@ -26,6 +53,17 @@ function zoneConfig(zoneKey) {
   const config = ZONE_TERRAIN[zoneKey];
   if (!config) throw new Error(`No terrain bake configuration for zone "${zoneKey}" (not baked yet).`);
   return config;
+}
+
+// M10-7a: splat.mjs's sample sweep used to hardcode zone1's own extent
+// (-1024 m origin, 2048 m span) because zone1 was the only baked zone. Zone
+// 2's much smaller grid (see ZONE_TERRAIN.zone2 above) needs its own extent,
+// so this getter is the one place both terrain.mjs and splat.mjs derive it
+// from — never a second hardcoded copy.
+/** Zone's baked grid extent in meters: origin (min x/z) and span (max - min). */
+export function terrainExtent(zoneKey) {
+  const { origin, tileCount, tileSize } = zoneConfig(zoneKey);
+  return { origin, span: tileCount * tileSize };
 }
 
 /** True for any zone with a registered terrain bake (see ZONE_TERRAIN above). */
