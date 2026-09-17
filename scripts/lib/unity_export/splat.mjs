@@ -58,12 +58,14 @@ function halton(index, base) {
   return value;
 }
 
-export function exportSplat(wg, terrainFiles) {
+export function exportSplat(wg, terrainFiles, zoneKey = 'zone1') {
   // Fixed pattern over the entire exported extent; no shared or derived RNG.
+  // Zone 1 is the only zone with a bake today, so it is the only extent this
+  // function is called for; a future per-zone extent lands with M10-8.
   const samples = Array.from({ length: 1000 }, (_, index) => {
     const x = -1024 + 2048 * halton(index + 1, 2);
     const z = -1024 + 2048 * halton(index + 1, 3);
-    const alt = gridHeight(terrainFiles, x, z);
+    const alt = gridHeight(terrainFiles, x, z, zoneKey);
     return { x, z, alt, weights: computeUnitySplat(wg, x, z, alt) };
   });
   return jsonBytes({
