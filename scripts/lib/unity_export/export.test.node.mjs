@@ -131,20 +131,25 @@ test('terrain rejects non-finite/out-of-range heights and excessive sampled inte
     /Terrain analytic\/grid error exceeds/);
 });
 
-test('unbaked zones are skipped rather than exported or crashed on (M10-3, M10-8 bakes zone2 later)', async () => {
+test('an unbaked zone is skipped rather than exported or crashed on (M9 precedent: zone3+ still has this shape)', () => {
+  assert.equal(hasTerrain('nosuchzone'), false);
+  assert.throws(() => exportTerrain({ surfaceY: () => 0 }, 'nosuchzone'), /not baked yet/);
+  assert.throws(() => terrainPaths('nosuchzone'), /not baked yet/);
+});
+
+test('zone1 and zone2 both have terrain baked (M10-7a); the exporter emits both, invents nothing for zones without an entry', async () => {
   assert.equal(hasTerrain('zone1'), true);
-  assert.equal(hasTerrain('zone2'), false);
-  assert.throws(() => exportTerrain({ surfaceY: () => 0 }, 'zone2'), /not baked yet/);
-  assert.throws(() => terrainPaths('zone2'), /not baked yet/);
+  assert.equal(hasTerrain('zone2'), true);
 
   const c = await loadValidatedContent();
   assert.deepEqual(c.ZONES.map((zone) => zone.key), ['zone1', 'zone2']);
   const manifestPaths = Object.keys(JSON.parse(readFileSync(join(outputRoot, 'manifest.json'))).files);
   assert.ok(manifestPaths.some((path) => path.startsWith('terrain/zone1_')));
-  assert.ok(manifestPaths.every((path) => !path.startsWith('terrain/zone2_')),
-    'zone2 has no baked terrain yet; the exporter must not invent placeholder terrain files');
-  assert.ok(manifestPaths.includes('worldgen/zone2_world.json'),
-    'zone2 worldgen config still exports even though its terrain does not');
+  assert.ok(manifestPaths.some((path) => path.startsWith('terrain/zone2_')));
+  assert.ok(manifestPaths.includes('terrain/zone2_terrain.json'));
+  assert.ok(manifestPaths.includes('terrain/zone2_splat.json'));
+  assert.equal(manifestPaths.filter((path) => path.startsWith('terrain/zone2_tile_')).length, 16);
+  assert.ok(manifestPaths.includes('worldgen/zone2_world.json'));
 
   const zones = JSON.parse(readFileSync(join(outputRoot, 'zones.json')));
   assert.equal(zones.schemaVersion, 2);
@@ -153,6 +158,58 @@ test('unbaked zones are skipped rather than exported or crashed on (M10-3, M10-8
   // Zone 2 has no world-chest emitter of its own yet (scatter.chestCount: 0);
   // an empty realized chest list for it is correct, not a bug.
   assert.deepEqual(zones.realized['2'].chests, []);
+});
+
+test('zone2 terrain: grid shape, height range, tile edges and analytic/grid + splat sidecar all agree', () => {
+  const sidecar = JSON.parse(readFileSync(join(outputRoot, 'terrain/zone2_terrain.json')));
+  assert.equal(sidecar.tiles.length, 16);
+  assert.equal(sidecar.samples.length, 1000);
+  assert.equal(sidecar.tileSizeM, 256);
+  assert.equal(sidecar.heightmapResolution, 257);
+  assert.deepEqual(sidecar.originM, { x: -512, z: -512 });
+  assert.deepEqual(sidecar.heightRange, { minMeters: -4, maxMeters: 64 });
+
+  const tiles = new Map(sidecar.tiles.map((tile) =>
+    [`${tile.ix},${tile.iz}`, readFileSync(join(outputRoot, 'terrain', tile.file))]));
+  const at = (ix, iz, col, row) => tiles.get(`${ix},${iz}`).readUInt16LE((row * 257 + col) * 2);
+  const { wg } = exportWorldgen(repoRoot, { key: 'zone2', worldConfig: 'zone2_world.json' });
+  let quantizationError = 0;
+  for (const tile of sidecar.tiles) {
+    assert.equal(tiles.get(`${tile.ix},${tile.iz}`).length, 257 * 257 * 2);
+    assert.deepEqual(tile.originM, { x: -512 + tile.ix * 256, z: -512 + tile.iz * 256 });
+    for (let row = 0; row <= 256; row++) {
+      for (let col = 0; col <= 256; col++) {
+        const analytic = wg.surfaceY(tile.originM.x + col, tile.originM.z + row);
+        const grid = -4 + at(tile.ix, tile.iz, col, row) / 65535 * 68;
+        assert.ok(analytic >= -4 && analytic <= 64, `zone2 height in range at (${tile.originM.x + col},${tile.originM.z + row})`);
+        quantizationError = Math.max(quantizationError, Math.abs(analytic - grid));
+      }
+      if (tile.ix < 3) assert.equal(at(tile.ix, tile.iz, 256, row), at(tile.ix + 1, tile.iz, 0, row));
+      if (tile.iz < 3) assert.equal(at(tile.ix, tile.iz, row, 256), at(tile.ix, tile.iz + 1, row, 0));
+    }
+  }
+  assert.ok(quantizationError <= 68 / 65535 / 2 + 1e-12);
+
+  const sidecarRng = mulberry32(0x5EED2000);
+  let maxError = 0;
+  for (const sample of sidecar.samples) {
+    const { x, z } = sample;
+    assert.equal(x, -512 + sidecarRng() * 1024);
+    assert.equal(z, -512 + sidecarRng() * 1024);
+    assert.equal(wg.surfaceY(x, z), sample.analytic);
+    maxError = Math.max(maxError, Math.abs(sample.analytic - sample.grid));
+  }
+  assert.ok(maxError <= 8);
+  console.log(`Zone2 max quantization error ${quantizationError} m; max sidecar analytic/grid error ${maxError} m.`);
+
+  const splat = JSON.parse(readFileSync(join(outputRoot, 'terrain/zone2_splat.json')));
+  assert.equal(splat.samples.length, 1000);
+  assert.equal(splat.samplePointRule, 'Halton indices 1..1000; x = -512 + 1024 * H2(i); z = -512 + 1024 * H3(i).');
+  for (const sample of splat.samples) {
+    assert.ok(sample.x >= -512 && sample.x <= 512 && sample.z >= -512 && sample.z <= 512);
+    assert.equal(sample.weights.length, 8);
+    assert.ok(Math.abs(sample.weights.reduce((sum, w) => sum + w, 0) - 1) < 1e-9);
+  }
 });
 
 test('committed pack hashes, raw castle copy, tile edges, all grid samples, and sidecar agree', () => {
