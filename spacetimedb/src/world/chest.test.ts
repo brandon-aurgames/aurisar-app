@@ -27,10 +27,21 @@ function oldChestPosToPx(chest: { x: number; z: number }): { x: number; y: numbe
 }
 
 describe('fixture sanity', () => {
-  it('the committed manifest has real Zone-1 chests, and none carry a zoneId yet', () => {
-    expect(chestManifest.chests.length).toBeGreaterThan(0);
-    for (const c of chestManifest.chests) {
-      expect((c as WorldChestDef).zoneId).toBeUndefined();
+  // M11-2 (D176) made the emitter per-zone: Zone-1 chests still carry no
+  // zoneId (the documented default), but the manifest now also carries real
+  // Zone-2 chests, each tagged explicitly. This replaces the pre-M11-2
+  // snapshot ("none carry a zoneId yet") now that it is no longer true.
+  it('the committed manifest has real Zone-1 chests with no zoneId', () => {
+    const zone1Chests = (chestManifest.chests as WorldChestDef[]).filter((c) => c.zoneId === undefined);
+    expect(zone1Chests.length).toBeGreaterThan(0);
+  });
+
+  it('the committed manifest also has real Zone-2 chests, explicitly tagged', () => {
+    const zone2Chests = (chestManifest.chests as WorldChestDef[]).filter((c) => c.zoneId === 2);
+    expect(zone2Chests.length).toBeGreaterThan(0);
+    for (const c of zone2Chests) {
+      expect(Number.isFinite(c.x)).toBe(true);
+      expect(Number.isFinite(c.z)).toBe(true);
     }
   });
 
@@ -40,8 +51,19 @@ describe('fixture sanity', () => {
 });
 
 describe('chestPosToPx: every real Zone-1 chest is unchanged within sub-pixel rounding (D173 item 1)', () => {
+  // Scoped to the manifest's Zone-1 subset: oldChestPosToPx is the retired
+  // zone-1-origin-only formula (D173), so comparing it against a Zone-2 chest
+  // would compare against the wrong zone's origin by construction, not prove
+  // anything about a regression. M11-2 (D176) made this an explicit filter
+  // now that the manifest carries more than one zone's chests.
+  const zone1Chests = (chestManifest.chests as WorldChestDef[]).filter((c) => c.zoneId === undefined);
+
+  it('the Zone-1 subset used by these tests is non-empty', () => {
+    expect(zone1Chests.length).toBeGreaterThan(0);
+  });
+
   it('every chest in the committed manifest is within 0.5 px per axis of the pre-fix formula', () => {
-    for (const chest of chestManifest.chests as WorldChestDef[]) {
+    for (const chest of zone1Chests) {
       const before = oldChestPosToPx(chest);
       const after = chestPosToPx(chest);
       expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(0.5);
@@ -55,7 +77,7 @@ describe('chestPosToPx: every real Zone-1 chest is unchanged within sub-pixel ro
     // maximizing |old - Math.round(old)| across both axes.
     let worst: WorldChestDef | null = null;
     let worstDelta = 0;
-    for (const chest of chestManifest.chests as WorldChestDef[]) {
+    for (const chest of zone1Chests) {
       const before = oldChestPosToPx(chest);
       const dx = Math.abs(before.x - Math.round(before.x));
       const dy = Math.abs(before.y - Math.round(before.y));
