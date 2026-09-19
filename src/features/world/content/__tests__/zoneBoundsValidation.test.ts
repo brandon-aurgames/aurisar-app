@@ -9,9 +9,11 @@
  * sharing a point makes that answer depend on manifest order, and a
  * non-positive extent makes a zone that no position can ever be inside.
  *
- * The manifest is mocked rather than extended with a real Zone 2 — Zone 2's
- * content is a separate task, and a fake entry in the real manifest would
- * reach the exporter and the Unity client.
+ * The manifest is mocked rather than extended with a real Zone 2 — a fake
+ * entry in the real manifest would reach the exporter and the Unity client.
+ * Zone 2 has since become real content, so the last block reaches past the
+ * mock with vi.importActual and checks the SHIPPING pair against the same
+ * rules, at Zone 2's raised 500 m extent (D175, M11-5).
  */
 import { describe, expect, it, vi } from 'vitest';
 
@@ -54,5 +56,37 @@ describe('zone box validation', () => {
     // Zone 3 sits 9000 m out — its box may be degenerate, but it must not also
     // be reported as overlapping anything.
     expect(errors.some((e) => /zone3_zero_extent.*overlap/.test(e))).toBe(false);
+  });
+});
+
+describe('the SHIPPING pair, past the mock, at zone 2\'s raised extent', () => {
+  // The rules above are proved non-inert against a broken manifest;
+  // integrity.test.ts proves they stay quiet on the live one. This block is
+  // the third thing neither covers: that the raise D175 performed (400 -> 500)
+  // did not push zone 2's box into zone 1's. `validateContent` reads the
+  // mocked list, so the check is done directly against the real numbers.
+  it('zone 1 and zone 2 still have disjoint playable boxes at 500 m', async () => {
+    const actual = await vi.importActual<typeof import('../zones/manifest')>('../zones/manifest');
+    const { zoneBoxPx } = await vi.importActual<
+      typeof import('../../../../../spacetimedb/src/world/zones')
+    >('../../../../../spacetimedb/src/world/zones');
+
+    const zone2 = actual.ZONES.find((z) => z.id === 2)!;
+    expect(zone2.boundsHalfExtentM).toBe(500);
+
+    const boxes = actual.ZONES.map(zoneBoxPx);
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i], b = boxes[j];
+        const overlap =
+          a.minX <= b.maxX && b.minX <= a.maxX &&
+          a.minY <= b.maxY && b.minY <= a.maxY;
+        expect(overlap, `zone ${a.zoneId} and zone ${b.zoneId} boxes overlap`).toBe(false);
+      }
+    }
+    // And every extent is positive, the other rule above.
+    for (const z of actual.ZONES) {
+      if (z.boundsHalfExtentM !== undefined) expect(z.boundsHalfExtentM).toBeGreaterThan(0);
+    }
   });
 });

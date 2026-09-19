@@ -67,6 +67,83 @@
           "radiusM": 2
         }
       ]
+    },
+    {
+      "id": "barrowdeep",
+      "name": "The Barrowdeep",
+      "minLevel": 12,
+      "entrance": {
+        "zoneId": 2,
+        "pos": {
+          "x": 101.5,
+          "z": -30
+        }
+      },
+      "layoutManifest": "barrowdeep.json",
+      "bossMobType": "cairn_thane",
+      "bossMechanics": {
+        "aoePulse": {
+          "everySec": 8,
+          "damage": 31,
+          "radiusM": 7
+        },
+        "enrage": {
+          "afterSec": 240,
+          "mult": 1.5
+        }
+      },
+      "spawns": [
+        {
+          "netId": "bd_fore",
+          "mobType": "cairn_wight",
+          "pos": {
+            "x": -17,
+            "z": 0
+          },
+          "count": 4,
+          "radiusM": 8
+        },
+        {
+          "netId": "bd_gallery",
+          "mobType": "frostbound_raider",
+          "pos": {
+            "x": 8,
+            "z": 0
+          },
+          "count": 4,
+          "radiusM": 7
+        },
+        {
+          "netId": "bd_burial",
+          "mobType": "cairn_wight",
+          "pos": {
+            "x": 11,
+            "z": 13
+          },
+          "count": 4,
+          "radiusM": 8
+        },
+        {
+          "netId": "bd_warden",
+          "mobType": "frostbound_raider",
+          "pos": {
+            "x": 32,
+            "z": -17
+          },
+          "count": 2,
+          "radiusM": 6
+        },
+        {
+          "netId": "bd_boss",
+          "mobType": "cairn_thane",
+          "pos": {
+            "x": -17,
+            "z": 0
+          },
+          "count": 1,
+          "radiusM": 2
+        }
+      ]
     }
   ]
 }

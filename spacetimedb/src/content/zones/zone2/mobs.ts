@@ -178,6 +178,58 @@ export const MOBS: MobDef[] = [
     copperMin: 200,
     copperMax: 200,
   },
+  {
+    // ── The Barrowdeep's boss (D169/D170, M11-5) ────────────────────────────
+    // Dungeon-ONLY: there is deliberately no SPAWNS entry for it below, the
+    // same arrangement Zone 1 uses for `gorrak` — the MobDef lives in its
+    // zone's roster because ALL_MOBS is assembled from the zone files, while
+    // the only thing that spawns it is the dungeon's own spawnMarkers
+    // (barrowdeep/barrowdeepPlan.js). Removing it would break the boss fight,
+    // not just a camp. Every level/band test above reads SPAWNS, so this entry
+    // is correctly invisible to them; L13 is the hole D168 left in the band on
+    // purpose, and this fills it.
+    //
+    // EVERY number below is DERIVED, not authored, and re-derived in
+    // barrowdeepPlan.test.js from the live rosters rather than copied from
+    // D170's worked example (which that decision explicitly requires):
+    //   curve(L) = 26*L + 4 (Zone 2's own exact regular-mob curve, above)
+    //   gorrak HP ratio  = 340 / curve(6) = 340 / 160 = 2.125
+    //   maxHp            = round(2.125 * curve(13)) = round(2.125 * 342) = 727
+    //   dmgCurve(L)      = 3*L - 1
+    //   gorrak dmg ratio = 20 / dmgCurve(6) = 20 / 17
+    //   dmgMin           = round(dmgCurve(13) * 20/17) = round(38 * 20/17) = 45
+    //   dmgMax           = dmgMin + (gorrak.dmgMax - gorrak.dmgMin) = 45 + 4 = 49
+    //   copper           = round(250 * dmgCurve(13)/dmgCurve(6) / 10) * 10 = 560
+    // attackSpeedSec/moveSpeed/aggro/leash continue `barrow_revenant`'s line
+    // (same family, same silhouette, the elite this boss escalates from);
+    // respawnSec is gorrak's own boss value. glbKey reuses one of the 8
+    // existing silhouettes (D172) at a larger authored height, which Unity's
+    // ImportTests.EveryMobPrefabMeasuresItsAuthoredHeight already gates.
+    mobType: 'cairn_thane',
+    name: 'The Cairn Thane',
+    family: 'undead',
+    level: 13,
+    maxHp: 727,
+    dmgMin: 45,
+    dmgMax: 49,
+    attackSpeedSec: 2.2,
+    moveSpeedMps: 3.8,
+    aggroRadiusM: 14,
+    leashRadiusM: 42,
+    respawnSec: 300,
+    glbKey: 'skeleton_minion',
+    lootTable: [
+      // Same shape as gorrak's (one guaranteed trophy + two uncommon armour
+      // pieces at 0.5), drawn only on items the catalog already ships — the
+      // Barrowdeep adds no items, per D168's own precedent for Zone 2 elites.
+      { itemId: 'ghostly_essence', chance: 1, min: 1, max: 1 },
+      { itemId: 'bone_fragments', chance: 0.6, min: 2, max: 3 },
+      { itemId: 'oiled_boots', chance: 0.5, min: 1, max: 1 },
+      { itemId: 'quilted_trousers', chance: 0.5, min: 1, max: 1 },
+    ],
+    copperMin: 560,
+    copperMax: 560,
+  },
 ];
 
 /**

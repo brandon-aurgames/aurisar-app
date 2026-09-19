@@ -6,6 +6,8 @@
 import { MOBS } from '../content/index.js';
 import { DUNGEONS } from '../content/dungeons/index.js';
 import { CASTLE_ASHWOOD_ENTRY, CASTLE_ASHWOOD_SPAWNS } from '../content/dungeons/castleAshwood.generated.js';
+import { BARROWDEEP_ENTRY, BARROWDEEP_INTERIOR_ANCHOR, BARROWDEEP_SPAWNS } from '../content/dungeons/barrowdeep.generated.js';
+import { BARROWDEEP_LEVELS, BARROWDEEP_ROOM_FLOOR_Y } from '../barrowdeep/navGrids.js';
 import { CASTLE_LEVELS, CASTLE_ROOM_FLOOR_Y } from '../castle/navGrids.js';
 import type { DungeonDef, DungeonSpawnDef, MobDef } from '../content/types.js';
 import { contentPosToPx, WORLD_ORIGIN_PX } from '../world/zones.js';
@@ -58,25 +60,55 @@ interface DungeonInteriorEntry {
   anchor: { x: number; z: number };
   spawnLocal: { x: number; z: number };
   exitHotspotLocal: { x: number; z: number };
+  /**
+   * True when this dungeon's interior walls resolve against
+   * castle/navGrids.ts's bitmaps specifically.
+   *
+   * Placement (anchor/spawn/exit, above) and wall collision are two different
+   * questions, and before a second dungeon existed one field answered both.
+   * The Barrowdeep answers them differently: its placement is fully resolved
+   * (its own anchor, its own zone), but its nav bitmaps live in
+   * barrowdeep/navGrids.ts and castle/surface.ts's scan closes over
+   * CASTLE_NAV_META / CASTLE_LEVELS / CASTLE_STAIRS, so it cannot read them.
+   * Answering "yes" here would resolve every step taken inside the Barrowdeep
+   * against Castle Ashwood's walls, ~3 km away in another zone — exactly the
+   * silent wrongness D174 item 3 exists to prevent.
+   */
+  castleNavBitmaps: boolean;
 }
 
-const DUNGEON_INTERIOR_ENTRY: Record<string, DungeonInteriorEntry> = {
+export const DUNGEON_INTERIOR_ENTRY: Record<string, DungeonInteriorEntry> = {
   castle_ashwood: {
     anchor: CASTLE_INTERIOR_ANCHOR,
     spawnLocal: CASTLE_ASHWOOD_ENTRY.spawnLocal,
     exitHotspotLocal: CASTLE_ASHWOOD_ENTRY.exitHotspotLocal,
+    castleNavBitmaps: true,
+  },
+  barrowdeep: {
+    // Zone-local to zone 2 (D175). Imported from the generated plan rather
+    // than re-typed the way CASTLE_INTERIOR_ANCHOR is, so the emitter is the
+    // only thing that can move it.
+    anchor: BARROWDEEP_INTERIOR_ANCHOR,
+    spawnLocal: BARROWDEEP_ENTRY.spawnLocal,
+    exitHotspotLocal: BARROWDEEP_ENTRY.exitHotspotLocal,
+    // See the field's doc comment: the Barrowdeep's own bitmaps are emitted
+    // and committed at barrowdeep/navGrids.ts, but nothing reads them yet.
+    // Interior wall collision inside the Barrowdeep is therefore NOT enforced
+    // server-side; movePlayer falls through to the outdoor px clamp, which
+    // zone 2's raised 500 m box (D175) now contains the whole interior
+    // footprint of, so no step inside it is clamped or rejected.
+    castleNavBitmaps: false,
   },
 };
 
 /**
- * True when `dungeonId` has interior data registered above — i.e. the
- * server can resolve wall collision for it through the castle nav-bitmap
- * system. False for any other id, INCLUDING a real dungeon with no row here
- * yet, rather than assuming every dungeon instance is Castle Ashwood's
- * (D174 item 3).
+ * True when `dungeonId`'s interior resolves against the CASTLE nav bitmaps.
+ * False for any other id — including a registered dungeon whose bitmaps live
+ * elsewhere, and including a real dungeon with no row here at all — rather
+ * than assuming every dungeon instance is Castle Ashwood's (D174 item 3).
  */
 export function dungeonUsesCastleInteriorNav(dungeonId: string): boolean {
-  return dungeonId in DUNGEON_INTERIOR_ENTRY;
+  return DUNGEON_INTERIOR_ENTRY[dungeonId]?.castleNavBitmaps === true;
 }
 
 /**
@@ -165,14 +197,31 @@ export function distSqPx(ax: number, ay: number, bx: number, by: number): number
   return dx * dx + dy * dy;
 }
 
-const dungeonSpawnFloorByNetId = new Map<string, number>(
-  CASTLE_ASHWOOD_SPAWNS.map((s) => [
+/**
+ * netId → the walkable floor Y its room sits on, for every dungeon.
+ *
+ * Built from each dungeon's OWN generated roomId → floor-Y table. Keying on
+ * netId alone is safe because netIds are globally unique (`ca_*` / `bd_*`,
+ * and dungeonSpawnByNetId above already assumes it); what is NOT safe is
+ * resolving a Barrowdeep netId against CASTLE_ROOM_FLOOR_Y, which is why this
+ * is two sources merged rather than one table with a widening fallback.
+ *
+ * The two dungeons agree on both level heights by construction (D171 reuses
+ * Castle Ashwood's level Y verbatim), so the shared default below is right for
+ * both — but the per-dungeon tables are what actually decide it.
+ */
+const dungeonSpawnFloorByNetId = new Map<string, number>([
+  ...CASTLE_ASHWOOD_SPAWNS.map((s) => [
     s.netId,
     CASTLE_ROOM_FLOOR_Y[s.roomId as keyof typeof CASTLE_ROOM_FLOOR_Y] ?? CASTLE_LEVELS[1].y,
-  ]),
-);
+  ] as [string, number]),
+  ...BARROWDEEP_SPAWNS.map((s) => [
+    s.netId,
+    BARROWDEEP_ROOM_FLOOR_Y[s.roomId as keyof typeof BARROWDEEP_ROOM_FLOOR_Y] ?? BARROWDEEP_LEVELS[1].y,
+  ] as [string, number]),
+]);
 
-/** Walkable floor Y (world meters) for a castle dungeon spawn netId. */
+/** Walkable floor Y (world meters) for a dungeon spawn netId. */
 export function dungeonSpawnFloorYM(netId: string): number {
   return dungeonSpawnFloorByNetId.get(netId) ?? CASTLE_LEVELS[1].y;
 }

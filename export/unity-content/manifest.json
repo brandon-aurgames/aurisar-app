@@ -2,7 +2,8 @@
   "schemaVersion": 1,
   "files": {
     "classes.json": "5d82eb9c5b1f3a21d734ed8b75e2d87a0da5cac59fe32a6f68c4807434a0ecdb",
-    "dungeons.json": "1393cbe498199b4d7b13f48f85224c58e2298fd381c13a900de6ef483aa51507",
+    "dungeons.json": "d31ed0b4c91906491a0b4fd17c72f42579ffedcda34862d023c4b357b6464485",
+    "dungeons/barrowdeep.json": "d08eaf384c5a30e13bbfe00c4e429f61da375ac698fbaea3444eaa69a9e51816",
     "dungeons/castle_ashwood.json": "cb9a0155cf96868f51d2f103389917727939eb81ad0cfc36e3d39bea6eb49cbc",
     "dungeons/castle_ashwood_blockers.json": "53764fc2675381f6a3093b4adef7c496e512bf04d24b02bd9efbf9e9830a8748",
     "dungeons/castle_ashwood_nav.bin": "a1a64be969905e204b1c067c6288d27f92925b4b4dee92a908d6b280861ad469",
@@ -47,6 +48,6 @@
     "terrain/zone2_tile_3_3.r16": "de7060262830d12c550b6cdb1f31124daa4e2c241af4b43d905ffc9cbbc3c041",
     "worldgen/zone1_world.json": "18d5c870bd903ac6ea102b1a5d166ccff90fa59e0304f3e68da4888aac68b3e7",
     "worldgen/zone2_world.json": "0ae959ace5e242568dfc64ea8d0705c4d80e14a6c149b8932a105dc6e06af3d1",
-    "zones.json": "b8bf067833e2bc7095a3592c081298c95d4f0435cb10f739fab859016653568d"
+    "zones.json": "57a2f9a041469ce7532422ecb91704cf5696f7ae659c042737c1afcb1be52d61"
   }
 }
