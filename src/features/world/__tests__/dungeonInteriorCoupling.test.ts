@@ -35,13 +35,13 @@ import {
   CASTLE_INTERIOR_ANCHOR,
   DUNGEON_INTERIOR_ENTRY,
   dungeonExitHotspotPx,
+  dungeonInteriorNavFor,
   dungeonSpawnFloorYM,
   dungeonSpawnPx,
-  dungeonUsesCastleInteriorNav,
   interiorLocalToPx,
   zoneEntranceToPx,
 } from '../../../../spacetimedb/src/dungeon/helpers.ts';
-import { DUNGEONS } from '../../../../spacetimedb/src/content/index.js';
+import { DUNGEONS, ZONES } from '../../../../spacetimedb/src/content/index.js';
 import { contentPosToPx } from '../../../../spacetimedb/src/world/zones.ts';
 import { CASTLE_LEVELS } from '../../../../spacetimedb/src/castle/navGrids.ts';
 import { BARROWDEEP_LEVELS } from '../../../../spacetimedb/src/barrowdeep/navGrids.ts';
@@ -139,7 +139,7 @@ describe('the divergence itself, kept visible rather than papered over', () => {
   });
 
   it('and an unregistered dungeon is never checked against Castle Ashwood\'s walls', () => {
-    expect(dungeonUsesCastleInteriorNav(unregistered.id)).toBe(false);
+    expect(dungeonInteriorNavFor(unregistered.id)).toBeNull();
   });
 });
 
@@ -171,32 +171,76 @@ describe('spawn floor heights resolve per dungeon, not through one shared table'
   });
 });
 
-describe('castle nav bitmaps are claimed only by the dungeon they actually describe', () => {
-  it('Castle Ashwood claims them; the Barrowdeep does not', () => {
-    // The Barrowdeep IS registered (so the fallbacks above never fire for it),
-    // but its bitmaps live in barrowdeep/navGrids.ts and castle/surface.ts's
-    // scan closes over Castle Ashwood's meta/levels/stairs. Saying "true" here
-    // would resolve every step taken inside the barrow against Ashwood's walls
-    // ~3 km away in another zone — D174 item 3 restated for a real second
-    // dungeon rather than a hypothetical one. Interior wall collision inside
-    // the Barrowdeep is therefore not enforced server-side yet; that is a
-    // stated gap with its own follow-up, not an accident.
-    expect(dungeonUsesCastleInteriorNav('castle_ashwood')).toBe(true);
-    expect(dungeonUsesCastleInteriorNav('barrowdeep')).toBe(false);
-    expect(DUNGEON_INTERIOR_ENTRY.castle_ashwood.castleNavBitmaps).toBe(true);
-    expect(DUNGEON_INTERIOR_ENTRY.barrowdeep.castleNavBitmaps).toBe(false);
+describe('every dungeon resolves against the nav bitmaps that actually describe IT (R21)', () => {
+  // This block used to pin `castleNavBitmaps: boolean` — "does this dungeon
+  // resolve against castle/navGrids.ts specifically" — and the Barrowdeep had
+  // to answer FALSE. That was the honest answer to the wrong question:
+  // castle/surface.ts's scan closed over Ashwood's meta/levels/stairs, so
+  // claiming them would have checked every step inside the barrow against
+  // Ashwood's walls ~3 km away in another zone, but answering "no" meant no
+  // wall collision inside it at all AND a player floorYM forced to 0 on the
+  // first step while the instance's mobs sat on 11.0 / 0.6 (D174 item 3).
+  //
+  // R21 replaced the boolean with a real per-dungeon grid reference, so the
+  // assertions below flip DELIBERATELY: the Barrowdeep now has interior nav,
+  // and what is pinned is that it is its OWN, never Ashwood's.
+  it('the Barrowdeep now has interior nav, and it is not Castle Ashwood\'s', () => {
+    const ashwood = dungeonInteriorNavFor('castle_ashwood');
+    const barrowdeep = dungeonInteriorNavFor('barrowdeep');
+    expect(ashwood).not.toBeNull();
+    expect(barrowdeep).not.toBeNull();
+    expect(barrowdeep).not.toBe(ashwood);
+    expect(ashwood!.meta.anchor).toEqual(CASTLE_INTERIOR_ANCHOR);
+    // Zone 2's own anchor (D175), three kilometres and a zone away.
+    expect(barrowdeep!.zoneId).toBe(2);
+    expect(barrowdeep!.meta.anchor).not.toEqual(CASTLE_INTERIOR_ANCHOR);
+    expect(DUNGEON_INTERIOR_ENTRY.castle_ashwood.nav).toBe(ashwood);
+    expect(DUNGEON_INTERIOR_ENTRY.barrowdeep.nav).toBe(barrowdeep);
   });
 
-  it('a dungeon whose interior is not in zone 1 can never claim them', () => {
-    // castle/surface.ts converts px with a zero origin offset throughout
-    // (pxToWorldM's own default), so its bitmaps are only addressable from
-    // zone 1. This is the structural version of the assertion above: it keeps
-    // holding when a fourth dungeon lands in zone 3.
-    for (const [id, entry] of Object.entries(DUNGEON_INTERIOR_ENTRY)) {
-      if (!entry.castleNavBitmaps) continue;
-      const dungeon = DUNGEONS.find((d) => d.id === id)!;
-      expect(dungeon.entrance.zoneId, `${id} claims castle nav bitmaps outside zone 1`).toBe(1);
-      expect(entry.anchor).toEqual(CASTLE_INTERIOR_ANCHOR);
+  it.each(DUNGEONS.map((d) => [d.id, d] as [string, DungeonDef]))(
+    '%s: its nav row names itself, its own zone, and its own placement anchor',
+    (_id, dungeon) => {
+      const entry = DUNGEON_INTERIOR_ENTRY[dungeon.id];
+      const nav = dungeonInteriorNavFor(dungeon.id);
+      expect(nav, `${dungeon.id} has no interior nav`).not.toBeNull();
+      // A row can only ever point at its own grids — the structural version of
+      // the retired boolean, and the thing that keeps holding for dungeon
+      // number three in zone 3.
+      expect(nav!.dungeonId).toBe(dungeon.id);
+      expect(nav!.zoneId, `${dungeon.id}'s interior resolves in the wrong zone`)
+        .toBe(dungeon.entrance.zoneId);
+      // Placement (interiorLocalToPx, which spawns the mobs) and wall
+      // collision (the nav scan) must share ONE origin, or mobs land where the
+      // grid says there is nothing.
+      expect(nav!.meta.anchor).toEqual(entry.anchor);
+      const zone = ZONES.find((z) => z.id === dungeon.entrance.zoneId)!;
+      expect(nav!.originOffsetM).toEqual(zone.originOffsetM);
+    },
+  );
+
+  it('no two interiors overlap in world metres, so no step can resolve in the wrong one', () => {
+    // The failure this rules out is the one the retired boolean was guarding
+    // against, restated as geometry instead of as a flag: if two dungeons'
+    // footprints ever intersected, a position inside both would resolve
+    // against whichever descriptor the caller happened to be holding.
+    const boxes = DUNGEONS.map((d) => {
+      const nav = dungeonInteriorNavFor(d.id)!;
+      const { anchor, bounds } = nav.meta;
+      return {
+        id: d.id,
+        x0: anchor.x + bounds.x0 + nav.originOffsetM.x,
+        x1: anchor.x + bounds.x1 + nav.originOffsetM.x,
+        z0: anchor.z + bounds.z0 + nav.originOffsetM.z,
+        z1: anchor.z + bounds.z1 + nav.originOffsetM.z,
+      };
+    });
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i], b = boxes[j];
+        const overlaps = a.x0 < b.x1 && b.x0 < a.x1 && a.z0 < b.z1 && b.z0 < a.z1;
+        expect(overlaps, `${a.id} and ${b.id} interiors overlap`).toBe(false);
+      }
     }
   });
 });

@@ -17,13 +17,25 @@ export function getDungeonForInstance(
   return DUNGEONS_BY_ID[inst.dungeonId] ?? null;
 }
 
+/**
+ * The boss-mechanics half of `getBossMechanicsForMob`, split out so a caller
+ * that already holds the instance's DungeonDef does not pay a second
+ * `dungeonInstance` lookup for it. `tickMobAI` now needs that DungeonDef
+ * anyway, to pick the dungeon's own interior nav grids (R21).
+ */
+export function bossMechanicsFor(
+  dungeon: DungeonDef | null,
+  mob: { mobType: string },
+): BossMechanics | null {
+  if (!dungeon || mob.mobType !== dungeon.bossMobType) return null;
+  return dungeon.bossMechanics;
+}
+
 export function getBossMechanicsForMob(
   ctx: { db: { dungeonInstance: { instanceId: { find: (id: bigint) => { dungeonId: string } | null } } } },
   mob: { mobType: string; dungeonInstanceId: bigint },
 ): BossMechanics | null {
-  const dungeon = getDungeonForInstance(ctx, mob.dungeonInstanceId);
-  if (!dungeon || mob.mobType !== dungeon.bossMobType) return null;
-  return dungeon.bossMechanics;
+  return bossMechanicsFor(getDungeonForInstance(ctx, mob.dungeonInstanceId), mob);
 }
 
 export function bossEnraged(

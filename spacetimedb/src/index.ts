@@ -48,7 +48,7 @@ import {
   dungeonExitHotspotPx,
   dungeonSpawnByNetId,
   dungeonSpawnPx,
-  dungeonUsesCastleInteriorNav,
+  dungeonInteriorNavFor,
   interiorLocalToPx,
   zoneEntranceToPx,
   dungeonSpawnFloorYM,
@@ -58,18 +58,17 @@ import {
   bossAoeRadiusPx,
   bossDamageMult,
   bossEnraged,
-  getBossMechanicsForMob,
+  bossMechanicsFor,
+  getDungeonForInstance,
   shouldBossAoePulse,
 } from './dungeon/bossMechanics.js';
-import { castleInteriorRecoverSurface } from './castle/surface.js';
 import {
-  castleInteriorResolveMove,
-  castleInteriorSurfaceAt,
-  pxToWorldM,
-  sameInteriorFloor,
-  worldMToPx,
-} from './castle/validate.js';
-import { CASTLE_LEVELS, CASTLE_STEP_DOWN, CASTLE_STEP_UP } from './castle/navGrids.js';
+  interiorFloorYAtPx,
+  interiorMobStepPx,
+  resolveInteriorStep,
+  type DungeonInteriorNav,
+} from './dungeon/interiorNav.js';
+import { sameInteriorFloor } from './castle/validate.js';
 import {
   addCopper,
   addItemStack,
@@ -916,18 +915,6 @@ export const setAvatarConfig = spacetimedb.reducer(
  * teleport them to origin when the timer fires.
  */
 /**
- * D92 recovery, bounded by the STORED floor: the claimed floorYM is client-controlled, so a
- * recovered surface must also lie within CASTLE_STEP_DOWN of the row's own floor. A freeze only
- * ever accumulates in sub-0.55 m steps (the strict window), so every real freeze is within reach,
- * while a spoofed claim of another level (floors are >= 9.6 m apart) is refused.
- */
-function recoverNearStoredFloor(wx: number, wz: number, claimedY: number, storedY: number) {
-  const recovered = castleInteriorRecoverSurface(wx, wz, claimedY);
-  if (!recovered || Math.abs(recovered.y - storedY) > CASTLE_STEP_DOWN) return null;
-  return recovered;
-}
-
-/**
  * Every `playerAura` row belonging to `owner`, taken as ONE pass (M9-6).
  *
  * `playerAura` has no index by owner, so each consumer that "just needs the
@@ -1027,9 +1014,9 @@ export const movePlayer = spacetimedb.reducer(
     let clampedX = guarded.x;
     let clampedY = guarded.y;
 
-    // Cheap no-op check BEFORE the castle-nav branch: identical inputs against
-    // an already-validated row resolve to the identical row, so bail before
-    // paying pxToWorldM/isInCastleInterior/surfaceAt for a resend. (The full
+    // Cheap no-op check BEFORE the interior-nav branch: identical inputs
+    // against an already-validated row resolve to the identical row, so bail
+    // before paying the px→m conversion and grid scan for a resend. (The full
     // post-computation dead-band below still catches zoneId/floor no-ops.)
     if (
       existing.x === clampedX && existing.y === clampedY &&
@@ -1039,74 +1026,49 @@ export const movePlayer = spacetimedb.reducer(
       return;
     }
 
-    // Castle Ashwood interior: reject moves into nav-blocked columns (walls,
-    // furniture footprints baked into emitted nav bitmaps). Outside the
-    // interior footprint this returns null and we fall through to normal px clamp.
-    const worldXM = pxToWorldM(clampedX);
-    const worldZM = pxToWorldM(clampedY);
     let nextFloorYM = existing.floorYM;
 
     // Which dungeon (if any) this instance actually belongs to — resolved
-    // from the instance row, not assumed from a nonzero dungeonInstanceId.
-    // Before this fix ANY instance ran the castle-nav branch below, i.e. was
-    // resolved against Castle Ashwood's own grids regardless of which
-    // dungeon it was (D174 item 3). Today Ashwood is still the only dungeon
-    // that registers interior data, so dungeonUsesCastleInteriorNav is true
-    // for every real instance and this is byte-identical; a hypothetical
-    // dungeon with no registered interior instead skips wall collision here
-    // (falls to the outdoor branch below) rather than being checked against
-    // the wrong dungeon's walls.
+    // from the instance row, not assumed from a nonzero dungeonInstanceId —
+    // and then that dungeon's OWN nav grids.
+    //
+    // This branch used to run against Castle Ashwood's grids for every
+    // instance (D174 item 3). M11-1 narrowed it to "the dungeon that claims
+    // Ashwood's bitmaps", which at the time meant Ashwood alone, so the
+    // Barrowdeep — a real, shipped dungeon whose own bitmaps were already
+    // committed — fell to the `else` below: no wall collision inside it at
+    // all, and its players' floorYM zeroed on their first step while the
+    // instance's mobs sat on 11.0 / 0.6. R21 routes the branch through the
+    // per-dungeon descriptor instead, so each dungeon is checked against its
+    // own walls and no dungeon is checked against another's.
     const activeDungeonInstance = existing.dungeonInstanceId > 0n
       ? ctx.db.dungeonInstance.instanceId.find(existing.dungeonInstanceId)
       : undefined;
     const activeDungeon = activeDungeonInstance
       ? DUNGEONS_BY_ID[activeDungeonInstance.dungeonId]
       : undefined;
+    const interiorNav: DungeonInteriorNav | null = activeDungeon
+      ? dungeonInteriorNavFor(activeDungeon.id)
+      : null;
 
-    // Interior rules apply only inside an instance whose dungeon actually has
-    // castle-nav data (D65 puts Ashwood's interior at world coordinates
+    // Interior rules apply only inside an instance whose dungeon has
+    // registered nav grids (D65 puts Ashwood's interior at world coordinates
     // 782..898 × -44..44, which the overworld also covers; an outdoor player
     // crossing that footprint must not be resolved against the castle grids).
-    if (activeDungeon && dungeonUsesCastleInteriorNav(activeDungeon.id)) {
-      // Strict resolution starts at the stored floor. D92 recovery is considered
-      // only after rejection, and still requires a real surface at the guarded XZ.
-      const refY = existing.floorYM > 0 ? existing.floorYM : CASTLE_LEVELS[1].y;
-
-      if (guarded.clamped) {
-        // A shortened step is projected along the straight chord to the claim,
-        // and indoors that chord can clip a wall even when both endpoints are
-        // walkable — so the guard could synthesise a nav-blocked point out of
-        // a legal move and wedge the row. Resolve it the same way the client
-        // resolves its own steps (wall-slide per axis, else stay put), which
-        // walks the corner the chord cut. castleInteriorResolveMove always
-        // returns a surface when the stored position has one, so a clamped
-        // step can no longer strand the row on a rejection.
-        const resolved = castleInteriorResolveMove(
-          pxToWorldM(existing.x), pxToWorldM(existing.y), worldXM, worldZM, refY,
-        );
-        if (!resolved.surface || (floorYM > 0 && Math.abs(floorYM - resolved.floorYM) > CASTLE_STEP_UP)) {
-          const recovered = recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
-          if (!recovered) return;
-          // Keep the upstream speed-clamped endpoint, never the unguarded claim.
-          nextFloorYM = recovered.y;
-        } else {
-          clampedX = worldMToPx(resolved.x);
-          clampedY = worldMToPx(resolved.z);
-          nextFloorYM = resolved.floorYM;
-        }
-      } else {
-        // Unclamped claims keep the strict all-or-nothing check: the client
-        // already wall-slides locally, so a blocked point here is spoofed or
-        // desynced and should be refused rather than quietly slid.
-        let surface = castleInteriorSurfaceAt(worldXM, worldZM, refY)
-          ?? recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
-        if (!surface) return;
-        if (floorYM > 0 && Math.abs(floorYM - surface.y) > CASTLE_STEP_UP) {
-          surface = recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
-          if (!surface) return;
-        }
-        nextFloorYM = surface.y;
-      }
+    // A dungeon with no interior row still skips wall collision here rather
+    // than being checked against the wrong dungeon's walls — but every shipped
+    // DungeonDef has one, pinned by dungeonInteriorCoupling.test.ts.
+    if (interiorNav) {
+      const step = resolveInteriorStep(
+        interiorNav,
+        existing.x, existing.y, existing.floorYM,
+        clampedX, clampedY, floorYM,
+        guarded.clamped,
+      );
+      if (!step) return;
+      clampedX = step.x;
+      clampedY = step.y;
+      nextFloorYM = step.floorYM;
     } else if (existing.floorYM !== 0) {
       nextFloorYM = 0;
     }
@@ -1184,6 +1146,15 @@ export const enterDungeon = spacetimedb.reducer(
     // being entered's own registered interior spawn point, falling back to
     // its gate (== gatePx above) when no interior entry is registered yet.
     const spawnPx = dungeonSpawnPx(dungeon);
+    // The ENTERED dungeon's own entry-storey floor, not Castle Ashwood's.
+    // This was `CASTLE_LEVELS[1].y` for every dungeon — correct today only by
+    // coincidence, since D171 gave the Barrowdeep Ashwood's level Y verbatim
+    // (the last surviving D174 item-1 literal). 0 when the dungeon registers
+    // no interior: dungeonSpawnPx then fell back to its outdoor gate, so the
+    // player is standing outside and 0 is what movePlayer's own else-branch
+    // would write on their first step anyway. Unreachable for shipped content
+    // — every DungeonDef has an interior row (dungeonInteriorCoupling.test.ts).
+    const entryFloorYM = dungeonInteriorNavFor(dungeonId)?.entryFloorYM ?? 0;
     ctx.db.player.identity.update({
       ...player,
       x: spawnPx.x,
@@ -1191,7 +1162,7 @@ export const enterDungeon = spacetimedb.reducer(
       isMoving: false,
       zoneId: resolveZone(spawnPx.x, spawnPx.y).zoneId,
       dungeonInstanceId: instanceId,
-      floorYM: CASTLE_LEVELS[1].y,
+      floorYM: entryFloorYM,
       // Teleports bypass the speed guard by writing the row directly, but they
       // must still restart its clock: leaving a stale lastMoveAt here would
       // hand the first step inside the interior a budget earned outdoors.
@@ -2219,7 +2190,11 @@ export const tickMobAI = spacetimedb.reducer(
       let nextLastAoeAt = mob.lastAoeAt;
       let nextEnraged = mob.enraged;
 
-      const bossMech = getBossMechanicsForMob(ctx, mob);
+      // One instance lookup per mob, reused for both the boss mechanics and
+      // the interior nav grids below — these used to be two separate
+      // dungeonInstance reads (the nav side not existing at all).
+      const mobDungeon = getDungeonForInstance(ctx, mob.dungeonInstanceId);
+      const bossMech = bossMechanicsFor(mobDungeon, mob);
       if (bossMech && nextSpawnedAt === 0n) nextSpawnedAt = now;
       if (bossMech) {
         nextEnraged = bossEnraged(bossMech, nextSpawnedAt, now, nextEnraged);
@@ -2240,17 +2215,24 @@ export const tickMobAI = spacetimedb.reducer(
       const dmgMult = bossMech ? bossDamageMult(bossMech, nextEnraged) : 1;
       const effectiveDamage = Math.round(attackDamage * dmgMult);
 
-      const inDungeon = mob.dungeonInstanceId > 0n;
-      if (inDungeon && nextFloorYM === 0) {
-        nextFloorYM = resolveMobFloorYM(mob.x, mob.y, 0);
+      // THIS mob's dungeon's own grids. Before R21 every dungeon mob stepped
+      // through Castle Ashwood's, with a zero origin offset: a Barrowdeep mob
+      // (zone 2, 3 km east) resolved to no surface at all, so
+      // castleInteriorResolveMove handed back its previous position and it
+      // never chased or returned. A dungeon with no registered interior now
+      // steps freely rather than being pinned by another dungeon's walls.
+      const mobNav = mobDungeon ? dungeonInteriorNavFor(mobDungeon.id) : null;
+      if (mob.dungeonInstanceId > 0n && nextFloorYM === 0) {
+        nextFloorYM = mobNav ? interiorFloorYAtPx(mobNav, mob.x, mob.y, 0) : 0;
       }
 
       const stepMob = (fromX: number, fromY: number, toX: number, toY: number) => {
-        if (inDungeon) {
-          return mobInteriorStepPx(fromX, fromY, toX, toY, moveStepPx, nextFloorYM);
-        }
         const step = stepToward(fromX, fromY, toX, toY, moveStepPx);
-        return { x: step.x, y: step.y, floorYM: nextFloorYM, arrived: step.arrived };
+        if (!mobNav) {
+          return { x: step.x, y: step.y, floorYM: nextFloorYM, arrived: step.arrived };
+        }
+        const slid = interiorMobStepPx(mobNav, fromX, fromY, step.x, step.y, nextFloorYM);
+        return { x: slid.x, y: slid.y, floorYM: slid.floorYM, arrived: step.arrived && slid.landed };
       };
 
       if (mob.state === 'returning' || homeDistSq > leashSq) {
@@ -2538,35 +2520,6 @@ function isValidMobTarget(
   if (player.dungeonInstanceId !== mob.dungeonInstanceId) return false;
   if (mob.dungeonInstanceId > 0n && !sameInteriorFloor(mobFloorYM, player.floorYM)) return false;
   return true;
-}
-
-/** Resolve mob floor Y from px position when floorYM was unset (migration backfill). */
-function resolveMobFloorYM(pxX: number, pxY: number, fallback: number): number {
-  const wx = pxToWorldM(pxX);
-  const wz = pxToWorldM(pxY);
-  for (const lv of CASTLE_LEVELS) {
-    const s = castleInteriorSurfaceAt(wx, wz, lv.y);
-    if (s) return s.y;
-  }
-  return fallback;
-}
-
-function mobInteriorStepPx(
-  fromX: number, fromY: number, toX: number, toY: number,
-  maxStepPx: number, floorYM: number,
-): { x: number; y: number; floorYM: number; arrived: boolean } {
-  const step = stepToward(fromX, fromY, toX, toY, maxStepPx);
-  const prevWX = pxToWorldM(fromX);
-  const prevWZ = pxToWorldM(fromY);
-  const nextWX = pxToWorldM(step.x);
-  const nextWZ = pxToWorldM(step.y);
-  const resolved = castleInteriorResolveMove(prevWX, prevWZ, nextWX, nextWZ, floorYM);
-  return {
-    x: worldMToPx(resolved.x),
-    y: worldMToPx(resolved.z),
-    floorYM: resolved.floorYM,
-    arrived: step.arrived && resolved.surface != null,
-  };
 }
 
 /**

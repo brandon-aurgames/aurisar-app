@@ -7,8 +7,18 @@ import { MOBS } from '../content/index.js';
 import { DUNGEONS } from '../content/dungeons/index.js';
 import { CASTLE_ASHWOOD_ENTRY, CASTLE_ASHWOOD_SPAWNS } from '../content/dungeons/castleAshwood.generated.js';
 import { BARROWDEEP_ENTRY, BARROWDEEP_INTERIOR_ANCHOR, BARROWDEEP_SPAWNS } from '../content/dungeons/barrowdeep.generated.js';
-import { BARROWDEEP_LEVELS, BARROWDEEP_ROOM_FLOOR_Y } from '../barrowdeep/navGrids.js';
+import {
+  BARROWDEEP_LEVELS,
+  BARROWDEEP_NAV_BITMAPS_B64,
+  BARROWDEEP_NAV_META,
+  BARROWDEEP_ROOM_FLOOR_Y,
+  BARROWDEEP_STAIRS,
+  BARROWDEEP_STEP_DOWN,
+  BARROWDEEP_STEP_UP,
+} from '../barrowdeep/navGrids.js';
 import { CASTLE_LEVELS, CASTLE_ROOM_FLOOR_Y } from '../castle/navGrids.js';
+import { CASTLE_INTERIOR_NAV } from '../castle/surface.js';
+import { makeInteriorNav, type DungeonInteriorNav } from './interiorNav.js';
 import type { DungeonDef, DungeonSpawnDef, MobDef } from '../content/types.js';
 import { contentPosToPx, WORLD_ORIGIN_PX } from '../world/zones.js';
 
@@ -61,28 +71,53 @@ interface DungeonInteriorEntry {
   spawnLocal: { x: number; z: number };
   exitHotspotLocal: { x: number; z: number };
   /**
-   * True when this dungeon's interior walls resolve against
-   * castle/navGrids.ts's bitmaps specifically.
+   * THIS dungeon's own interior nav grids — the descriptor every interior
+   * resolution path (movePlayer's wall collision and floor tracking, mob AI
+   * stepping, mob floor backfill) is routed through.
    *
-   * Placement (anchor/spawn/exit, above) and wall collision are two different
-   * questions, and before a second dungeon existed one field answered both.
-   * The Barrowdeep answers them differently: its placement is fully resolved
-   * (its own anchor, its own zone), but its nav bitmaps live in
-   * barrowdeep/navGrids.ts and castle/surface.ts's scan closes over
-   * CASTLE_NAV_META / CASTLE_LEVELS / CASTLE_STAIRS, so it cannot read them.
-   * Answering "yes" here would resolve every step taken inside the Barrowdeep
-   * against Castle Ashwood's walls, ~3 km away in another zone — exactly the
-   * silent wrongness D174 item 3 exists to prevent.
+   * This used to be `castleNavBitmaps: boolean`, i.e. "does this dungeon
+   * resolve against castle/navGrids.ts specifically", and the Barrowdeep had
+   * to answer `false`: its own bitmaps were emitted and committed but
+   * castle/surface.ts's scan closed over CASTLE_NAV_META / CASTLE_LEVELS /
+   * CASTLE_STAIRS, so claiming them would have checked every step inside the
+   * barrow against Ashwood's walls ~3 km away in another zone. Answering
+   * `false` meant no collision at all, plus a player floorYM forced to 0 while
+   * the instance's own mobs sat at 11.0 / 0.6 (D174 item 3; R21).
+   *
+   * A real grid reference answers both questions at once and cannot be wrong
+   * in that direction: a dungeon's row can only ever name its own grids.
    */
-  castleNavBitmaps: boolean;
+  nav: DungeonInteriorNav;
 }
+
+/**
+ * The Barrowdeep's interior nav descriptor (M11-5's emitted grids, wired up by
+ * R21). Zone-local to zone 2 — `BARROWDEEP_NAV_META.zoneId` is the emitter's
+ * own field, so the zone this resolves against comes from the generated data
+ * rather than from a literal here.
+ */
+const BARROWDEEP_INTERIOR_NAV: DungeonInteriorNav = makeInteriorNav({
+  dungeonId: 'barrowdeep',
+  zoneId: BARROWDEEP_NAV_META.zoneId,
+  meta: BARROWDEEP_NAV_META,
+  bitmapsB64: BARROWDEEP_NAV_BITMAPS_B64,
+  levels: BARROWDEEP_LEVELS,
+  stairs: BARROWDEEP_STAIRS,
+  stepUp: BARROWDEEP_STEP_UP,
+  stepDown: BARROWDEEP_STEP_DOWN,
+  // BARROWDEEP_LEVELS[1] is "gallery" (y = 11), the storey the entry passage
+  // and its spawn point sit on — the same relationship CASTLE_LEVELS[1]
+  // ("ground") has to Ashwood's. Pinned against a real scan of the committed
+  // bitmaps at BARROWDEEP_ENTRY.spawnLocal by dungeonInteriorNav.test.ts.
+  entryLevelIndex: 1,
+});
 
 export const DUNGEON_INTERIOR_ENTRY: Record<string, DungeonInteriorEntry> = {
   castle_ashwood: {
     anchor: CASTLE_INTERIOR_ANCHOR,
     spawnLocal: CASTLE_ASHWOOD_ENTRY.spawnLocal,
     exitHotspotLocal: CASTLE_ASHWOOD_ENTRY.exitHotspotLocal,
-    castleNavBitmaps: true,
+    nav: CASTLE_INTERIOR_NAV,
   },
   barrowdeep: {
     // Zone-local to zone 2 (D175). Imported from the generated plan rather
@@ -91,24 +126,22 @@ export const DUNGEON_INTERIOR_ENTRY: Record<string, DungeonInteriorEntry> = {
     anchor: BARROWDEEP_INTERIOR_ANCHOR,
     spawnLocal: BARROWDEEP_ENTRY.spawnLocal,
     exitHotspotLocal: BARROWDEEP_ENTRY.exitHotspotLocal,
-    // See the field's doc comment: the Barrowdeep's own bitmaps are emitted
-    // and committed at barrowdeep/navGrids.ts, but nothing reads them yet.
-    // Interior wall collision inside the Barrowdeep is therefore NOT enforced
-    // server-side; movePlayer falls through to the outdoor px clamp, which
-    // zone 2's raised 500 m box (D175) now contains the whole interior
-    // footprint of, so no step inside it is clamped or rejected.
-    castleNavBitmaps: false,
+    nav: BARROWDEEP_INTERIOR_NAV,
   },
 };
 
 /**
- * True when `dungeonId`'s interior resolves against the CASTLE nav bitmaps.
- * False for any other id — including a registered dungeon whose bitmaps live
- * elsewhere, and including a real dungeon with no row here at all — rather
- * than assuming every dungeon instance is Castle Ashwood's (D174 item 3).
+ * `dungeonId`'s OWN interior nav grids, or null when it has no interior row.
+ *
+ * Replaces `dungeonUsesCastleInteriorNav`, which could only ever answer "is
+ * this Castle Ashwood". Callers get the grids to resolve against instead of a
+ * yes/no about one particular dungeon's grids, so a dungeon that registers its
+ * own interior starts resolving correctly rather than not at all (D174 item 3,
+ * R21). Null still means "skip interior rules entirely" — never "check it
+ * against the wrong dungeon's walls".
  */
-export function dungeonUsesCastleInteriorNav(dungeonId: string): boolean {
-  return DUNGEON_INTERIOR_ENTRY[dungeonId]?.castleNavBitmaps === true;
+export function dungeonInteriorNavFor(dungeonId: string): DungeonInteriorNav | null {
+  return DUNGEON_INTERIOR_ENTRY[dungeonId]?.nav ?? null;
 }
 
 /**

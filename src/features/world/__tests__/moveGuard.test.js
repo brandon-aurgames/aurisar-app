@@ -196,17 +196,30 @@ describe('a clamped step cannot wedge the row', () => {
   // cross a wall even when both endpoints are walkable. Two safeguards keep a
   // shortened step from leaving the row stranded behind the avatar.
   const server = readFileSync(join(repoRoot, 'spacetimedb/src/index.ts'), 'utf8');
+  const interiorNav = readFileSync(
+    join(repoRoot, 'spacetimedb/src/dungeon/interiorNav.ts'), 'utf8',
+  );
   const scene = readFileSync(
     join(repoRoot, 'src/features/world/game/BabylonWorldScene.js'), 'utf8',
   );
 
   it('a clamped indoor step goes through the wall-slide resolver', () => {
-    const body = server.slice(server.indexOf('export const movePlayer'));
-    expect(body).toContain('if (guarded.clamped) {');
-    expect(body).toContain('castleInteriorResolveMove(');
+    // R21 lifted movePlayer's interior branch into the pure
+    // resolveInteriorStep so it could be parameterized per dungeon (and
+    // unit-tested — see dungeonInteriorNav.test.ts for the behaviour). The
+    // structural pin follows it there; movePlayer must still be the thing
+    // that calls it, which the second half checks.
+    const body = interiorNav.slice(interiorNav.indexOf('export function resolveInteriorStep'));
+    expect(body).toContain('if (guardClamped) {');
+    expect(body).toContain('interiorResolveMove(');
     // An unclamped claim must keep the strict all-or-nothing check, or
     // ordinary moves into walls would start being quietly slid instead.
-    expect(body).toMatch(/} else \{[\s\S]{0,400}castleInteriorSurfaceAt\([\s\S]{0,120}if \(!surface\) return;/);
+    expect(body).toMatch(/interiorSurfaceAt\([\s\S]{0,200}if \(!surface\) return null;/);
+
+    const mover = server.slice(server.indexOf('export const movePlayer'));
+    expect(mover).toContain('resolveInteriorStep(');
+    // ...and reject the move when it says no, rather than storing the claim.
+    expect(mover).toMatch(/if \(!step\) return;/);
   });
 
   it('the client feeds the server offset into the send decision', () => {
