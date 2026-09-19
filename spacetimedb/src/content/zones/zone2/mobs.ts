@@ -244,17 +244,22 @@ export const MOBS: MobDef[] = [
  * landmark, several landmarks with none) and its real rule — the one
  * landmarks.test.ts pins — is "every camp sits within reach (40m) of SOME
  * named landmark", not "every camp sits exactly on a POI's own coordinates".
- * Zone 2 has no generated landmark table yet (that is M11-3's job, per this
- * file's own prior note), so `zone2_world.json`'s `anchors` map stands in for
- * that broader landmark set here — it already plays the same role (a superset
- * of the POI list: south_pass/graveyard/barrowdeep are anchors with no POI of
- * their own, same shape as Zone 1's castle_gate/hollow_crypt/frostspire_summit).
- * zone2.test.ts now pins camps against "within 40m of the nearest anchor",
- * verified against every camp below, not against a bijection with POIs.
+ * At the time this note was written, Zone 2 had no generated landmark table
+ * yet, so `zone2_world.json`'s `anchors` map stood in for that broader set —
+ * it already played the same role (a superset of the POI list: south_pass/
+ * kestrel_rest/barrowdeep are anchors with no POI of their own, same shape as
+ * Zone 1's castle_gate/hollow_crypt/frostspire_summit). M11-3 (D177) has since
+ * generated Zone 2's real landmark table (a strict superset of the anchors),
+ * and zone2.test.ts's R17 assertion now pins camps against it directly
+ * ("within 40m of the nearest landmark") rather than the anchors stand-in —
+ * every camp below clears it unchanged.
  *
- * Positions are authored as literals rather than as landmark offsets (same
- * reason as before: no generated table yet), each placed within reach of the
- * anchor named in its own comment.
+ * Positions here are still authored as literals rather than as landmark
+ * offsets — M11-3's scope was the landmark table itself plus waypoints.ts and
+ * content/index.ts, not a rewrite of this file's camp positions. zone1/mobs.ts
+ * shows the target shape if a future pass takes this on: `at(L.landmark, dx,
+ * dz)` instead of a bare `{ x, z }` literal. Each position below is placed
+ * within reach of the anchor named in its own comment.
  */
 export const SPAWNS: SpawnDef[] = [
   // Hollowmoor (west) — the open moor the hold's west road runs out to.
@@ -267,7 +272,7 @@ export const SPAWNS: SpawnDef[] = [
   // 25m NE of the first — same anchor, same pattern as Zone 1's
   // z1_wolves_a/z1_wolves_b two-pack Greywood Run.
   { netId: 'z2_stalkers_b', mobType: 'moor_stalker', zoneId: 2, pos: { x: -58, z: -18 }, count: 5, radiusM: 18 },
-  // Near Kestrel Rest (the graveyard anchor) — the new regular type's camp.
+  // Near Kestrel Rest (the kestrel_rest anchor) — the new regular type's camp.
   { netId: 'z2_bulls', mobType: 'moor_bull', zoneId: 2, pos: { x: -46, z: -150 }, count: 6, radiusM: 20 },
   // Between the wight camp and the Barrowdeep gate — 20m from z2_wights,
   // clear of the barrow's own exclusion disc (r=26, >26m away).

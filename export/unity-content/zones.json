@@ -1241,6 +1241,16 @@
       },
       "radiusM": 20,
       "label": "Windward Scarp"
+    },
+    {
+      "id": "poi_barrowdeep",
+      "zoneId": 2,
+      "pos": {
+        "x": 101.5,
+        "z": -30
+      },
+      "radiusM": 12,
+      "label": "The Barrowdeep"
     }
   ],
   "landmarks": [
@@ -1333,6 +1343,72 @@
       "name": "The Wildwood",
       "x": -5,
       "z": 110
+    },
+    {
+      "id": "barrowdeep",
+      "name": "The Barrowdeep",
+      "x": 125,
+      "z": -30
+    },
+    {
+      "id": "barrowdeep_gate",
+      "name": "The Barrowdeep Gate",
+      "x": 101.5,
+      "z": -30
+    },
+    {
+      "id": "blackmere",
+      "name": "Blackmere",
+      "x": -120,
+      "z": 40
+    },
+    {
+      "id": "cairnfield",
+      "name": "Cairnfield",
+      "x": 60,
+      "z": 10
+    },
+    {
+      "id": "hollowmoor",
+      "name": "Hollowmoor",
+      "x": -70,
+      "z": -40
+    },
+    {
+      "id": "kestrel_hold",
+      "name": "Kestrel Hold",
+      "x": 0,
+      "z": -120
+    },
+    {
+      "id": "kestrel_rest",
+      "name": "Kestrel Rest",
+      "x": -26,
+      "z": -150
+    },
+    {
+      "id": "south_pass",
+      "name": "The South Pass",
+      "x": 0,
+      "z": -170
+    },
+    {
+      "id": "windward_scarp",
+      "name": "Windward Scarp",
+      "x": -20,
+      "z": 80
+    },
+    {
+      "id": "windward_scarp_summit",
+      "name": "Windward Scarp Summit",
+      "x": 152,
+      "z": 178
+    },
+    {
+      "id": "z2_wildwood",
+      "name": "The Wildwood",
+      "x": -46,
+      "z": 140
     }
   ],
   "realized": {
