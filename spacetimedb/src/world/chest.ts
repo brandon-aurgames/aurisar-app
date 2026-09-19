@@ -11,9 +11,9 @@ import {
   removeItemStack,
   type InventoryCtx,
 } from '../inventory/helpers.js';
+import { contentPosToPx } from '../world/zones.js';
 
 const PX_PER_M = 32;
-const STDB_CENTER_PX = 1600;
 const CHEST_OPEN_RANGE_M = 2.5;
 const CHEST_OPEN_RANGE_PX = CHEST_OPEN_RANGE_M * PX_PER_M;
 const CHEST_OPEN_RANGE_SQ = CHEST_OPEN_RANGE_PX * CHEST_OPEN_RANGE_PX;
@@ -25,6 +25,17 @@ export interface WorldChestDef {
   x: number;
   z: number;
   seed: number;
+  /**
+   * Content ZoneDef.id this chest's x/z are zone-local meters relative to.
+   * Optional because the committed manifest (world_chests.json, emitted only
+   * from zone1_world.json today) predates this field entirely — D173 found
+   * chestPosToPx folding every chest's position against zone 1's origin
+   * unconditionally, with nowhere on WorldChestDef to say otherwise.
+   * chestPosToPx defaults a missing zoneId to 1, so every existing chest
+   * resolves exactly as before; a future per-zone emitter (M11-2) populates
+   * this explicitly for any non-Zone-1 chest.
+   */
+  zoneId?: number;
 }
 
 const WORLD_CHESTS: WorldChestDef[] = chestManifest.chests;
@@ -41,12 +52,25 @@ export function getWorldChest(chestId: number): WorldChestDef | null {
   return WORLD_CHESTS_BY_ID.get(chestId) ?? null;
 }
 
-/** Zone-1 chest world meters → STDB px (origin offset is zero). */
+/**
+ * Chest world meters → STDB px, resolved against the chest's OWN zone origin
+ * through the one copy of this arithmetic (world/zones.ts's contentPosToPx)
+ * instead of always zone 1's (D173 item 1 — this function's own doc comment
+ * used to admit "origin offset is zero", and WorldChestDef had no zoneId at
+ * all to say otherwise; a Zone-2 chest placed through the old code would
+ * have sat ~3 km away, inside zone 1).
+ *
+ * `chest.zoneId` defaults to 1 (see WorldChestDef's own doc comment) —
+ * zone 1's origin offset is {0, 0}, so this reproduces the pre-fix
+ * conversion for every chest in the committed manifest today, modulo
+ * contentPosToPx's Math.round: the old formula never rounded, so a chest at
+ * a fractional world-meter position could sit up to 0.5 px off on each axis
+ * from before. That cannot change a playerNearChest verdict — the open
+ * range is 80 px — and the shared helper matters more than sub-pixel
+ * fidelity for content that only exists to be walked up to and opened.
+ */
 export function chestPosToPx(chest: WorldChestDef): { x: number; y: number } {
-  return {
-    x: chest.x * PX_PER_M + STDB_CENTER_PX,
-    y: chest.z * PX_PER_M + STDB_CENTER_PX,
-  };
+  return contentPosToPx(chest.zoneId ?? 1, { x: chest.x, z: chest.z });
 }
 
 export function playerNearChest(
