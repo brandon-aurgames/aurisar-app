@@ -62,15 +62,19 @@ export const ALL_MOBS: MobDef[] = [...ZONE1_MOBS, ...ZONE2_MOBS];
 export const ALL_WAYPOINTS: WaypointDef[] = [...ZONE1_WAYPOINTS, ...ZONE2_WAYPOINTS];
 export const SPAWNS: SpawnDef[] = [...ZONE1_SPAWNS, ...ZONE2_SPAWNS];
 
-// Landmarks are the one exception to "every cross-zone entry carries its own
-// zoneId": LandmarkDef has no zoneId field (each zone's landmarks.generated.ts
-// is already its own closed namespace). ALL_LANDMARKS below is the first
-// place that spans more than one zone, so a same-named concept in two zones
-// (a lake, a wildwood) is fine — only `id` must stay globally unique, which
-// is what dupCheck('landmark id', …) in validateContent() now guards, the
-// same way it already guards npc/quest/mobType/waypoint/spawn ids. Zone 1's
-// own keyed LANDMARKS object and landmarkPos() helper stay zone-1-only
-// (re-exported above) — nothing yet needs a cross-zone version of those two.
+// LandmarkDef carries a real zoneId field (M11-6), the same shape as
+// npc/spawn/waypoint: a Unity-side (or any other) consumer of the flattened
+// ALL_LANDMARKS array can tell which zone's local frame a row's x/z is
+// relative to without guessing. (Before M11-6 this was the one cross-zone
+// list without one — carried forward from M11-3's review, both an Opus
+// reviewer and GitHub's automated Codex bot independently flagged it.)
+// ALL_LANDMARKS below is still the first place that spans more than one
+// zone, so a same-named concept in two zones (a lake, a wildwood) is fine —
+// only `id` must stay globally unique, which is what dupCheck('landmark
+// id', …) in validateContent() guards, the same way it already guards
+// npc/quest/mobType/waypoint/spawn ids. Zone 1's own keyed LANDMARKS object
+// and landmarkPos() helper stay zone-1-only (re-exported above) — nothing
+// yet needs a cross-zone version of those two.
 export const ALL_LANDMARKS: LandmarkDef[] = [...ZONE1_LANDMARKS, ...ZONE2_LANDMARKS];
 
 export const NPCS: Record<string, NpcDef> = Object.fromEntries(
@@ -183,6 +187,9 @@ export function validateContent(): string[] {
   }
   for (const wp of Object.values(WAYPOINTS)) {
     if (!ZONES_BY_ID[wp.zoneId]) err(`waypoint ${wp.id}: unknown zoneId ${wp.zoneId}`);
+  }
+  for (const l of ALL_LANDMARKS) {
+    if (!ZONES_BY_ID[l.zoneId]) err(`landmark ${l.id}: unknown zoneId ${l.zoneId}`);
   }
 
   // Zones
