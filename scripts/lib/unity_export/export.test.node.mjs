@@ -172,7 +172,7 @@ test('zone2 terrain: grid shape, height range, tile edges and analytic/grid + sp
   const tiles = new Map(sidecar.tiles.map((tile) =>
     [`${tile.ix},${tile.iz}`, readFileSync(join(outputRoot, 'terrain', tile.file))]));
   const at = (ix, iz, col, row) => tiles.get(`${ix},${iz}`).readUInt16LE((row * 257 + col) * 2);
-  const { wg } = exportWorldgen(repoRoot, { key: 'zone2', worldConfig: 'zone2_world.json' });
+  const { wg } = exportWorldgen(repoRoot, { id: 2, key: 'zone2', worldConfig: 'zone2_world.json' });
   let quantizationError = 0;
   for (const tile of sidecar.tiles) {
     assert.equal(tiles.get(`${tile.ix},${tile.iz}`).length, 257 * 257 * 2);
@@ -241,7 +241,7 @@ test('committed pack hashes, raw castle copy, tile edges, all grid samples, and 
   const tiles = new Map(sidecar.tiles.map((tile) =>
     [`${tile.ix},${tile.iz}`, readFileSync(join(outputRoot, 'terrain', tile.file))]));
   const at = (ix, iz, col, row) => tiles.get(`${ix},${iz}`).readUInt16LE((row * 513 + col) * 2);
-  const { wg } = exportWorldgen(repoRoot, { key: 'zone1', worldConfig: 'zone1_world.json' });
+  const { wg } = exportWorldgen(repoRoot, { id: 1, key: 'zone1', worldConfig: 'zone1_world.json' });
   let min = Infinity, max = -Infinity, quantizationError = 0;
   for (const tile of sidecar.tiles) {
     assert.equal(tiles.get(`${tile.ix},${tile.iz}`).length, 526338);

@@ -8,9 +8,14 @@ export const SITE_KINDS = [
 ];
 
 /**
- * @param {{ key: string, worldConfig: string }} zone - a `ZONES` entry (zones/manifest.ts).
+ * @param {{ id: number, key: string, worldConfig: string }} zone - a `ZONES` entry (zones/manifest.ts).
+ *   `id` is required (used to filter the cross-zone chest manifest below) — a caller passing only
+ *   `{ key, worldConfig }` silently gets zero chests back instead of a type error.
  */
 export function exportWorldgen(repoRoot, zone) {
+  if (!Number.isInteger(zone.id)) {
+    throw new Error(`exportWorldgen: zone "${zone.key}" is missing an integer id.`);
+  }
   const config = JSON.parse(readFileSync(join(repoRoot, 'src/features/world/config/', zone.worldConfig), 'utf8'));
   const wg = createWorldgen(config);
   const chests = wg.sites.chests;
