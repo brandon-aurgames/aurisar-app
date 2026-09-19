@@ -28,6 +28,8 @@ import {
 import { createWorldgen } from '../../worldgen/index.js';
 // eslint-disable-next-line -- JSON module, no types
 import zone2Config from '../../config/zone2_world.json';
+// eslint-disable-next-line -- JSON module, no types
+import mobsManifest from '../../../../../public/assets/manifest/mobs.manifest.json';
 import {
   contentPosToPx,
   resolveZone,
@@ -129,9 +131,12 @@ describe('zone 2 content agrees with zone2_world.json', () => {
   it('the config builds a real world', () => {
     expect(wg.sites.trees.length).toBeGreaterThan(0);
     expect(wg.sites.rocks.length).toBeGreaterThan(0);
-    // Chests are deliberately zero: the server chest manifest is emitted from
-    // zone1_world.json only, so zone 2 chests would be unopenable.
-    expect(wg.sites.chests).toEqual([]);
+    // D168/D176: scatter.chestCount is now 12 (area-scaled against zone1's
+    // 25). They are not server-openable yet — scripts/emit_world_chests.mjs
+    // is still zone1-only (M11-2's job) — but the worldgen itself must
+    // realize exactly the configured count.
+    expect(wg.sites.chests.length).toBe(zone2Config.scatter.chestCount);
+    expect(wg.sites.chests.length).toBe(12);
     for (const list of Object.values(wg.sites) as { x: number; z: number }[][]) {
       for (const s of list) {
         expect(Number.isFinite(s.x) && Number.isFinite(s.z)).toBe(true);
@@ -148,7 +153,7 @@ describe('zone 2 content agrees with zone2_world.json', () => {
     expect(ZONE_2.gates[0].pos).toEqual({ x: anchors.south_pass.x, z: anchors.south_pass.z });
   });
 
-  it('every POI sits on a config anchor, and every camp on a POI', () => {
+  it('every POI sits on a config anchor', () => {
     const byPos = new Map(
       Object.values(anchors).map((a) => [`${a.x},${a.z}`, a.name]),
     );
@@ -157,10 +162,28 @@ describe('zone 2 content agrees with zone2_world.json', () => {
       expect(name, `waypoint ${w.id} is not on any zone2_world.json anchor`).toBeTruthy();
       expect(w.label, `waypoint ${w.id} label`).toBe(name);
     }
-    // A camp the map cannot name is a camp no breadcrumb can lead a player to.
+  });
+
+  // R17 (M11-4): the former version of this test required every camp to sit
+  // EXACTLY on a POI's own coordinates — a bijection that read fine at 3
+  // camps / 4 POIs but cannot hold at 7 camps / 4 POIs (waypoints.ts is
+  // M11-3's file, blocked on this one — raising the POI count is not this
+  // task's to do). Resolution: relax to Zone 1's OWN actual invariant, not
+  // Zone 2's former stricter one. landmarks.test.ts's real rule for Zone 1 is
+  // "every camp sits within 40m of SOME landmark" (many camps per landmark,
+  // several landmarks with none) — never a 1:1 camp<->POI pairing; Zone 1
+  // runs 14 camps over 9 POIs today. Zone 2 has no generated landmark table
+  // yet (M11-3), so `anchors` stands in for that broader set here — it
+  // already plays the same role (a superset of the POI list: south_pass /
+  // graveyard / barrowdeep are anchors with no POI of their own, the same
+  // shape as Zone 1's castle_gate / hollow_crypt / frostspire_summit).
+  it('every camp sits within reach of a named anchor (R17, relaxed to Zone 1\'s own rule)', () => {
+    const REACH_M = 40; // the same constant landmarks.test.ts pins for Zone 1
+    const allAnchors = Object.values(anchors);
     for (const s of spawns) {
-      const poi = waypoints.find((w) => w.pos.x === s.pos.x && w.pos.z === s.pos.z);
-      expect(poi, `spawn ${s.netId} has no POI on it`).toBeTruthy();
+      const nearest = Math.min(...allAnchors.map((a) => Math.hypot(s.pos.x - a.x, s.pos.z - a.z)));
+      expect(nearest, `spawn ${s.netId} is ${nearest.toFixed(1)}m from the nearest anchor`)
+        .toBeLessThanOrEqual(REACH_M);
     }
   });
 
@@ -173,13 +196,73 @@ describe('zone 2 content agrees with zone2_world.json', () => {
 });
 
 describe('zone 2 roster', () => {
-  it('stays thin — this is the first pass, not content parity (D162)', () => {
-    // Guards the scope cut in the direction it actually fails: someone filling
-    // zone 2 out here instead of in M11, where the Unity side is ready for it.
-    expect(npcs.length).toBeLessThanOrEqual(4);
-    expect(spawns.length).toBeLessThanOrEqual(4);
-    expect(npcs.length).toBeGreaterThan(0);
-    expect(spawns.length).toBeGreaterThan(0);
+  // Was "stays thin" (an upper-bound guard against someone filling zone 2 out
+  // ahead of M11). M11-4 IS that fill (D168 items 1-3): the guard is now an
+  // exact pin on the area-scaled parity targets themselves, so a future
+  // over- or under-fill fails here just as loudly as the old guard did.
+  it('reaches D168\'s content-parity targets exactly (+1 NPC, 6 mob types, 7 camps)', () => {
+    expect(npcs.length, 'NPCs (target ceil(7 * (360/520)^2) = 4)').toBe(4);
+    const mobTypesInUse = new Set(spawns.map((s) => s.mobType));
+    expect(mobTypesInUse.size, 'distinct overworld mob types (target 6)').toBe(6);
+    expect(spawns.length, 'camps (target ceil(14 * (360/520)^2) = 7)').toBe(7);
+  });
+
+  it('camps split 5 regular / 2 named elites at count:1, matching Zone 1\'s ~29% elite mix', () => {
+    const elites = spawns.filter((s) => s.count === 1);
+    const regular = spawns.filter((s) => s.count > 1);
+    expect(elites.length, 'elite camps').toBe(2);
+    expect(regular.length, 'regular camps').toBe(5);
+    // Elites are genuinely named/rare — every regular camp actually carries
+    // more than one mob.
+    for (const s of regular) expect(s.count, `${s.netId}.count`).toBeGreaterThan(1);
+  });
+
+  it('the overworld level band reads 7,8,10,11,12,14 with L13 reserved for the (separate) Barrowdeep boss', () => {
+    // D170: the dungeon boss is L13, `band.max - 1`, authored in the
+    // Barrowdeep's own dungeon def (M11-5) — not this file. Combined with the
+    // overworld set below, the band reads 7,8,10,11,12,13,14 with no hole,
+    // which is D168/D170's whole point; this file owns only the overworld half.
+    const levels = [...new Set(spawns.map((s) => MOBS[s.mobType].level))].sort((a, b) => a - b);
+    expect(levels).toEqual([7, 8, 10, 11, 12, 14]);
+  });
+
+  it('every regular Zone 2 mob fits Zone 2\'s OWN exact curve (maxHp = 26*level + 4) — never asserted against Zone 1', () => {
+    // D168's own correction: this is Zone 2's convention, not a project-wide
+    // invariant (4 of Zone 1's 15 shipped mobs miss it exactly). Scoped here
+    // to Zone 2's regular (non-elite) mobs only.
+    const regularMobTypes = new Set(spawns.filter((s) => s.count > 1).map((s) => s.mobType));
+    expect(regularMobTypes.size, 'regular mob types').toBe(4);
+    for (const mobType of regularMobTypes) {
+      const mob = MOBS[mobType];
+      expect(mob.maxHp, `${mobType} L${mob.level} maxHp`).toBe(26 * mob.level + 4);
+    }
+  });
+
+  it('every elite Zone 2 mob breaks the HP line at the documented 1.64-1.76x, pinned exactly at 1.70x', () => {
+    const eliteMobTypes = new Set(spawns.filter((s) => s.count === 1).map((s) => s.mobType));
+    expect(eliteMobTypes.size, 'elite mob types').toBe(2);
+    for (const mobType of eliteMobTypes) {
+      const mob = MOBS[mobType];
+      const curve = 26 * mob.level + 4;
+      const ratio = mob.maxHp / curve;
+      expect(ratio, `${mobType} elite multiplier`).toBeGreaterThanOrEqual(1.64);
+      expect(ratio, `${mobType} elite multiplier`).toBeLessThanOrEqual(1.76);
+      expect(mob.maxHp, `${mobType} L${mob.level} maxHp (1.70x the L${mob.level} curve of ${curve})`)
+        .toBe(Math.round(1.70 * curve));
+    }
+  });
+
+  it('every new mob\'s glbKey resolves in the real mobs.manifest.json (read live, not a hardcoded list)', () => {
+    const validKeys = Object.keys(mobsManifest.assets);
+    // Sanity on the manifest itself, so a future asset-pipeline change that
+    // silently drops/renames a key fails here instead of just going quiet.
+    expect(validKeys.sort()).toEqual(
+      ['bull', 'glubevolved', 'goblin', 'orcenemy', 'skeleton_minion', 'spider', 'tribal', 'wolf'].sort(),
+    );
+    for (const s of spawns) {
+      const mob = MOBS[s.mobType];
+      expect(validKeys, `${mob.mobType}.glbKey '${mob.glbKey}'`).toContain(mob.glbKey);
+    }
   });
 
   it('every zone 2 mob sits inside zone 2\'s level band', () => {
@@ -197,6 +280,16 @@ describe('zone 2 roster', () => {
     // Same rule landmarks.test.ts pins for zone 1, expressed against zone 2's
     // own band: expected = band[0] + danger * span. Fix a failure by moving the
     // camp or retuning that biome's danger — not by widening the tolerance.
+    //
+    // M11-4 did exactly the latter, once: Windward Scarp's danger was 0.7,
+    // capping expected at band[0] + 0.7*span = 11.9 — below what an L14 camp
+    // (frostbound_warlord, the top of the band) needs to clear TOLERANCE. Zone
+    // 1's own top-band biome (Mourner's Rest) sits at danger 1.0, i.e. exactly
+    // calibrated so its expected level lands at Zone 1's own band top; Zone 2's
+    // Windward Scarp previously undershot that convention. Raised to 0.9
+    // (expected 13.3) rather than exactly 1.0, so frostbound_raider (L12,
+    // already camped there) keeps real margin (delta 1.3) instead of sitting
+    // at the tolerance boundary.
     const TOLERANCE = 2;
     const [lo, hi] = ZONE_2.levelBand;
     for (const s of spawns) {
