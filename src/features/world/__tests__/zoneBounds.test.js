@@ -152,10 +152,72 @@ describe('zoneId is the content ZoneDef.id, not the legacy rectangles', () => {
   });
 });
 
+describe('zone 2 at its shipped 500 m extent (D175)', () => {
+  // Unlike the synthetic block below, these read the LIVE manifest. Zone 2's
+  // boundsHalfExtentM rose 400 -> 500 in M11-5 to host the Barrowdeep's
+  // interior at zone-local {x: 430, z: 0}; manifest.ts's own header warns that
+  // moving a zone's extent "changes what movePlayer accepts — it is not
+  // cosmetic data", which is why the raise and these assertions are required
+  // to land in the same PR.
+  const ZONE_2_LIVE = ZONES.find((z) => z.id === 2);
+  const BARROWDEEP_ANCHOR_X = 430;
+  const BARROWDEEP_LOCAL_X1 = 44; // barrowdeepPlan LOCAL_BOUNDS.x1
+
+  it('claims exactly 500 m, not the 400 m it shipped with', () => {
+    expect(ZONE_2_LIVE, 'zone 2 must exist in the manifest').toBeDefined();
+    expect(ZONE_2_LIVE.boundsHalfExtentM).toBe(500);
+    const box = zoneBoxPx(ZONE_2_LIVE);
+    expect(box.maxX - box.centerX).toBe(500 * 32 - PLAYER_HALF_PX);
+    // The x span D175 quotes. The z span is centred on the world origin
+    // instead, because zone 2's originOffsetM.z is 0.
+    expect([box.minX, box.maxX]).toEqual([81632, 113568]);
+    expect([box.minY, box.maxY]).toEqual([-14368, 17568]);
+  });
+
+  it('accepts the whole Barrowdeep interior footprint, which 400 m did not', () => {
+    const box = zoneBoxPx(ZONE_2_LIVE);
+    const farEdgePx = (3000 + BARROWDEEP_ANCHOR_X + BARROWDEEP_LOCAL_X1) * 32 + WORLD_ORIGIN_PX;
+    const r = resolveZone(farEdgePx, WORLD_ORIGIN_PX);
+    expect(r.zoneId).toBe(2);
+    expect(r.inBounds, 'the interior\'s far edge must be walkable ground').toBe(true);
+    expect(r.x).toBe(farEdgePx);
+    // 25 m of margin, the figure D175 commits to.
+    expect((box.maxX - farEdgePx) / 32).toBe(25);
+    // The counterfactual, stated as an assertion so the reason for the raise
+    // cannot quietly stop being true: at 400 m the same point was clamped.
+    const old400 = zoneBoxPx({ ...ZONE_2_LIVE, boundsHalfExtentM: 400 });
+    expect(farEdgePx).toBeGreaterThan(old400.maxX);
+  });
+
+  it('still keeps its box inside the baked terrain, and clear of zone 1', () => {
+    // ZoneGrid's zone 2 descriptor bakes 4 tiles x 256 m from origin -512, so
+    // 500 < 512 preserves the "playable box inside the terrain" invariant that
+    // widening to zone 1's 1000 m default would have broken.
+    expect(ZONE_2_LIVE.boundsHalfExtentM).toBeLessThan(512);
+    const z1 = zoneBoxPx(ZONES.find((z) => z.id === 1));
+    const z2 = zoneBoxPx(ZONE_2_LIVE);
+    expect(z2.minX).toBeGreaterThan(z1.maxX);
+    // The gap between the two boxes belongs to neither, exactly as before.
+    const mid = (z1.maxX + z2.minX) / 2;
+    expect(resolveZone(mid, WORLD_ORIGIN_PX).inBounds).toBe(false);
+  });
+
+  it('leaves zone 1\'s accept region untouched', () => {
+    for (const x of [OLD_WORLD_MIN_PX, 0, WORLD_ORIGIN_PX, OLD_WORLD_MAX_PX]) {
+      const r = resolveZone(x, WORLD_ORIGIN_PX);
+      expect(r.zoneId).toBe(1);
+      expect(r.inBounds).toBe(true);
+      expect(r.x).toBe(x);
+    }
+  });
+});
+
 describe('a second zone at a k·3000 m offset', () => {
-  // Zone 2's content does not exist yet (M10-2), so the multi-zone behaviour is
-  // exercised through the resolver factory rather than by inventing a manifest
-  // entry. These are the numbers manifest.ts's own comment commits to.
+  // Synthetic on purpose: the "is this still the old clamp" reasoning below is
+  // a statement about the resolver's ARITHMETIC, not about whatever the
+  // manifest happens to hold, so it must not move when zone 2's real extent
+  // does (it already has once — 400 -> 500, D175). The live manifest gets its
+  // own block above.
   const ZONE_1 = { id: 1, originOffsetM: { x: 0, z: 0 } };
   const ZONE_2 = { id: 2, originOffsetM: { x: 3000, z: 0 } };
   const resolve = makeZoneResolver([ZONE_1, ZONE_2]);

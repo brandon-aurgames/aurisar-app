@@ -46,7 +46,7 @@
         "x": 3000,
         "z": 0
       },
-      "boundsHalfExtentM": 400,
+      "boundsHalfExtentM": 500,
       "worldConfig": "zone2_world.json",
       "spawnPos": {
         "x": 0,
@@ -833,6 +833,49 @@
       ],
       "copperMin": 200,
       "copperMax": 200
+    },
+    {
+      "mobType": "cairn_thane",
+      "name": "The Cairn Thane",
+      "family": "undead",
+      "level": 13,
+      "maxHp": 727,
+      "dmgMin": 45,
+      "dmgMax": 49,
+      "attackSpeedSec": 2.2,
+      "moveSpeedMps": 3.8,
+      "aggroRadiusM": 14,
+      "leashRadiusM": 42,
+      "respawnSec": 300,
+      "glbKey": "skeleton_minion",
+      "lootTable": [
+        {
+          "itemId": "ghostly_essence",
+          "chance": 1,
+          "min": 1,
+          "max": 1
+        },
+        {
+          "itemId": "bone_fragments",
+          "chance": 0.6,
+          "min": 2,
+          "max": 3
+        },
+        {
+          "itemId": "oiled_boots",
+          "chance": 0.5,
+          "min": 1,
+          "max": 1
+        },
+        {
+          "itemId": "quilted_trousers",
+          "chance": 0.5,
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "copperMin": 560,
+      "copperMax": 560
     }
   ],
   "spawns": [

@@ -57,10 +57,28 @@ export const ZONES: ZoneDef[] = [
     originOffsetM: { x: 3000, z: 0 },
     // Zone 2 is a smaller region than zone 1 (a 360 m playable disc against
     // zone 1's 520 m), so it claims a smaller box rather than inheriting the
-    // 1000 m default. 400 m contains the whole disc with margin and leaves a
-    // wide unclaimed gap between the two zones, which resolveZone clamps into
-    // the nearer zone instead of accepting as valid ground.
-    boundsHalfExtentM: 400,
+    // 1000 m default, leaving a wide unclaimed gap between the two zones which
+    // resolveZone clamps into the nearer zone instead of accepting as valid
+    // ground.
+    //
+    // 400 -> 500 (D175, M11-5). The Barrowdeep's interior is a real region of
+    // the shared px plane at zone-local {x: 430, z: 0} — footprint
+    // 386..474 x -32..32 — the same way Castle Ashwood's sits at 840 m east of
+    // zone 1's origin. Zone 1 sets no extent, so its 1000 m default absorbs
+    // Ashwood with room to spare; zone 2's 400 m box against a 360 m playable
+    // disc left a 40 m rind, nowhere near the ~88 x 64 m an interior needs, so
+    // a zone-2 interior placed the Ashwood way would sit OUTSIDE its own
+    // zone's box and resolveZone would clamp every step taken inside it.
+    //
+    // 500 was chosen over 1000 because both zones hold an invariant worth
+    // keeping: the playable box sits INSIDE the baked terrain (zone 1: 1000 <
+    // terrain +/-1024; zone 2: 500 < terrain +/-512, ZoneGrid's zone 2
+    // descriptor being 4 tiles x 256 m from origin -512). A 1000 m box would
+    // let a zone-2 player walk 488 m past the terrain edge. Effective reach is
+    // 499 m after PLAYER_HALF_PX, so the interior's far edge at 474 m keeps
+    // 25 m of margin. Boxes stay disjoint: zone 1 spans px -30368..33568,
+    // zone 2 spans px 81632..113568.
+    boundsHalfExtentM: 500,
     worldConfig: 'zone2_world.json',
     // As with zone 1, nothing reads these yet — travelToZone (M10-11) is the
     // reducer that will. Pointed at Kestrel Hold and its burial ground so they

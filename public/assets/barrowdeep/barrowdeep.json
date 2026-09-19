@@ -1,0 +1,505 @@
+{
+  "meta": {
+    "id": "barrowdeep",
+    "version": "1.0.0",
+    "source": "src/features/world/barrowdeep/barrowdeepPlan.js",
+    "runtime": "procedural"
+  },
+  "layout": {
+    "name": "The Barrowdeep",
+    "planScale": 1,
+    "zoneId": 2,
+    "interiorAnchor": {
+      "x": 430,
+      "z": 0
+    },
+    "bounds": {
+      "x0": -44,
+      "z0": -32,
+      "x1": 44,
+      "z1": 32
+    },
+    "levels": [
+      {
+        "id": "deep",
+        "y": 0.6,
+        "clear": 9.8
+      },
+      {
+        "id": "gallery",
+        "y": 11,
+        "clear": 9
+      }
+    ],
+    "rooms": [
+      {
+        "id": "thaneCairn",
+        "level": 0,
+        "rect": {
+          "x0": -32,
+          "z0": -14,
+          "x1": -2,
+          "z1": 14
+        },
+        "kind": "dungeonHall"
+      },
+      {
+        "id": "deepCorridor",
+        "level": 0,
+        "rect": {
+          "x0": -2,
+          "z0": -4,
+          "x1": 24,
+          "z1": 4
+        },
+        "kind": "dungeonHall"
+      },
+      {
+        "id": "burialNorth",
+        "level": 0,
+        "rect": {
+          "x0": -2,
+          "z0": 4,
+          "x1": 24,
+          "z1": 22
+        },
+        "kind": "cells"
+      },
+      {
+        "id": "burialSouth",
+        "level": 0,
+        "rect": {
+          "x0": -2,
+          "z0": -22,
+          "x1": 24,
+          "z1": -4
+        },
+        "kind": "cells"
+      },
+      {
+        "id": "deepVestibule",
+        "level": 0,
+        "rect": {
+          "x0": 24,
+          "z0": -8,
+          "x1": 40,
+          "z1": 8
+        },
+        "kind": "dungeonHall"
+      },
+      {
+        "id": "hoardChamber",
+        "level": 0,
+        "rect": {
+          "x0": 24,
+          "z0": 8,
+          "x1": 40,
+          "z1": 26
+        },
+        "kind": "vault"
+      },
+      {
+        "id": "wardenCell",
+        "level": 0,
+        "rect": {
+          "x0": 24,
+          "z0": -26,
+          "x1": 40,
+          "z1": -8
+        },
+        "kind": "guard"
+      },
+      {
+        "id": "entryPassage",
+        "level": 1,
+        "rect": {
+          "x0": -42,
+          "z0": -5,
+          "x1": -26,
+          "z1": 5
+        },
+        "kind": "dungeonHall"
+      },
+      {
+        "id": "foreHall",
+        "level": 1,
+        "rect": {
+          "x0": -26,
+          "z0": -14,
+          "x1": -8,
+          "z1": 14
+        },
+        "kind": "dungeonHall"
+      },
+      {
+        "id": "nicheWest",
+        "level": 1,
+        "rect": {
+          "x0": -26,
+          "z0": 14,
+          "x1": -17,
+          "z1": 26
+        },
+        "kind": "cells"
+      },
+      {
+        "id": "nicheEast",
+        "level": 1,
+        "rect": {
+          "x0": -17,
+          "z0": 14,
+          "x1": -8,
+          "z1": 26
+        },
+        "kind": "cells"
+      },
+      {
+        "id": "collapsedGallery",
+        "level": 1,
+        "rect": {
+          "x0": -8,
+          "z0": -8,
+          "x1": 24,
+          "z1": 8
+        },
+        "kind": "dungeonHall"
+      },
+      {
+        "id": "stairPit",
+        "level": 1,
+        "rect": {
+          "x0": 24,
+          "z0": -8,
+          "x1": 40,
+          "z1": 8
+        },
+        "kind": "dungeonHall"
+      },
+      {
+        "id": "vestibule",
+        "level": 1,
+        "rect": {
+          "x0": 24,
+          "z0": 8,
+          "x1": 40,
+          "z1": 26
+        },
+        "kind": "guard"
+      }
+    ],
+    "doors": [
+      {
+        "id": "bd_thane",
+        "a": "deepCorridor",
+        "b": "thaneCairn",
+        "edge": "x",
+        "at": -2,
+        "lo": -3.3,
+        "hi": 3.3,
+        "arch": true
+      },
+      {
+        "id": "bd_burialNW",
+        "a": "deepCorridor",
+        "b": "burialNorth",
+        "edge": "z",
+        "at": 4,
+        "lo": 2,
+        "hi": 5
+      },
+      {
+        "id": "bd_burialNE",
+        "a": "deepCorridor",
+        "b": "burialNorth",
+        "edge": "z",
+        "at": 4,
+        "lo": 16,
+        "hi": 19
+      },
+      {
+        "id": "bd_burialSW",
+        "a": "deepCorridor",
+        "b": "burialSouth",
+        "edge": "z",
+        "at": -4,
+        "lo": 2,
+        "hi": 5
+      },
+      {
+        "id": "bd_burialSE",
+        "a": "deepCorridor",
+        "b": "burialSouth",
+        "edge": "z",
+        "at": -4,
+        "lo": 16,
+        "hi": 19
+      },
+      {
+        "id": "bd_deepVest",
+        "a": "deepCorridor",
+        "b": "deepVestibule",
+        "edge": "x",
+        "at": 24,
+        "lo": -3.3,
+        "hi": 3.3,
+        "arch": true
+      },
+      {
+        "id": "bd_hoard",
+        "a": "deepVestibule",
+        "b": "hoardChamber",
+        "edge": "z",
+        "at": 8,
+        "lo": 28,
+        "hi": 31,
+        "iron": true
+      },
+      {
+        "id": "bd_warden",
+        "a": "deepVestibule",
+        "b": "wardenCell",
+        "edge": "z",
+        "at": -8,
+        "lo": 28,
+        "hi": 31
+      },
+      {
+        "id": "bd_gate",
+        "a": "entryPassage",
+        "b": "EXTERIOR",
+        "edge": "x",
+        "at": -42,
+        "lo": -2.2,
+        "hi": 2.2,
+        "sealed": true
+      },
+      {
+        "id": "bd_fore",
+        "a": "entryPassage",
+        "b": "foreHall",
+        "edge": "x",
+        "at": -26,
+        "lo": -3,
+        "hi": 3,
+        "arch": true
+      },
+      {
+        "id": "bd_nicheW",
+        "a": "foreHall",
+        "b": "nicheWest",
+        "edge": "z",
+        "at": 14,
+        "lo": -24,
+        "hi": -21
+      },
+      {
+        "id": "bd_nicheE",
+        "a": "foreHall",
+        "b": "nicheEast",
+        "edge": "z",
+        "at": 14,
+        "lo": -15,
+        "hi": -12
+      },
+      {
+        "id": "bd_gallery",
+        "a": "foreHall",
+        "b": "collapsedGallery",
+        "edge": "x",
+        "at": -8,
+        "lo": -3.3,
+        "hi": 3.3,
+        "arch": true
+      },
+      {
+        "id": "bd_stair",
+        "a": "collapsedGallery",
+        "b": "stairPit",
+        "edge": "x",
+        "at": 24,
+        "lo": -3.3,
+        "hi": 3.3,
+        "arch": true
+      },
+      {
+        "id": "bd_vest",
+        "a": "stairPit",
+        "b": "vestibule",
+        "edge": "z",
+        "at": 8,
+        "lo": 28,
+        "hi": 31
+      }
+    ],
+    "stairs": [
+      {
+        "id": "bdstair",
+        "lo": 0,
+        "hi": 1,
+        "axis": "x",
+        "u0": 26,
+        "runLen": 8.75,
+        "landingD": 4.2,
+        "laneW": 4.55,
+        "gap": 0.875,
+        "v0": -4.9875
+      }
+    ],
+    "voids": [],
+    "entry": {
+      "spawnLocal": {
+        "x": -32.375,
+        "z": 0
+      },
+      "spawnFacing": 1.5707963267948966,
+      "exitHotspotLocal": {
+        "x": -39.375,
+        "z": 0
+      },
+      "gateWorld": {
+        "x": 101.5,
+        "z": -30
+      }
+    },
+    "materialSpec": {
+      "floorByKind": {
+        "entrance": "marble",
+        "corridor": "marble",
+        "gallery": "marble",
+        "stairHall": "marble",
+        "ballroom": "marble",
+        "treasury": "marble",
+        "bathroom": "marble",
+        "dining": "woodFloor",
+        "bedroom": "woodFloor",
+        "master": "woodFloor",
+        "royal": "woodFloor",
+        "sitting": "woodFloor",
+        "library": "woodFloor",
+        "observatory": "woodFloor",
+        "kitchen": "darkStone",
+        "servant": "woodFloor",
+        "storage": "darkStone",
+        "dungeonHall": "darkStone",
+        "cells": "darkStone",
+        "guard": "darkStone",
+        "vault": "darkStone"
+      },
+      "wallByLevel": [
+        "darkStone",
+        "darkStone"
+      ],
+      "windowedKinds": [],
+      "fancyKinds": []
+    },
+    "spawnMarkers": [
+      {
+        "netId": "bd_fore",
+        "roomId": "foreHall",
+        "mobType": "cairn_wight",
+        "count": 4,
+        "radiusM": 8,
+        "pos": {
+          "x": -17,
+          "z": 0
+        }
+      },
+      {
+        "netId": "bd_gallery",
+        "roomId": "collapsedGallery",
+        "mobType": "frostbound_raider",
+        "count": 4,
+        "radiusM": 7,
+        "pos": {
+          "x": 8,
+          "z": 0
+        }
+      },
+      {
+        "netId": "bd_burial",
+        "roomId": "burialNorth",
+        "mobType": "cairn_wight",
+        "count": 4,
+        "radiusM": 8,
+        "pos": {
+          "x": 11,
+          "z": 13
+        }
+      },
+      {
+        "netId": "bd_warden",
+        "roomId": "wardenCell",
+        "mobType": "frostbound_raider",
+        "count": 2,
+        "radiusM": 6,
+        "pos": {
+          "x": 32,
+          "z": -17
+        }
+      },
+      {
+        "netId": "bd_boss",
+        "roomId": "thaneCairn",
+        "mobType": "cairn_thane",
+        "count": 1,
+        "radiusM": 2,
+        "pos": {
+          "x": -17,
+          "z": 0
+        }
+      }
+    ],
+    "exterior": {
+      "site": {
+        "x": 125,
+        "z": -30
+      },
+      "facing": "west",
+      "halfW": 20,
+      "halfD": 16,
+      "moundH": 7.5,
+      "lintel": {
+        "z": -30,
+        "width": 4.4,
+        "height": 4
+      },
+      "stoneRing": {
+        "radiusM": 24,
+        "count": 9,
+        "stoneH": 3.2
+      }
+    }
+  },
+  "collision": {
+    "navCellM": 0.25,
+    "playerRadiusM": 0.35,
+    "playerSkinM": 0.35,
+    "wallThicknessM": 0.5,
+    "stepUpM": 0.55,
+    "stepDownM": 1.4,
+    "interiorBounds": {
+      "x0": -44,
+      "z0": -32,
+      "x1": 44,
+      "z1": 32
+    },
+    "shell": {
+      "site": {
+        "x": 125,
+        "z": -30
+      },
+      "halfW": 20,
+      "halfD": 16,
+      "moundH": 7.5,
+      "marginM": 0.7,
+      "cameraSkinM": 0.5
+    },
+    "navGrid": {
+      "cols": 352,
+      "rows": 256,
+      "levels": 2,
+      "encoding": "uint16-le-base64",
+      "bitmapSource": "spacetimedb/src/barrowdeep/navGrids.ts"
+    }
+  }
+}

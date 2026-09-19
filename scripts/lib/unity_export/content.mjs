@@ -4,6 +4,16 @@ import { join } from 'node:path';
 import { loadContentModule } from './loader.mjs';
 import { jsonBytes, normalizeText } from './manifest.mjs';
 
+/**
+ * DungeonDef.layoutManifest → the repo directory its emitter writes it to.
+ * Registering a dungeon here is the one step that makes its layout cross into
+ * export/unity-content/dungeons/; an unknown manifest still throws.
+ */
+const DUNGEON_LAYOUT_DIRS = {
+  'castle_ashwood.json': 'public/assets/castle',
+  'barrowdeep.json': 'public/assets/barrowdeep',
+};
+
 /** Only named data exports cross the boundary; combat functions stay in TS. */
 async function formulas() {
   const [xp, combat, prices, loot, cooking] = await Promise.all([
@@ -87,12 +97,18 @@ export async function exportContent(content, realizedByZone, repoRoot) {
     ));
   }
   for (const dungeon of c.DUNGEONS) {
-    // M1 has one layout source. Fail on new layouts rather than guess their location.
-    if (dungeon.layoutManifest !== 'castle_ashwood.json') {
+    // Each layout manifest has its own emitter and therefore its own output
+    // directory (emit-castle-manifest.mjs / emit-barrowdeep-manifest.mjs).
+    // A lookup table, not a literal compare — but it still FAILS on an
+    // unregistered layout rather than guessing a location, which is the part
+    // of M1's original rule that matters. M11-6 generalizes the rest of the
+    // dungeon export (nav .bin + blockers) from here.
+    const dir = DUNGEON_LAYOUT_DIRS[dungeon.layoutManifest];
+    if (!dir) {
       throw new Error(`Unregistered dungeon layout: ${dungeon.layoutManifest}`);
     }
     // D22: no parse/reserialize, extra wrapper, schemaVersion, or second nav serializer.
-    const bytes = normalizeText(readFileSync(join(repoRoot, 'public/assets/castle', dungeon.layoutManifest)));
+    const bytes = normalizeText(readFileSync(join(repoRoot, dir, dungeon.layoutManifest)));
     files.set(`dungeons/${dungeon.layoutManifest}`, bytes);
   }
   return files;
