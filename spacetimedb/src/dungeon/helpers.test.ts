@@ -11,9 +11,10 @@
  * inside, ejected leavers at Ashwood's gate in zone 1, and had its movement
  * checked against Ashwood's nav grids regardless of which dungeon it was.
  *
- * Castle Ashwood is the only real DungeonDef that exists today (this PR adds
- * no second dungeon — that is separate, parallel content work). This file
- * proves two things against it:
+ * Castle Ashwood was the only real DungeonDef when this file was written (the
+ * Barrowdeep landed later, in M11-5; its own coupling to this table is covered
+ * by src/features/world/__tests__/dungeonInteriorCoupling.test.ts and
+ * dungeonInteriorNav.test.ts). This file proves two things against Ashwood:
  *
  *   1. Every Ashwood-facing function is BYTE-IDENTICAL to its pre-fix
  *      output — proved against oracle functions that are verbatim
@@ -33,8 +34,8 @@ import {
   CASTLE_INTERIOR_ANCHOR,
   DUNGEONS_BY_ID,
   dungeonExitHotspotPx,
+  dungeonInteriorNavFor,
   dungeonSpawnPx,
-  dungeonUsesCastleInteriorNav,
   interiorLocalToPx,
   zoneEntranceToPx,
 } from './helpers.js';
@@ -96,14 +97,22 @@ describe('dungeonSpawnPx / dungeonExitHotspotPx: byte-identical for Castle Ashwo
   });
 });
 
-describe('dungeonUsesCastleInteriorNav: gates on registered data, not a literal id compare (D174 item 3)', () => {
-  it('is true for Castle Ashwood, the only dungeon with registered interior data', () => {
-    expect(dungeonUsesCastleInteriorNav('castle_ashwood')).toBe(true);
+describe('dungeonInteriorNavFor: hands back the dungeon\'s OWN grids, not a yes/no about Ashwood\'s (D174 item 3, R21)', () => {
+  it('gives Castle Ashwood its own descriptor, anchored where its bitmaps are', () => {
+    const nav = dungeonInteriorNavFor('castle_ashwood');
+    expect(nav).not.toBeNull();
+    expect(nav!.dungeonId).toBe('castle_ashwood');
+    expect(nav!.zoneId).toBe(1);
+    expect(nav!.meta.anchor).toEqual(CASTLE_INTERIOR_ANCHOR);
   });
 
-  it('is false for an unregistered dungeon id, instead of assuming every instance is Ashwood', () => {
-    expect(dungeonUsesCastleInteriorNav('test_only_synthetic_2')).toBe(false);
-    expect(dungeonUsesCastleInteriorNav('anything_unregistered')).toBe(false);
+  it('is null for an unregistered dungeon id, instead of assuming every instance is Ashwood', () => {
+    // Null means "skip interior rules", never "use the castle grids" — the
+    // predecessor of this function could only answer the latter question, so
+    // a dungeon with its own committed grids had to answer "no" and got no
+    // wall collision at all.
+    expect(dungeonInteriorNavFor('test_only_synthetic_2')).toBeNull();
+    expect(dungeonInteriorNavFor('anything_unregistered')).toBeNull();
   });
 });
 
@@ -168,7 +177,7 @@ describe('a synthetic non-Zone-1 dungeon resolves against ITS OWN zone (D173/D17
     expect(px).not.toEqual({ x: 26772, y: 1600 });
   });
 
-  it('is not registered for castle-interior nav, so movePlayer\'s branch will not check it against Ashwood\'s walls', () => {
-    expect(dungeonUsesCastleInteriorNav(synthetic.id)).toBe(false);
+  it('has no interior nav at all, so movePlayer\'s branch will not check it against Ashwood\'s walls', () => {
+    expect(dungeonInteriorNavFor(synthetic.id)).toBeNull();
   });
 });

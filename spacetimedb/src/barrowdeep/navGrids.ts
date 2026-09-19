@@ -10,14 +10,18 @@
  * against zone 1's origin the way D173 item 2 did. Convert with
  * world/zones.ts's contentPosToPx(zoneId, …), never with a bare `m * 32 + 1600`.
  *
- * NOT yet read by movePlayer: castle/surface.ts's scan closes over
- * CASTLE_NAV_META / CASTLE_LEVELS / CASTLE_STAIRS, so making it resolve a
- * second dungeon's walls is a change to the interior-nav hot path rather than
- * a content edit. Until that lands, dungeon/helpers.ts's
- * dungeonUsesCastleInteriorNav returns false for 'barrowdeep' — the player is
- * teleported to the right place inside the barrow, and interior wall
- * collision is simply not enforced server-side yet, rather than being
- * enforced against the WRONG dungeon's walls (D174 item 3).
+ * READ BY THE SERVER'S INTERIOR NAV as of R21. dungeon/helpers.ts registers
+ * these grids as the Barrowdeep's own DUNGEON_INTERIOR_ENTRY.nav descriptor,
+ * and dungeon/interiorNav.ts resolves every interior step against whichever
+ * dungeon's descriptor the instance actually names — player wall collision and
+ * floor tracking in movePlayer, mob stepping and floor backfill in tickMobAI.
+ * Castle Ashwood's grids are never consulted for a step taken in here, and
+ * these are never consulted for a step taken there (D174 item 3).
+ *
+ * Before R21 nothing read this file at all: castle/surface.ts's scan closed
+ * over CASTLE_NAV_META / CASTLE_LEVELS / CASTLE_STAIRS, so interior wall
+ * collision inside the barrow was not enforced server-side and a player's
+ * floorYM was zeroed on their first step inside.
  */
 export const BARROWDEEP_NAV_META = {
   zoneId: 2,

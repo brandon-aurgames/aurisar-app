@@ -1,5 +1,16 @@
 /**
- * Level-aware castle surfaceAt for SpacetimeDB — mirrors castleNavSurface.js.
+ * Castle Ashwood's interior nav, as a binding of the shared engine.
+ *
+ * The level-aware scan, wall-slide and D92 recovery that used to live here —
+ * closed over CASTLE_NAV_META / CASTLE_LEVELS / CASTLE_STAIRS at module
+ * scope — now live in `dungeon/interiorNav.ts`, parameterized by a per-dungeon
+ * descriptor (R21). This file is what makes that move invisible to every
+ * existing caller: the exported names, signatures and results are unchanged,
+ * and `CASTLE_INTERIOR_NAV` below is the descriptor the whole file is bound
+ * to. Zone 1's origin offset is (0, 0), so every path through here reproduces
+ * the retired module's arithmetic exactly.
+ *
+ * Mirrors castleNavSurface.js on the client side.
  */
 
 import {
@@ -10,148 +21,67 @@ import {
   CASTLE_STEP_UP,
   CASTLE_STEP_DOWN,
 } from './navGrids.js';
+import {
+  INTERIOR_RECOVERY_TOLERANCE_M,
+  interiorMoveAllowed,
+  interiorRecoverSurface,
+  interiorResolveMove,
+  interiorSurfaceAt,
+  isInInterior,
+  makeInteriorNav,
+  scanInteriorSurface,
+  type DungeonInteriorNav,
+  type InteriorGridAccessor,
+  type Surface,
+} from '../dungeon/interiorNav.js';
 
-type Stair = typeof CASTLE_STAIRS[number];
-export type Surface = { y: number; level: number };
-export type CastleGridAccessor = (level: number, cellIndex: number) => number;
-export const CASTLE_RECOVERY_TOLERANCE_M = 0.25;
+export { pxToWorldM, worldMToPx } from '../dungeon/interiorNav.js';
+export type { Surface };
+export type CastleGridAccessor = InteriorGridAccessor;
+export const CASTLE_RECOVERY_TOLERANCE_M = INTERIOR_RECOVERY_TOLERANCE_M;
 
-let decoded: Uint16Array[] | null = null;
-
-function decodeBase64(b64: string): Uint8Array {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  const lookup = new Uint8Array(256);
-  for (let i = 0; i < alphabet.length; i++) lookup[alphabet.charCodeAt(i)] = i;
-
-  const len = b64.length;
-  const outLen = (len * 3) >> 2;
-  const out = new Uint8Array(outLen);
-  let o = 0;
-  for (let i = 0; i < len; i += 4) {
-    const a = lookup[b64.charCodeAt(i)];
-    const b = lookup[b64.charCodeAt(i + 1)];
-    const c = lookup[b64.charCodeAt(i + 2)];
-    const d = lookup[b64.charCodeAt(i + 3)];
-    out[o++] = (a << 2) | (b >> 4);
-    if (b64[i + 2] !== '=') out[o++] = ((b & 15) << 4) | (c >> 2);
-    if (b64[i + 3] !== '=') out[o++] = ((c & 3) << 6) | d;
-  }
-  return out;
-}
-
-function decodeGrids(): Uint16Array[] {
-  if (decoded) return decoded;
-  decoded = CASTLE_NAV_BITMAPS_B64.map((b64) => {
-    const bytes = decodeBase64(b64);
-    return new Uint16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength >> 1);
-  });
-  return decoded;
-}
-
-function stairSurfaceY(st: Stair, x: number, z: number): number | null {
-  const yLo = CASTLE_LEVELS[st.lo].y;
-  const yHi = CASTLE_LEVELS[st.hi].y;
-  const yMid = (yLo + yHi) / 2;
-  const u = st.axis === 'z' ? z : x;
-  const v = st.axis === 'z' ? x : z;
-  const u1 = st.u0 + st.runLen;
-  const u2 = u1 + st.landingD;
-  const vA0 = st.v0, vA1 = st.v0 + st.laneW;
-  const vB0 = vA1 + st.gap, vB1 = vB0 + st.laneW;
-
-  if (u >= u1 && u <= u2 && v >= vA0 && v <= vB1) return yMid;
-  if (u < st.u0 || u > u1) return null;
-  const t = (u - st.u0) / st.runLen;
-  if (v >= vA0 && v <= vA1) return yLo + t * (yMid - yLo);
-  if (v >= vB0 && v <= vB1) return yHi + t * (yMid - yHi);
-  return null;
-}
-
-function readGridCell(level: number, cellIndex: number): number {
-  return decodeGrids()[level][cellIndex];
-}
+/**
+ * Castle Ashwood's own interior descriptor.
+ *
+ * `zoneId: 1` is stated here rather than read out of CASTLE_NAV_META because
+ * the castle emitter predates multi-zone content and emits no zoneId field
+ * (the Barrowdeep's does). It is pinned equal to the DungeonDef's own
+ * `entrance.zoneId` by dungeonInteriorNav.test.ts, so it cannot drift from the
+ * content package silently.
+ *
+ * `entryLevelIndex: 1` is CASTLE_LEVELS' "ground" storey (y = 11) — the one
+ * the interior spawn point stands on. Pinned against an actual scan of the
+ * committed bitmaps at CASTLE_ASHWOOD_ENTRY.spawnLocal by the same test.
+ */
+export const CASTLE_INTERIOR_NAV: DungeonInteriorNav = makeInteriorNav({
+  dungeonId: 'castle_ashwood',
+  zoneId: 1,
+  meta: CASTLE_NAV_META,
+  bitmapsB64: CASTLE_NAV_BITMAPS_B64,
+  levels: CASTLE_LEVELS,
+  stairs: CASTLE_STAIRS,
+  stepUp: CASTLE_STEP_UP,
+  stepDown: CASTLE_STEP_DOWN,
+  entryLevelIndex: 1,
+});
 
 /** Shared pure scan; the accessor supplies the emitted nav cell's surface tag. */
 export function scanCastleInteriorSurface(
   wx: number, wz: number, minY: number, maxY: number, readCell: CastleGridAccessor,
 ): Surface | null {
-  if (!Number.isFinite(wx) || !Number.isFinite(wz) || !Number.isFinite(minY) || !Number.isFinite(maxY)) return null;
-  const { anchor, bounds, navCellM, cols, rows } = CASTLE_NAV_META;
-  const x = wx - anchor.x, z = wz - anchor.z;
-  if (x < bounds.x0 || x >= bounds.x1 || z < bounds.z0 || z >= bounds.z1) return null;
-
-  const col = Math.floor((x - bounds.x0) / navCellM);
-  const row = Math.floor((z - bounds.z0) / navCellM);
-  if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
-  const idx = row * cols + col;
-  let bestY = -Infinity, bestLevel = -1;
-  for (let li = 0; li < CASTLE_NAV_META.levelCount; li++) {
-    const v = readCell(li, idx);
-    if (v === 0) continue;
-    let y: number, level = li;
-    if (v === 1) {
-      y = CASTLE_LEVELS[li].y;
-    } else {
-      const st = CASTLE_STAIRS[v - 2];
-      if (!st) continue;
-      const u = Math.min(Math.max(st.axis === 'z' ? z : x, st.u0), st.u0 + st.runLen + st.landingD);
-      const sy = st.axis === 'z' ? stairSurfaceY(st, x, u) : stairSurfaceY(st, u, z);
-      if (sy == null) continue;
-      y = sy;
-      level = y >= (CASTLE_LEVELS[st.lo].y + CASTLE_LEVELS[st.hi].y) / 2 ? st.hi : st.lo;
-    }
-    if (y <= maxY && y >= minY && y > bestY) {
-      bestY = y; bestLevel = level;
-    }
-  }
-  return bestLevel >= 0 ? { y: bestY, level: bestLevel } : null;
+  return scanInteriorSurface(CASTLE_INTERIOR_NAV, wx, wz, minY, maxY, readCell);
 }
 
-function surfaceAt(wx: number, wz: number, currentY: number): Surface | null {
-  return scanCastleInteriorSurface(wx, wz, currentY - CASTLE_STEP_DOWN, currentY + CASTLE_STEP_UP, readGridCell);
-}
-
-/**
- * D92: recover only onto a real cell surface near the claimed floor, never the stored floor.
- * The window is asymmetric: a surface may sit up to CASTLE_STEP_DOWN below the claimed floor
- * (a sprinting client flies off treads on a descent and keeps claiming its last grounded floor
- * while the ramp under it is already ~1 m lower — accepting a surface BELOW the claim can never
- * let a client stand on a floor it fell through), but only CASTLE_RECOVERY_TOLERANCE_M above it.
- */
+/** See interiorRecoverSurface — the D92 recovery window, bound to Ashwood's grids. */
 export function castleInteriorRecoverSurface(
-  wx: number, wz: number, claimedY: number, readCell: CastleGridAccessor = readGridCell,
+  wx: number, wz: number, claimedY: number,
+  readCell: CastleGridAccessor = CASTLE_INTERIOR_NAV.readCell,
 ): Surface | null {
-  return scanCastleInteriorSurface(
-    wx, wz, claimedY - CASTLE_STEP_DOWN, claimedY + CASTLE_RECOVERY_TOLERANCE_M, readCell,
-  );
-}
-
-/**
- * STDB px → world meters, one axis at a time. `originOffsetM` is that
- * axis's component of the owning zone's `originOffsetM` (world/zones.ts) —
- * 0, zone 1's default, reproduces this function's exact pre-fix output, so
- * every existing call site (none of which pass it) is unchanged.
- *
- * Kept scalar/per-axis, unlike world/zones.ts's contentPosToPx, because the
- * castle-interior nav-bitmap math below (surfaceAt, isInCastleInterior)
- * already calls this one axis at a time, and contentPosToPx's Math.round
- * would perturb the sub-pixel wall-slide math this feeds on the
- * movePlayer hot path — the "byte-identical" bar this fix is held to rules
- * that out (D173 item 3). worldMToPx below takes the same parameter for the
- * same reason. Neither is wired to a non-zero offset anywhere yet: Castle
- * Ashwood is zone 1's only dungeon, so 0 is still the only value ever
- * needed — a future non-zone-1 dungeon's own interior wrapper passes its
- * zone's offset once one exists.
- */
-export function pxToWorldM(px: number, originOffsetM = 0): number {
-  return (px - 1600) / 32 - originOffsetM;
+  return interiorRecoverSurface(CASTLE_INTERIOR_NAV, wx, wz, claimedY, readCell);
 }
 
 export function isInCastleInterior(worldXM: number, worldZM: number): boolean {
-  const { anchor, bounds } = CASTLE_NAV_META;
-  const lx = worldXM - anchor.x;
-  const lz = worldZM - anchor.z;
-  return lx >= bounds.x0 && lx < bounds.x1 && lz >= bounds.z0 && lz < bounds.z1;
+  return isInInterior(CASTLE_INTERIOR_NAV, worldXM, worldZM);
 }
 
 /** null = outside castle; otherwise surface reachable at currentY. */
@@ -160,13 +90,7 @@ export function castleInteriorSurfaceAt(
   worldZM: number,
   currentY: number,
 ): Surface | null {
-  if (!isInCastleInterior(worldXM, worldZM)) return null;
-  return surfaceAt(worldXM, worldZM, currentY);
-}
-
-/** m → STDB px, one axis at a time. See pxToWorldM's doc comment above — same D173 fix, same reasoning, same default. */
-export function worldMToPx(m: number, originOffsetM = 0): number {
-  return (m + originOffsetM) * 32 + 1600;
+  return interiorSurfaceAt(CASTLE_INTERIOR_NAV, worldXM, worldZM, currentY);
 }
 
 /** Wall-slide one interior step — mirrors castleNav.resolveMove / castleNavSurface.js. */
@@ -177,24 +101,18 @@ export function castleInteriorResolveMove(
   nextZM: number,
   currentY: number,
 ): { x: number; z: number; floorYM: number; surface: Surface | null } {
-  let x = nextXM;
-  let z = nextZM;
-  let s = castleInteriorSurfaceAt(x, z, currentY);
-  if (!s) {
-    s = castleInteriorSurfaceAt(x, prevZM, currentY);
-    if (s) { z = prevZM; }
-    else {
-      s = castleInteriorSurfaceAt(prevXM, z, currentY);
-      if (s) { x = prevXM; }
-      else {
-        x = prevXM; z = prevZM;
-        s = castleInteriorSurfaceAt(prevXM, prevZM, currentY);
-      }
-    }
-  }
-  return { x, z, floorYM: s ? s.y : currentY, surface: s };
+  return interiorResolveMove(CASTLE_INTERIOR_NAV, prevXM, prevZM, nextXM, nextZM, currentY);
 }
 
+/**
+ * Two interior floors are "the same" when they are within one step-up of each
+ * other. Still a single shared tolerance rather than a per-dungeon one: its
+ * callers (melee range, ability targeting, mob target selection) hold a mob row
+ * and a player row, not a dungeon descriptor, and every registered dungeon
+ * declares the same 0.55 m step — pinned across the whole table by
+ * dungeonInteriorNav.test.ts, so a dungeon that ever disagrees fails loudly
+ * instead of being silently measured against Ashwood's number.
+ */
 export function sameInteriorFloor(a: number, b: number): boolean {
   return Math.abs(a - b) <= CASTLE_STEP_UP;
 }
@@ -205,6 +123,5 @@ export function castleInteriorMoveAllowed(
   worldZM: number,
   currentY: number,
 ): boolean | null {
-  if (!isInCastleInterior(worldXM, worldZM)) return null;
-  return castleInteriorSurfaceAt(worldXM, worldZM, currentY) != null;
+  return interiorMoveAllowed(CASTLE_INTERIOR_NAV, worldXM, worldZM, currentY);
 }
