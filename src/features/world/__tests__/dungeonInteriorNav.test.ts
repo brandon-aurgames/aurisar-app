@@ -681,16 +681,24 @@ describe('CONSEQUENCE 4 — the REDUCERS themselves read the table, for a non-As
   it('and NOTHING in index.ts can name one dungeon\'s interior directly', () => {
     // The net under both pins above. A reducer can only be narrowed back to
     // Castle Ashwood by naming Ashwood — either its descriptor or its content
-    // id — so forbidding both in this file makes that mutation unwritable
-    // rather than merely unlikely.
+    // id — so forbidding both makes that mutation unwritable rather than
+    // merely unlikely.
+    //
+    // The descriptor ban and the literal-argument ban are whole-file: neither
+    // has a legitimate use anywhere in this module and both names are
+    // unambiguous. The bare id-literal ban is scoped to the two reducer bodies
+    // instead — a quoted dungeon id is a real smell THERE, but banning the
+    // string across a 3,000-line file would also fire on a future comment that
+    // happens to quote one, which is a confusing failure for something
+    // harmless.
     expect(server, 'index.ts imports a specific dungeon\'s nav descriptor')
       .not.toContain('CASTLE_INTERIOR_NAV');
-    expect(server, 'index.ts hardcodes a dungeon id literal')
-      .not.toMatch(/['"`]castle_ashwood['"`]/);
-    expect(server, 'index.ts hardcodes a dungeon id literal')
-      .not.toMatch(/['"`]barrowdeep['"`]/);
-    // ...and the per-id lookup that remains (enterDungeon's) is fed the
-    // reducer's own argument, never a literal.
+    for (const name of ['movePlayer', 'tickMobAI']) {
+      expect(reducerBody(name), `${name} hardcodes a dungeon id literal`)
+        .not.toMatch(/['"`](castle_ashwood|barrowdeep)['"`]/);
+    }
+    // ...and the per-id lookup that remains anywhere in the file
+    // (enterDungeon's) is fed the reducer's own argument, never a literal.
     expect(server).not.toMatch(/dungeonInteriorNavFor\(\s*['"`]/);
     expect(server).toContain('dungeonInteriorNavFor(dungeonId)');
   });
