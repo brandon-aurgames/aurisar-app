@@ -203,18 +203,53 @@ describe('a clamped step cannot wedge the row', () => {
     join(repoRoot, 'src/features/world/game/BabylonWorldScene.js'), 'utf8',
   );
 
+  /** The `{ ... }` block whose opening brace is at `openIndex`, by brace depth. */
+  function braceBlock(src, openIndex) {
+    let depth = 0;
+    for (let i = openIndex; i < src.length; i++) {
+      if (src[i] === '{') depth++;
+      else if (src[i] === '}') {
+        depth--;
+        if (depth === 0) return src.slice(openIndex, i + 1);
+      }
+    }
+    throw new Error('unbalanced braces');
+  }
+
   it('a clamped indoor step goes through the wall-slide resolver', () => {
     // R21 lifted movePlayer's interior branch into the pure
-    // resolveInteriorStep so it could be parameterized per dungeon (and
-    // unit-tested — see dungeonInteriorNav.test.ts for the behaviour). The
-    // structural pin follows it there; movePlayer must still be the thing
-    // that calls it, which the second half checks.
-    const body = interiorNav.slice(interiorNav.indexOf('export function resolveInteriorStep'));
-    expect(body).toContain('if (guardClamped) {');
-    expect(body).toContain('interiorResolveMove(');
+    // resolveInteriorStep so it could be parameterized per dungeon, and the
+    // structural pin follows it there. It keeps the ORIGINAL'S ANCHORING: the
+    // retired regex required the strict all-or-nothing check to sit in the
+    // `} else {` arm of `if (guarded.clamped)`. resolveInteriorStep's clamped
+    // arm `return`s early rather than using an else, so the literal `} else {`
+    // genuinely cannot exist any more — but "the strict check is NOT in the
+    // clamped arm" is the property that mattered, and it is asserted here by
+    // brace-matching that arm rather than by dropping the anchor.
+    // Bounded to resolveInteriorStep's own body — the functions below it in
+    // the same file also wall-slide, and must not leak into the arms compared
+    // here.
+    const fnStart = interiorNav.indexOf('export function resolveInteriorStep');
+    expect(fnStart, 'resolveInteriorStep not found').toBeGreaterThan(-1);
+    const fn = braceBlock(interiorNav, interiorNav.indexOf('{', fnStart));
+    const head = 'if (guardClamped) {';
+    const open = fn.indexOf(head);
+    expect(open, 'resolveInteriorStep no longer branches on guardClamped').toBeGreaterThan(-1);
+    const clampedArm = braceBlock(fn, open + head.length - 1);
+    const unclamped = fn.slice(open + clampedArm.length);
+    // Sanity that the brace match actually found the arm and not a fragment.
+    expect(clampedArm.startsWith('{')).toBe(true);
+    expect(clampedArm).toContain('recoverNearStoredFloor(');
+
+    // The clamped arm wall-slides, so a shortened step can never wedge the row...
+    expect(clampedArm).toContain('interiorResolveMove(');
+    // ...and must NOT carry the strict rejection.
+    expect(clampedArm).not.toMatch(/if \(!surface\) return null;/);
     // An unclamped claim must keep the strict all-or-nothing check, or
     // ordinary moves into walls would start being quietly slid instead.
-    expect(body).toMatch(/interiorSurfaceAt\([\s\S]{0,200}if \(!surface\) return null;/);
+    expect(unclamped).toMatch(/interiorSurfaceAt\([\s\S]{0,200}if \(!surface\) return null;/);
+    expect(unclamped, 'the unclamped path must not start wall-sliding')
+      .not.toContain('interiorResolveMove(');
 
     const mover = server.slice(server.indexOf('export const movePlayer'));
     expect(mover).toContain('resolveInteriorStep(');

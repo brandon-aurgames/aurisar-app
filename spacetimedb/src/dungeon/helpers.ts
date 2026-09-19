@@ -145,6 +145,64 @@ export function dungeonInteriorNavFor(dungeonId: string): DungeonInteriorNav | n
 }
 
 /**
+ * The minimum a reducer ctx must expose to answer "which dungeon is this
+ * instance". Structural, not the real ReducerContext, so the two functions
+ * below are callable from a unit test with a fake row table — `index.ts`
+ * itself cannot be imported under vitest (it imports `spacetimedb/server`,
+ * which does not parse under plain node and is pinned to a different version
+ * in the module's own install than in the root one), so the reducer-level gate
+ * has to be reachable without it.
+ */
+export interface DungeonInstanceLookup {
+  db: { dungeonInstance: { instanceId: { find: (id: bigint) => { dungeonId: string } | null } } };
+}
+
+/**
+ * The DungeonDef an instance belongs to, or null outside any instance.
+ *
+ * Lives here rather than in bossMechanics.ts (where it used to) because it
+ * reads DUNGEONS_BY_ID from this module and is now the shared first half of
+ * both reducer-level gates — boss mechanics AND interior nav.
+ */
+export function getDungeonForInstance(
+  ctx: DungeonInstanceLookup,
+  instanceId: bigint,
+): DungeonDef | null {
+  if (instanceId === 0n) return null;
+  const inst = ctx.db.dungeonInstance.instanceId.find(instanceId);
+  if (!inst) return null;
+  return DUNGEONS_BY_ID[inst.dungeonId] ?? null;
+}
+
+/**
+ * `tickMobAI`'s interior-nav gate: the grids a mob whose instance resolves to
+ * `dungeon` must be stepped against. Takes the already-resolved DungeonDef
+ * because that caller needs it for boss mechanics anyway and must not pay a
+ * second `dungeonInstance` read.
+ */
+export function interiorNavForDungeon(dungeon: DungeonDef | null): DungeonInteriorNav | null {
+  return dungeon ? dungeonInteriorNavFor(dungeon.id) : null;
+}
+
+/**
+ * `movePlayer`'s interior-nav gate: the grids a player inside
+ * `dungeonInstanceId` must be resolved against, straight from the instance row.
+ *
+ * Null for an outdoor player (instance 0), a stale instance id, a dungeon the
+ * content package no longer ships, and a dungeon with no interior row — every
+ * one of which means "skip interior rules", never "use Castle Ashwood's".
+ * Hardcoding either caller back to one dungeon's descriptor reinstates the
+ * original R21 bug, so this is pinned both behaviourally (here) and
+ * structurally against the reducer bodies (dungeonInteriorNav.test.ts).
+ */
+export function interiorNavForInstance(
+  ctx: DungeonInstanceLookup,
+  dungeonInstanceId: bigint,
+): DungeonInteriorNav | null {
+  return interiorNavForDungeon(getDungeonForInstance(ctx, dungeonInstanceId));
+}
+
+/**
  * Dungeon interior-local meters (e.g. castlePlan LOCAL space) → STDB px,
  * resolved against the OWNING dungeon's own zone (its
  * DungeonDef.entrance.zoneId) and its own registered anchor above — not

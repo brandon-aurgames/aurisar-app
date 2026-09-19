@@ -2,20 +2,15 @@
  * Instance boss mechanics — aoePulse + enrage from DungeonDef.bossMechanics.
  */
 
-import { DUNGEONS_BY_ID } from './helpers.js';
+import { getDungeonForInstance, type DungeonInstanceLookup } from './helpers.js';
 import type { BossMechanics, DungeonDef } from '../content/types.js';
 
 export const PX_PER_M = 32;
 
-export function getDungeonForInstance(
-  ctx: { db: { dungeonInstance: { instanceId: { find: (id: bigint) => { dungeonId: string } | null } } } },
-  instanceId: bigint,
-): DungeonDef | null {
-  if (instanceId === 0n) return null;
-  const inst = ctx.db.dungeonInstance.instanceId.find(instanceId);
-  if (!inst) return null;
-  return DUNGEONS_BY_ID[inst.dungeonId] ?? null;
-}
+// Moved to dungeon/helpers.ts, beside DUNGEONS_BY_ID which it reads and the
+// interior-nav gate that now shares it. Re-exported so existing importers of
+// this module are unaffected.
+export { getDungeonForInstance };
 
 /**
  * The boss-mechanics half of `getBossMechanicsForMob`, split out so a caller
@@ -32,7 +27,7 @@ export function bossMechanicsFor(
 }
 
 export function getBossMechanicsForMob(
-  ctx: { db: { dungeonInstance: { instanceId: { find: (id: bigint) => { dungeonId: string } | null } } } },
+  ctx: DungeonInstanceLookup,
   mob: { mobType: string; dungeonInstanceId: bigint },
 ): BossMechanics | null {
   return bossMechanicsFor(getDungeonForInstance(ctx, mob.dungeonInstanceId), mob);

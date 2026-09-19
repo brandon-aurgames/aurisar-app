@@ -61,7 +61,11 @@ import {
   dungeonInteriorNavFor,
   dungeonSpawnFloorYM,
   dungeonSpawnPx,
+  getDungeonForInstance,
   interiorLocalToPx,
+  interiorNavForDungeon,
+  interiorNavForInstance,
+  type DungeonInstanceLookup,
 } from '../../../../spacetimedb/src/dungeon/helpers.ts';
 import { DUNGEONS, ZONES_BY_ID } from '../../../../spacetimedb/src/content/index.js';
 import { resolveZone } from '../../../../spacetimedb/src/world/zones.ts';
@@ -399,6 +403,23 @@ describe('CONSEQUENCE 2 — a Barrowdeep mob can actually move', () => {
  * walkable gallery cell. "Blocked" means no surface on ANY level, so the
  * rejection cannot be an artifact of the step-up/step-down window.
  */
+/** A walkable / fully-blocked pair inside Castle Ashwood, found the same way. */
+function ashwoodWallPair(): { walkable: { x: number; z: number }; blocked: { x: number; z: number } } {
+  const { anchor, bounds } = CASTLE_NAV_META;
+  let blocked: { x: number; z: number } | null = null;
+  let walkable: { x: number; z: number } | null = null;
+  for (let xm = bounds.x0; xm < bounds.x1 && !walkable; xm += 0.5) {
+    for (let zm = bounds.z0; zm < bounds.z1; zm += 0.5) {
+      const p = { x: anchor.x + xm, z: anchor.z + zm };
+      if (!walkable && castleInteriorSurfaceAt(p.x, p.z, 11)) walkable = p;
+      if (!blocked && !hasAnySurface(ashwoodNav, p.x, p.z)) blocked = p;
+      if (walkable && blocked) break;
+    }
+  }
+  if (!walkable || !blocked) throw new Error('no walkable/blocked pair in Castle Ashwood — nav data missing?');
+  return { walkable, blocked };
+}
+
 function findWall(): { fromX: number; fromZ: number; wallX: number; wallZ: number } {
   const entry = DUNGEON_INTERIOR_ENTRY.barrowdeep;
   const x0 = entry.anchor.x + entry.spawnLocal.x;
@@ -467,31 +488,213 @@ describe('CONSEQUENCE 3 — a Barrowdeep wall is now enforced server-side', () =
     // The same assertion shape against Ashwood, so a change that loosened
     // collision for both dungeons could not hide behind the Barrowdeep being
     // newly covered.
-    const { anchor, bounds } = CASTLE_NAV_META;
-    let blocked: { x: number; z: number } | null = null;
-    let walkable: { x: number; z: number } | null = null;
-    for (let xm = bounds.x0; xm < bounds.x1 && !walkable; xm += 0.5) {
-      for (let zm = bounds.z0; zm < bounds.z1; zm += 0.5) {
-        const p = { x: anchor.x + xm, z: anchor.z + zm };
-        if (!walkable && castleInteriorSurfaceAt(p.x, p.z, 11)) walkable = p;
-        if (!blocked && !hasAnySurface(ashwoodNav, p.x, p.z)) blocked = p;
-        if (walkable && blocked) break;
-      }
-    }
-    expect(walkable).toBeTruthy();
-    expect(blocked).toBeTruthy();
+    const { walkable, blocked } = ashwoodWallPair();
     expect(
       resolveInteriorStep(
         ashwoodNav,
-        worldMToPx(walkable!.x), worldMToPx(walkable!.z), 11,
-        worldMToPx(blocked!.x), worldMToPx(blocked!.z), 11,
+        worldMToPx(walkable.x), worldMToPx(walkable.z), 11,
+        worldMToPx(blocked.x), worldMToPx(blocked.z), 11,
         false,
       ),
     ).toBeNull();
   });
 });
 
+describe('strict when unclamped, wall-slide when clamped — asserted, not just pinned in source', () => {
+  /**
+   * `moveGuard.test.js` pins this structurally (the strict all-or-nothing
+   * check must not live in the clamped arm). That pin is a regex over source
+   * text and cannot see behaviour, so the contract itself is asserted here for
+   * BOTH dungeons now that resolveInteriorStep is a pure function.
+   *
+   * Why the two arms differ: clamping projects the step along the straight
+   * chord to the claim, which indoors can cross a wall even when both
+   * endpoints are walkable — rejecting there would let the speed guard
+   * synthesise a nav-blocked point out of a legal move and strand the row. An
+   * unclamped claim has no such excuse: the client already wall-slides
+   * locally, so a blocked point is spoofed or desynced and is refused.
+   */
+  const cases = (() => {
+    const ca = ashwoodWallPair();
+    const bd = findWall();
+    return [
+      {
+        id: 'castle_ashwood',
+        nav: ashwoodNav,
+        from: { x: worldMToPx(ca.walkable.x), y: worldMToPx(ca.walkable.z) },
+        wall: { x: worldMToPx(ca.blocked.x), y: worldMToPx(ca.blocked.z) },
+      },
+      {
+        id: 'barrowdeep',
+        nav: barrowdeepNav,
+        from: localToPx(barrowdeepNav, bd.fromX, bd.fromZ),
+        wall: localToPx(barrowdeepNav, bd.wallX, bd.wallZ),
+      },
+    ];
+  })();
+
+  it.each(cases.map((c) => [c.id, c] as [string, typeof cases[number]]))(
+    '%s: an unclamped wall claim is REFUSED and a clamped one is SLID, never stored raw',
+    (_id, c) => {
+      expect(
+        resolveInteriorStep(c.nav, c.from.x, c.from.y, 11, c.wall.x, c.wall.y, 11, false),
+        'unclamped claims must not be quietly slid',
+      ).toBeNull();
+
+      const slid = resolveInteriorStep(
+        c.nav, c.from.x, c.from.y, 11, c.wall.x, c.wall.y, 11, true,
+      );
+      expect(slid, 'a clamped step from a walkable spot must never strand the row').not.toBeNull();
+      expect(slid!.x === c.wall.x && slid!.y === c.wall.y, 'the raw wall claim was stored').toBe(false);
+      expect(slid!.floorYM).toBe(11);
+    },
+  );
+});
+
 // ---------------------------------------------------------------------------
+
+describe('CONSEQUENCE 4 — the REDUCERS themselves read the table, for a non-Ashwood dungeon', () => {
+  /**
+   * Why this block exists, in its own words: everything above proves the
+   * descriptor table and the resolution engine are right. None of it proves
+   * that `movePlayer` and `tickMobAI` actually *ask the table which dungeon
+   * the player/mob is in* — narrowing either reducer's lookup back to Castle
+   * Ashwood reinstates the original shipped bug verbatim, and the engine-level
+   * tests keep passing because the engine is still correct; it is just being
+   * handed the wrong descriptor.
+   *
+   * `spacetimedb/src/index.ts` cannot be imported under vitest to close that
+   * directly: it imports `spacetimedb/server`, which does not parse under
+   * plain node (`SyntaxError: Unexpected identifier 'iter'`) and is pinned to
+   * 2.2.0 in the module's own install against 2.10.0 in the root one, so even
+   * a stubbed import would exercise the wrong runtime. So the gate is closed
+   * from both sides instead:
+   *
+   *   1. the lookup each reducer performs is a real function in
+   *      dungeon/helpers.ts, exercised here against a fake instance table for
+   *      BOTH dungeons — a behavioural test of the routing itself; and
+   *   2. the reducer bodies are pinned to call exactly those functions with
+   *      the row's own instance id, and index.ts is pinned to contain no
+   *      Ashwood hardcode at all — neither the descriptor nor the id literal.
+   */
+  const server = readFileSync(join(repoRoot, 'spacetimedb/src/index.ts'), 'utf8');
+
+  /** A fake `dungeonInstance` table: instance id -> the dungeon it hosts. */
+  function instanceTable(rows: Record<string, string>): DungeonInstanceLookup {
+    return {
+      db: {
+        dungeonInstance: {
+          instanceId: {
+            find: (id: bigint) => (rows[String(id)] ? { dungeonId: rows[String(id)] } : null),
+          },
+        },
+      },
+    };
+  }
+
+  const ctx = instanceTable({
+    '1': 'castle_ashwood',
+    '7': 'barrowdeep',
+    '9': 'a_dungeon_the_content_package_no_longer_ships',
+  });
+
+  it('movePlayer\'s gate returns the BARROWDEEP\'s grids for a Barrowdeep instance', () => {
+    // The whole bug in one assertion: instance 7 is a Barrowdeep instance, so
+    // the player standing in it must be resolved against the Barrowdeep.
+    const nav = interiorNavForInstance(ctx, 7n);
+    expect(nav).toBe(barrowdeepNav);
+    expect(nav).not.toBe(ashwoodNav);
+    expect(nav!.dungeonId).toBe('barrowdeep');
+    expect(nav!.zoneId).toBe(2);
+  });
+
+  it('and Castle Ashwood\'s for an Ashwood instance — the gate discriminates, it does not just always answer', () => {
+    const nav = interiorNavForInstance(ctx, 1n);
+    expect(nav).toBe(ashwoodNav);
+    expect(nav).not.toBe(barrowdeepNav);
+  });
+
+  it('null for outdoors, a stale instance id, and a dungeon the content package dropped', () => {
+    expect(interiorNavForInstance(ctx, 0n), 'an outdoor player').toBeNull();
+    expect(interiorNavForInstance(ctx, 404n), 'an instance row that is gone').toBeNull();
+    expect(interiorNavForInstance(ctx, 9n), 'an unshipped dungeon id').toBeNull();
+    // Null means "skip interior rules", never "fall back to Ashwood's walls".
+    expect(interiorNavForInstance(ctx, 9n)).not.toBe(ashwoodNav);
+  });
+
+  it('tickMobAI\'s gate answers off the already-resolved DungeonDef, and agrees with movePlayer\'s', () => {
+    // Different signature (it reuses the DungeonDef the boss-mechanics lookup
+    // already needed, to avoid a second dungeonInstance read), so it gets its
+    // own coverage rather than being assumed equivalent.
+    for (const [instanceId, expected] of [[1n, ashwoodNav], [7n, barrowdeepNav]] as const) {
+      const dungeon = getDungeonForInstance(ctx, instanceId);
+      expect(interiorNavForDungeon(dungeon)).toBe(expected);
+      expect(interiorNavForDungeon(dungeon)).toBe(interiorNavForInstance(ctx, instanceId));
+    }
+    expect(interiorNavForDungeon(null)).toBeNull();
+    expect(interiorNavForDungeon(getDungeonForInstance(ctx, 9n))).toBeNull();
+  });
+
+  it('THE REGRESSION, end to end: a Barrowdeep instance rejects a Barrowdeep wall; Ashwood\'s grids would not', () => {
+    // Chains the reducer's own gate into the resolution the reducer performs,
+    // so this fails if EITHER half regresses.
+    const wall = findWall();
+    const fromPx = localToPx(barrowdeepNav, wall.fromX, wall.fromZ);
+    const wallPx = localToPx(barrowdeepNav, wall.wallX, wall.wallZ);
+
+    const viaGate = interiorNavForInstance(ctx, 7n)!;
+    expect(
+      resolveInteriorStep(viaGate, fromPx.x, fromPx.y, 11, wallPx.x, wallPx.y, 11, false),
+      'a wall claim inside a Barrowdeep instance must be rejected',
+    ).toBeNull();
+
+    // What a reducer hardcoded to Ashwood does with the identical claim: the
+    // position is ~3 km outside Ashwood's footprint, so it is never even a
+    // candidate for rejection — which is the bug, not a near miss.
+    expect(isInInterior(ashwoodNav, pxToWorldM(wallPx.x, 0), pxToWorldM(wallPx.y, 0))).toBe(false);
+    expect(
+      interiorMobStepPx(ashwoodNav, fromPx.x, fromPx.y, wallPx.x, wallPx.y, 11).landed,
+    ).toBe(false);
+  });
+
+  /** A reducer's body: from its `export const <name>` to the next top-level export. */
+  function reducerBody(name: string): string {
+    const start = server.indexOf(`export const ${name} = spacetimedb.reducer`);
+    expect(start, `reducer ${name} not found in index.ts`).toBeGreaterThan(-1);
+    const next = server.indexOf('\nexport const ', start + 1);
+    return server.slice(start, next === -1 ? undefined : next);
+  }
+
+  it('movePlayer asks the table which dungeon THIS PLAYER is in', () => {
+    const body = reducerBody('movePlayer');
+    expect(body).toContain('interiorNavForInstance(ctx, existing.dungeonInstanceId)');
+    expect(body).toContain('if (interiorNav) {');
+  });
+
+  it('tickMobAI asks the table which dungeon THIS MOB is in', () => {
+    const body = reducerBody('tickMobAI');
+    expect(body).toContain('getDungeonForInstance(ctx, mob.dungeonInstanceId)');
+    expect(body).toContain('interiorNavForDungeon(mobDungeon)');
+    expect(body).toContain('if (!mobNav) {');
+  });
+
+  it('and NOTHING in index.ts can name one dungeon\'s interior directly', () => {
+    // The net under both pins above. A reducer can only be narrowed back to
+    // Castle Ashwood by naming Ashwood — either its descriptor or its content
+    // id — so forbidding both in this file makes that mutation unwritable
+    // rather than merely unlikely.
+    expect(server, 'index.ts imports a specific dungeon\'s nav descriptor')
+      .not.toContain('CASTLE_INTERIOR_NAV');
+    expect(server, 'index.ts hardcodes a dungeon id literal')
+      .not.toMatch(/['"`]castle_ashwood['"`]/);
+    expect(server, 'index.ts hardcodes a dungeon id literal')
+      .not.toMatch(/['"`]barrowdeep['"`]/);
+    // ...and the per-id lookup that remains (enterDungeon's) is fed the
+    // reducer's own argument, never a literal.
+    expect(server).not.toMatch(/dungeonInteriorNavFor\(\s*['"`]/);
+    expect(server).toContain('dungeonInteriorNavFor(dungeonId)');
+  });
+});
 
 describe('the two interiors never resolve against each other', () => {
   it('a point inside the Barrowdeep is outside Castle Ashwood, and vice versa', () => {

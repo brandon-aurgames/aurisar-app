@@ -49,7 +49,10 @@ import {
   dungeonSpawnByNetId,
   dungeonSpawnPx,
   dungeonInteriorNavFor,
+  getDungeonForInstance,
   interiorLocalToPx,
+  interiorNavForDungeon,
+  interiorNavForInstance,
   zoneEntranceToPx,
   dungeonSpawnFloorYM,
   type DungeonSpawnEntry,
@@ -59,7 +62,6 @@ import {
   bossDamageMult,
   bossEnraged,
   bossMechanicsFor,
-  getDungeonForInstance,
   shouldBossAoePulse,
 } from './dungeon/bossMechanics.js';
 import {
@@ -1028,9 +1030,9 @@ export const movePlayer = spacetimedb.reducer(
 
     let nextFloorYM = existing.floorYM;
 
-    // Which dungeon (if any) this instance actually belongs to — resolved
-    // from the instance row, not assumed from a nonzero dungeonInstanceId —
-    // and then that dungeon's OWN nav grids.
+    // The nav grids of whichever dungeon this instance ACTUALLY belongs to —
+    // resolved from the instance row, never assumed from a nonzero
+    // dungeonInstanceId and never from a dungeon id literal.
     //
     // This branch used to run against Castle Ashwood's grids for every
     // instance (D174 item 3). M11-1 narrowed it to "the dungeon that claims
@@ -1041,15 +1043,13 @@ export const movePlayer = spacetimedb.reducer(
     // instance's mobs sat on 11.0 / 0.6. R21 routes the branch through the
     // per-dungeon descriptor instead, so each dungeon is checked against its
     // own walls and no dungeon is checked against another's.
-    const activeDungeonInstance = existing.dungeonInstanceId > 0n
-      ? ctx.db.dungeonInstance.instanceId.find(existing.dungeonInstanceId)
-      : undefined;
-    const activeDungeon = activeDungeonInstance
-      ? DUNGEONS_BY_ID[activeDungeonInstance.dungeonId]
-      : undefined;
-    const interiorNav: DungeonInteriorNav | null = activeDungeon
-      ? dungeonInteriorNavFor(activeDungeon.id)
-      : null;
+    //
+    // The lookup itself lives in dungeon/helpers.ts so it is unit-testable
+    // against a fake instance table for a NON-Ashwood dungeon — this file
+    // cannot be imported under vitest. See dungeonInteriorNav.test.ts, which
+    // also pins structurally that this call is the one made here.
+    const interiorNav: DungeonInteriorNav | null =
+      interiorNavForInstance(ctx, existing.dungeonInstanceId);
 
     // Interior rules apply only inside an instance whose dungeon has
     // registered nav grids (D65 puts Ashwood's interior at world coordinates
@@ -2215,13 +2215,14 @@ export const tickMobAI = spacetimedb.reducer(
       const dmgMult = bossMech ? bossDamageMult(bossMech, nextEnraged) : 1;
       const effectiveDamage = Math.round(attackDamage * dmgMult);
 
-      // THIS mob's dungeon's own grids. Before R21 every dungeon mob stepped
-      // through Castle Ashwood's, with a zero origin offset: a Barrowdeep mob
-      // (zone 2, 3 km east) resolved to no surface at all, so
+      // THIS mob's dungeon's own grids, off the DungeonDef already resolved
+      // above — never a dungeon id literal. Before R21 every dungeon mob
+      // stepped through Castle Ashwood's, with a zero origin offset: a
+      // Barrowdeep mob (zone 2, 3 km east) resolved to no surface at all, so
       // castleInteriorResolveMove handed back its previous position and it
       // never chased or returned. A dungeon with no registered interior now
       // steps freely rather than being pinned by another dungeon's walls.
-      const mobNav = mobDungeon ? dungeonInteriorNavFor(mobDungeon.id) : null;
+      const mobNav = interiorNavForDungeon(mobDungeon);
       if (mob.dungeonInstanceId > 0n && nextFloorYM === 0) {
         nextFloorYM = mobNav ? interiorFloorYAtPx(mobNav, mob.x, mob.y, 0) : 0;
       }
