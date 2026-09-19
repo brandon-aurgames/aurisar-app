@@ -30,7 +30,9 @@ import { MOBS as ZONE2_MOBS, SPAWNS as ZONE2_SPAWNS } from './zones/zone2/mobs';
 import { NPCS as ZONE2_NPCS } from './zones/zone2/npcs';
 import { WAYPOINTS as ZONE2_WAYPOINTS } from './zones/zone2/waypoints';
 import { DUNGEONS } from './dungeons/index';
-import { LANDMARKS, ALL_LANDMARKS } from './zones/zone1/landmarks.generated';
+import { LANDMARKS, ALL_LANDMARKS as ZONE1_LANDMARKS } from './zones/zone1/landmarks.generated';
+import type { LandmarkDef } from './zones/zone1/landmarks.generated';
+import { ALL_LANDMARKS as ZONE2_LANDMARKS } from './zones/zone2/landmarks.generated';
 
 export * from './types';
 export { ABILITIES, ALL_ABILITIES, CLASS_IDS, CLASS_KITS } from './classes/index';
@@ -38,7 +40,7 @@ export { ALL_ITEMS, ITEMS, getItemDef } from './items/index';
 export { ZONES, ZONES_BY_ID, getZone } from './zones/manifest';
 export { DUNGEONS } from './dungeons/index';
 export {
-  LANDMARKS, ALL_LANDMARKS, landmarkPos,
+  LANDMARKS, landmarkPos,
 } from './zones/zone1/landmarks.generated';
 export type { LandmarkDef, LandmarkId } from './zones/zone1/landmarks.generated';
 
@@ -59,6 +61,17 @@ export const ALL_QUESTS: QuestDef[] = [...ZONE1_QUESTS];
 export const ALL_MOBS: MobDef[] = [...ZONE1_MOBS, ...ZONE2_MOBS];
 export const ALL_WAYPOINTS: WaypointDef[] = [...ZONE1_WAYPOINTS, ...ZONE2_WAYPOINTS];
 export const SPAWNS: SpawnDef[] = [...ZONE1_SPAWNS, ...ZONE2_SPAWNS];
+
+// Landmarks are the one exception to "every cross-zone entry carries its own
+// zoneId": LandmarkDef has no zoneId field (each zone's landmarks.generated.ts
+// is already its own closed namespace). ALL_LANDMARKS below is the first
+// place that spans more than one zone, so a same-named concept in two zones
+// (a lake, a wildwood) is fine — only `id` must stay globally unique, which
+// is what dupCheck('landmark id', …) in validateContent() now guards, the
+// same way it already guards npc/quest/mobType/waypoint/spawn ids. Zone 1's
+// own keyed LANDMARKS object and landmarkPos() helper stay zone-1-only
+// (re-exported above) — nothing yet needs a cross-zone version of those two.
+export const ALL_LANDMARKS: LandmarkDef[] = [...ZONE1_LANDMARKS, ...ZONE2_LANDMARKS];
 
 export const NPCS: Record<string, NpcDef> = Object.fromEntries(
   ALL_NPCS.map((n) => [n.id, n]),
@@ -258,6 +271,7 @@ export function validateContent(): string[] {
   dupCheck('quest id', ALL_QUESTS.map((q) => q.id));
   dupCheck('mobType', ALL_MOBS.map((m) => m.mobType));
   dupCheck('waypoint id', ALL_WAYPOINTS.map((w) => w.id));
+  dupCheck('landmark id', ALL_LANDMARKS.map((l) => l.id));
   dupCheck('spawn netId', SPAWNS.map((s) => s.netId));
   dupCheck('zone id', (ZONES as ZoneDef[]).map((z) => String(z.id)));
 

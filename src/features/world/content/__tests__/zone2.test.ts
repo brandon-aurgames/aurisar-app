@@ -23,6 +23,11 @@ import {
   ZONES_BY_ID,
   validateContent,
 } from '../index';
+import {
+  ALL_LANDMARKS as ZONE2_LANDMARKS,
+  landmarkPos as zone2LandmarkPos,
+} from '../zones/zone2/landmarks.generated';
+import type { LandmarkId as Zone2LandmarkId } from '../zones/zone2/landmarks.generated';
 
 // eslint-disable-next-line -- JS module without types
 import { createWorldgen } from '../../worldgen/index.js';
@@ -145,44 +150,72 @@ describe('zone 2 content agrees with zone2_world.json', () => {
     }
   });
 
-  it('the hold, its graveyard and the pass sit on their config anchors', () => {
-    // Zone 1 gets this from landmarks.generated.ts. Zone 2 has no emitter yet,
-    // so the anchors block is the single source and these are the copies.
+  it('the hold, its graveyard and the pass sit on their config anchors and generated landmarks', () => {
+    // Zone 1 gets this from landmarks.generated.ts; M11-3 (D177) gave Zone 2
+    // the same emitter, so these three authored positions now have both a
+    // config-anchor copy (checked here, as before) and a generated LANDMARKS
+    // entry (checked below) — proving the table hasn't drifted from the
+    // anchors it derives from, the same guarantee landmarks.test.ts's "stay
+    // in sync with the terrain truth" test pins for Zone 1's own entries.
+    // (The `graveyard` anchor key was renamed `kestrel_rest` in this same PR
+    // to resolve a cross-zone landmark id collision with Zone 1's own
+    // `graveyard` — see content/index.ts's ALL_LANDMARKS dupCheck.)
     expect(ZONE_2.spawnPos).toEqual({ x: anchors.kestrel_hold.x, z: anchors.kestrel_hold.z });
-    expect(ZONE_2.graveyardPos).toEqual({ x: anchors.graveyard.x, z: anchors.graveyard.z });
+    expect(ZONE_2.graveyardPos).toEqual({ x: anchors.kestrel_rest.x, z: anchors.kestrel_rest.z });
     expect(ZONE_2.gates[0].pos).toEqual({ x: anchors.south_pass.x, z: anchors.south_pass.z });
+
+    expect(zone2LandmarkPos('kestrel_hold')).toEqual(ZONE_2.spawnPos);
+    expect(zone2LandmarkPos('kestrel_rest')).toEqual(ZONE_2.graveyardPos);
+    expect(zone2LandmarkPos('south_pass')).toEqual(ZONE_2.gates[0].pos);
   });
 
-  it('every POI sits on a config anchor', () => {
-    const byPos = new Map(
-      Object.values(anchors).map((a) => [`${a.x},${a.z}`, a.name]),
+  it('every POI sits exactly on the landmark it names (mirrors landmarks.test.ts for Zone 1)', () => {
+    // A byPos name-lookup (the pre-M11-3 approach, back when `anchors` was
+    // the only landmark-shaped set available) breaks the moment a POI sits on
+    // a DERIVED landmark offset from its own anchor: poi_barrowdeep sits on
+    // `barrowdeep_gate` but is labeled with `barrowdeep`'s name — the same
+    // shape as Zone 1's own poi_castle_ashwood (sits on `castle_gate`,
+    // labeled with `castle_ashwood`). So this uses Zone 1's real pattern
+    // instead (landmarks.test.ts's "waypoints resolve to landmarks"): an
+    // explicit POI-id -> landmark-id map, position-checked against the
+    // generated table rather than name-matched against raw anchors.
+    const expected: Record<string, Zone2LandmarkId> = {
+      poi_kestrel_hold: 'kestrel_hold',
+      poi_hollowmoor: 'hollowmoor',
+      poi_cairnfield: 'cairnfield',
+      poi_windward_scarp: 'windward_scarp',
+      poi_barrowdeep: 'barrowdeep_gate',
+    };
+    expect(waypoints.map((w) => w.id).sort(), 'no POI left hand-placed').toEqual(
+      Object.keys(expected).sort(),
     );
     for (const w of waypoints) {
-      const name = byPos.get(`${w.pos.x},${w.pos.z}`);
-      expect(name, `waypoint ${w.id} is not on any zone2_world.json anchor`).toBeTruthy();
-      expect(w.label, `waypoint ${w.id} label`).toBe(name);
+      const id = expected[w.id];
+      expect(id, `waypoint ${w.id} has no landmark mapping`).toBeTruthy();
+      expect(w.pos, `waypoint ${w.id}`).toEqual(zone2LandmarkPos(id));
     }
   });
 
   // R17 (M11-4): the former version of this test required every camp to sit
   // EXACTLY on a POI's own coordinates — a bijection that read fine at 3
-  // camps / 4 POIs but cannot hold at 7 camps / 4 POIs (waypoints.ts is
-  // M11-3's file, blocked on this one — raising the POI count is not this
-  // task's to do). Resolution: relax to Zone 1's OWN actual invariant, not
-  // Zone 2's former stricter one. landmarks.test.ts's real rule for Zone 1 is
-  // "every camp sits within 40m of SOME landmark" (many camps per landmark,
-  // several landmarks with none) — never a 1:1 camp<->POI pairing; Zone 1
-  // runs 14 camps over 9 POIs today. Zone 2 has no generated landmark table
-  // yet (M11-3), so `anchors` stands in for that broader set here — it
-  // already plays the same role (a superset of the POI list: south_pass /
-  // graveyard / barrowdeep are anchors with no POI of their own, the same
-  // shape as Zone 1's castle_gate / hollow_crypt / frostspire_summit).
-  it('every camp sits within reach of a named anchor (R17, relaxed to Zone 1\'s own rule)', () => {
+  // camps / 4 POIs but cannot hold at 7 camps / 4 POIs. Resolution: relax to
+  // Zone 1's OWN actual invariant, not Zone 2's former stricter one.
+  // landmarks.test.ts's real rule for Zone 1 is "every camp sits within 40m
+  // of SOME landmark" (many camps per landmark, several landmarks with none)
+  // — never a 1:1 camp<->POI pairing; Zone 1 runs 14 camps over 9 POIs today.
+  // M11-3 (D177) generated Zone 2's own landmark table, so this now checks
+  // against that table (`ZONE2_LANDMARKS`) directly instead of the `anchors`
+  // stand-in the M11-4 version used. The table is a strict superset of the
+  // anchors (it adds Blackmere, the Wildwood, the Windward Scarp summit and
+  // the Barrowdeep gate on top of every authored anchor), so south_pass /
+  // kestrel_rest / barrowdeep keep playing their same role — landmarks with
+  // no POI of their own, the same shape as Zone 1's castle_gate / hollow_crypt
+  // / frostspire_summit.
+  it('every camp sits within reach of a named landmark (R17, matching Zone 1\'s own rule exactly)', () => {
     const REACH_M = 40; // the same constant landmarks.test.ts pins for Zone 1
-    const allAnchors = Object.values(anchors);
     for (const s of spawns) {
-      const nearest = Math.min(...allAnchors.map((a) => Math.hypot(s.pos.x - a.x, s.pos.z - a.z)));
-      expect(nearest, `spawn ${s.netId} is ${nearest.toFixed(1)}m from the nearest anchor`)
+      const nearest = Math.min(...ZONE2_LANDMARKS.map((l) => Math.hypot(s.pos.x - l.x, s.pos.z - l.z)));
+      expect(nearest, `spawn ${s.netId} is ${nearest.toFixed(1)}m from the nearest landmark`)
         .toBeLessThanOrEqual(REACH_M);
     }
   });
