@@ -4,7 +4,7 @@
     "version": 1,
     "source": "Original Aurisar layout. A cold moor plateau reached through Zone 1's northern pass; differentiated from Zone 1 by heightfield, biome weights and scatter density only — it reuses Zone 1's eight terrain layers and its one shared TerrainLit material (D159).",
     "units": "1 unit = 1 meter = 32 SpacetimeDB px; zone origin = ZoneDef.originOffsetM (zone 2 = +3000 m on x) = STDB (97600,1600)",
-    "notes": "First-pass, deliberately thin (D162): three camps, one outpost, one switchback. scatter.chestCount is 0 on purpose — world chests are mirrored to the server through spacetimedb/src/manifests/world_chests.json, which is emitted from zone1_world.json only (scripts/emit_world_chests.mjs); giving zone 2 chests before that emitter is per-zone would create chests no reducer can open. Read by the Unity exporter as of M10-3 (scripts/lib/unity_export/content.mjs loops every zone's worldConfig); Zone 2 has no baked terrain yet, so its export/unity-content/terrain/zone2_* files don't exist until M10-8."
+    "notes": "M10 (D162) shipped this deliberately thin: three camps, one outpost, one switchback, scatter.chestCount 0. M11-4 (D168/D169/D176) is the content-parity fill: scatter.chestCount is now 12 (area-scaled against zone1_world.json's 25, D176) and a Windward Scarp exclusion + `anchors.barrowdeep` mark the Barrowdeep dungeon's exterior footprint (D169) — the dungeon interior itself is NOT built by this config, only its worldgen-level keep-out. NOTE for M11-2: these 12 chests are still not server-openable — scripts/emit_world_chests.mjs still reads zone1_world.json only, so the chest manifest itself must be parameterized per-zone (M11-2, blocked on this file landing) before any reducer can open one of these. Read by the Unity exporter as of M10-3 (scripts/lib/unity_export/content.mjs loops every zone's worldConfig); Zone 2's terrain was baked in M10-8, so export/unity-content/terrain/zone2_* now exists and mirrors this file's realized sites."
   },
   "seed": 20260916,
   "radius": 360,
@@ -57,7 +57,7 @@
       "ground": [0.6, 0.62, 0.62], "fog": "#7c8590",
       "grass": 0.2, "grassCol": [0.3, 0.34, 0.22],
       "treeSkip": 0.6, "trees": ["pine", "dead"],
-      "rockSkip": 0.1, "danger": 0.7
+      "rockSkip": 0.1, "danger": 0.9
     }
   ],
   "scatter": {
@@ -67,7 +67,7 @@
     "detailCount": 440,
     "ruinCount": 3,
     "caveCount": 2,
-    "chestCount": 0,
+    "chestCount": 12,
     "pondCount": 3,
     "pondRadius": [5.5, 9]
   },
@@ -77,14 +77,17 @@
     "graveyard": { "x": -26, "z": -150, "name": "Kestrel Rest" },
     "hollowmoor": { "x": -70, "z": -40, "name": "Hollowmoor" },
     "cairnfield": { "x": 60, "z": 10, "name": "Cairnfield" },
-    "windward_scarp": { "x": -20, "z": 80, "name": "Windward Scarp" }
+    "windward_scarp": { "x": -20, "z": 80, "name": "Windward Scarp" },
+    "barrowdeep": { "x": 125, "z": -30, "name": "The Barrowdeep" }
   },
   "colors": {
     "lakebedSilt": "#1b2220",
     "trailDirt": "#6a5a44",
     "beachSand": "#c9bea0"
   },
-  "exclusions": [],
+  "exclusions": [
+    { "x": 125, "z": -30, "r": 26, "note": "Barrowdeep mound footprint + approach (barrowdeep/barrowdeepPlan.js EXTERIOR, D169/M11-5) — mirrors Zone 1's castle-entry exclusion" }
+  ],
   "biomeAnchors": [
     { "x": 0, "z": -140, "b": 0, "note": "Kestrel Hold — sheltered vale floor" },
     { "x": -70, "z": -40, "b": 0, "note": "Hollowmoor stalker ground" },
