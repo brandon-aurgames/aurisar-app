@@ -43,6 +43,14 @@ describe('stretched-row overlay safeguard', () => {
     expect(css).toMatch(/\.stretch-row\s*\{[^}]*position:\s*relative/);
   });
 
+  it('clamps the exercise name so it cannot overflow a fixed virtualized row', () => {
+    // The picker renders fixed-height react-window rows. Before the clamp, a
+    // two-line name on a narrow phone overflowed its 60px slot and the cards
+    // overlapped (reported on deploy-preview-362). The name button must stay
+    // line-clamped so this can't come back.
+    expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?-webkit-line-clamp:\s*2/);
+  });
+
   it('applies .stretch-row wherever the stretched primary action is used', () => {
     for (const file of STRETCH_ROW_FILES) {
       const src = read(file);
@@ -95,6 +103,35 @@ describe('picker dismissal runs the full teardown', () => {
     for (const setter of ['setPickerSearch', 'setPickerMuscle', 'setPickerTypeFilter', 'setPickerEquipFilter', 'setPickerSelected']) {
       expect(fn, `closePicker does not reset ${setter}`).toContain(setter);
     }
+  });
+});
+
+describe('picker virtualizes against a definite box', () => {
+  // Layout regression guard (audit finding #7): the react-window List was
+  // styled height:100% inside a content-sized flex chain, so the percentage
+  // resolved to `auto`, the List inflated to full content height, and every
+  // one of ~1,500 rows mounted on open and re-rendered on every keystroke.
+  // jsdom has no layout engine, so this can only be asserted at the source
+  // level — the List must sit in a definite box, not a percentage height.
+  const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
+
+  it('gives the picker sheet a definite height so the flex chain resolves', () => {
+    // A `max-height`-only (tall) sheet is content-sized; the List needs the
+    // chain above it to be definite. height:100% fills the nav-padded backdrop.
+    expect(picker, 'picker Sheet must set an explicit height').toMatch(/height:\s*['"]100%['"]/);
+  });
+
+  it('bounds the List in a positioned wrapper instead of a percentage height', () => {
+    // The wrapper is position:relative and the List is absolutely inset, so
+    // react-window measures real pixels regardless of the flex chain.
+    expect(picker).toMatch(/position:\s*["']relative["']/);
+    expect(picker, 'List must be absolutely inset').toMatch(/position:\s*["']absolute["'][^}]*inset:\s*0/);
+    // The old, broken shape: the List styled with a percentage height. If this
+    // ever comes back, the list stops virtualizing.
+    expect(
+      /rowComponent=\{WbPickerItem\}[\s\S]*?height:\s*['"]100%['"]/.test(picker),
+      'picker List must not use a percentage height — it will not virtualize'
+    ).toBe(false);
   });
 });
 
