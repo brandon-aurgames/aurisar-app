@@ -118,8 +118,13 @@ test('full CLI check rejects either stale parity file without rewriting it', () 
     for (const path of [
       'scripts/export_unity_content.mjs', 'scripts/lib/unity_export',
       'src/features/world/content', 'src/features/world/config', 'src/features/world/worldgen',
-      'src/features/world/castle', 'spacetimedb/src/castle/navGrids.ts',
-      'spacetimedb/src/manifests/world_chests.json', 'public/assets/castle/castle_ashwood.json',
+      // castle.mjs statically imports both dungeons' plan/nav modules (M11-6),
+      // so any fixture that runs export_unity_content.mjs now needs every
+      // registered dungeon's own sources present, not just Castle Ashwood's.
+      'src/features/world/castle', 'src/features/world/barrowdeep',
+      'spacetimedb/src/castle/navGrids.ts', 'spacetimedb/src/barrowdeep/navGrids.ts',
+      'spacetimedb/src/manifests/world_chests.json',
+      'public/assets/castle/castle_ashwood.json', 'public/assets/barrowdeep/barrowdeep.json',
       'export/unity-content',
     ]) cpSync(join(repoRoot, path), join(root, path), { recursive: true });
     writeFileSync(join(root, 'package.json'), '{"type":"module"}\n');
