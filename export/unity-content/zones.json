@@ -1258,157 +1258,183 @@
       "id": "castle_ashwood",
       "name": "Castle Ashwood",
       "x": 150,
-      "z": 20
+      "z": 20,
+      "zoneId": 1
     },
     {
       "id": "castle_gate",
       "name": "Castle Ashwood Gate",
       "x": 112.5,
-      "z": 20
+      "z": 20,
+      "zoneId": 1
     },
     {
       "id": "frostspire_summit",
       "name": "Frostspire Summit",
       "x": -285,
-      "z": -315
+      "z": -315,
+      "zoneId": 1
     },
     {
       "id": "gallows_rise",
       "name": "Gallows Rise",
       "x": 76,
-      "z": -76
+      "z": -76,
+      "zoneId": 1
     },
     {
       "id": "gloomweb",
       "name": "Gloomweb",
       "x": -60,
-      "z": 4
+      "z": 4,
+      "zoneId": 1
     },
     {
       "id": "graveyard",
       "name": "Oakrest Graveyard",
       "x": -12,
-      "z": -14
+      "z": -14,
+      "zoneId": 1
     },
     {
       "id": "greywood_run",
       "name": "Greywood Run",
       "x": -2,
-      "z": 70
+      "z": 70,
+      "zoneId": 1
     },
     {
       "id": "hollow_crypt",
       "name": "The Hollow Crypt",
       "x": 0,
-      "z": -37
+      "z": -37,
+      "zoneId": 1
     },
     {
       "id": "hub",
       "name": "Oakrest",
       "x": 0,
-      "z": 0
+      "z": 0,
+      "zoneId": 1
     },
     {
       "id": "lower_gate",
       "name": "Frostspire Lower Gate",
       "x": -160,
-      "z": -150
+      "z": -150,
+      "zoneId": 1
     },
     {
       "id": "mourners_rest",
       "name": "Mourner's Rest",
       "x": 80,
-      "z": 80
+      "z": 80,
+      "zoneId": 1
     },
     {
       "id": "rustvein_dig",
       "name": "Rustvein Dig",
       "x": -84,
-      "z": -64
+      "z": -64,
+      "zoneId": 1
     },
     {
       "id": "stillmere",
       "name": "Stillmere",
       "x": -92,
-      "z": 88
+      "z": 88,
+      "zoneId": 1
     },
     {
       "id": "tuskfield",
       "name": "Tuskfield",
       "x": 65,
-      "z": 0
+      "z": 0,
+      "zoneId": 1
     },
     {
       "id": "wildwood",
       "name": "The Wildwood",
       "x": -5,
-      "z": 110
+      "z": 110,
+      "zoneId": 1
     },
     {
       "id": "barrowdeep",
       "name": "The Barrowdeep",
       "x": 125,
-      "z": -30
+      "z": -30,
+      "zoneId": 2
     },
     {
       "id": "barrowdeep_gate",
       "name": "The Barrowdeep Gate",
       "x": 101.5,
-      "z": -30
+      "z": -30,
+      "zoneId": 2
     },
     {
       "id": "blackmere",
       "name": "Blackmere",
       "x": -120,
-      "z": 40
+      "z": 40,
+      "zoneId": 2
     },
     {
       "id": "cairnfield",
       "name": "Cairnfield",
       "x": 60,
-      "z": 10
+      "z": 10,
+      "zoneId": 2
     },
     {
       "id": "hollowmoor",
       "name": "Hollowmoor",
       "x": -70,
-      "z": -40
+      "z": -40,
+      "zoneId": 2
     },
     {
       "id": "kestrel_hold",
       "name": "Kestrel Hold",
       "x": 0,
-      "z": -120
+      "z": -120,
+      "zoneId": 2
     },
     {
       "id": "kestrel_rest",
       "name": "Kestrel Rest",
       "x": -26,
-      "z": -150
+      "z": -150,
+      "zoneId": 2
     },
     {
       "id": "south_pass",
       "name": "The South Pass",
       "x": 0,
-      "z": -170
+      "z": -170,
+      "zoneId": 2
     },
     {
       "id": "windward_scarp",
       "name": "Windward Scarp",
       "x": -20,
-      "z": 80
+      "z": 80,
+      "zoneId": 2
     },
     {
       "id": "windward_scarp_summit",
       "name": "Windward Scarp Summit",
       "x": 152,
-      "z": 178
+      "z": 178,
+      "zoneId": 2
     },
     {
       "id": "z2_wildwood",
       "name": "The Wildwood",
       "x": -46,
-      "z": 140
+      "z": 140,
+      "zoneId": 2
     }
   ],
   "realized": {

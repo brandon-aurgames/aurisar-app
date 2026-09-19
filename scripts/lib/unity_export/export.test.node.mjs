@@ -64,6 +64,15 @@ test('native TS loader validates content and exports ordered, lossless data', as
     assert.deepEqual(Object.keys(parsed('zones.json').realized[zone.id]), SITE_KINDS);
   }
   assert.deepEqual(parsed('dungeons.json').dungeons, c.DUNGEONS);
+  assert.deepEqual(parsed('zones.json').landmarks, c.ALL_LANDMARKS);
+  // M11-6 (carried from M11-3's review): landmarks are the last content type
+  // in zones.json to gain zoneId — npcs/spawns/waypoints already had it.
+  assert.ok(parsed('zones.json').landmarks.length > 0);
+  const zoneIds = new Set(c.ZONES.map((zone) => zone.id));
+  for (const landmark of parsed('zones.json').landmarks) {
+    assert.equal(typeof landmark.zoneId, 'number', `landmark ${landmark.id} missing numeric zoneId`);
+    assert.ok(zoneIds.has(landmark.zoneId), `landmark ${landmark.id}: unknown zoneId ${landmark.zoneId}`);
+  }
 
   // Mutate the in-memory source graph only; no canonical files are edited.
   const originalZone = c.ALL_NPCS[0].zoneId;
@@ -155,9 +164,22 @@ test('zone1 and zone2 both have terrain baked (M10-7a); the exporter emits both,
   assert.equal(zones.schemaVersion, 2);
   assert.deepEqual(Object.keys(zones.realized), ['1', '2']);
   assert.deepEqual(Object.keys(zones.realized['2']), SITE_KINDS);
-  // Zone 2 has no world-chest emitter of its own yet (scatter.chestCount: 0);
-  // an empty realized chest list for it is correct, not a bug.
-  assert.deepEqual(zones.realized['2'].chests, []);
+  // D176 (M11-2): zone2_world.json's scatter.chestCount went 0 -> 12, so Zone
+  // 2 now realizes its own 12 chests, distinct from Zone 1's 25 — this test
+  // pre-dates that and used to assert an empty list here (a stale
+  // assumption this suite's own lack of a CI wiring let survive past M11-2
+  // and M11-4; fixed as part of M11-6's own gate diligence).
+  assert.equal(zones.realized['1'].chests.length, 25);
+  assert.equal(zones.realized['2'].chests.length, 12);
+  for (const chest of [...zones.realized['1'].chests, ...zones.realized['2'].chests]) {
+    assert.equal(typeof chest.id, 'number');
+    assert.equal(typeof chest.seed, 'number');
+    assert.equal(typeof chest.x, 'number');
+    assert.equal(typeof chest.z, 'number');
+  }
+  // D176's own widened collision check: no id may repeat across zones.
+  const chestIds = [...zones.realized['1'].chests, ...zones.realized['2'].chests].map((c) => c.id);
+  assert.equal(new Set(chestIds).size, chestIds.length, 'chest ids must be unique across zones');
 });
 
 test('zone2 terrain: grid shape, height range, tile edges and analytic/grid + splat sidecar all agree', () => {
@@ -231,6 +253,8 @@ test('committed pack hashes, raw castle copy, tile edges, all grid samples, and 
   }
   assert.deepEqual(readFileSync(join(outputRoot, 'dungeons/castle_ashwood.json')),
     readFileSync(join(repoRoot, 'public/assets/castle/castle_ashwood.json')));
+  assert.deepEqual(readFileSync(join(outputRoot, 'dungeons/barrowdeep.json')),
+    readFileSync(join(repoRoot, 'public/assets/barrowdeep/barrowdeep.json')));
   const sidecar = JSON.parse(readFileSync(join(outputRoot, 'terrain/zone1_terrain.json')));
   assert.equal(sidecar.tiles.length, 16);
   assert.equal(sidecar.samples.length, 1000);

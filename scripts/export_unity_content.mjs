@@ -13,7 +13,7 @@ import { exportContent } from './lib/unity_export/content.mjs';
 import { exportWorldgen, SITE_KINDS } from './lib/unity_export/worldgen.mjs';
 import { exportTerrain, terrainPaths, hasTerrain } from './lib/unity_export/terrain.mjs';
 import { exportSplat } from './lib/unity_export/splat.mjs';
-import { exportCastle, assertCastleNavParity, CASTLE_NAV_PATH } from './lib/unity_export/castle.mjs';
+import { exportDungeon, assertDungeonNavParity } from './lib/unity_export/castle.mjs';
 import { addManifest, retainTerrain, writeOrCheck } from './lib/unity_export/manifest.mjs';
 
 async function main() {
@@ -37,8 +37,15 @@ async function main() {
       `${SITE_KINDS.map((kind) => `${kind}=${realized[kind].length}`).join(', ')}`);
   }
   const files = await exportContent(content, realizedByZone, repoRoot);
-  for (const [path, bytes] of exportCastle()) files.set(path, bytes);
-  if (args.includes('--check')) assertCastleNavParity(files.get(CASTLE_NAV_PATH), repoRoot);
+  // One nav .bin + blockers .json per registered dungeon (M11-6); an
+  // unregistered dungeon's layout already throws inside exportContent's own
+  // DUNGEON_LAYOUT_DIRS lookup, so DUNGEONS here is never a partial list.
+  for (const dungeon of content.DUNGEONS) {
+    for (const [path, bytes] of exportDungeon(dungeon.id)) files.set(path, bytes);
+  }
+  if (args.includes('--check')) {
+    for (const dungeon of content.DUNGEONS) assertDungeonNavParity(dungeon.id, files, repoRoot);
+  }
 
   // Terrain (and the splat sidecar derived from it) exists only for zones that
   // have actually been baked (see terrain.mjs's ZONE_TERRAIN). Zone 2's bake is

@@ -231,12 +231,12 @@ function buildZone2Landmarks(must) {
 // ── per-zone emit ────────────────────────────────────────────────────────────
 const ZONES = [
   {
-    key: 'zone1', label: 'Zone 1', build: buildZone1Landmarks,
+    id: 1, key: 'zone1', label: 'Zone 1', build: buildZone1Landmarks,
     sourceComment: 'src/features/world/config/zone1_world.json (anchors) + castle/castlePlan.js',
     truthNoun: 'castle',
   },
   {
-    key: 'zone2', label: 'Zone 2', build: buildZone2Landmarks,
+    id: 2, key: 'zone2', label: 'Zone 2', build: buildZone2Landmarks,
     sourceComment: 'src/features/world/config/zone2_world.json (anchors) + D169 (Barrowdeep gate offset)',
     truthNoun: 'dungeon',
   },
@@ -244,7 +244,7 @@ const ZONES = [
 
 function renderTs(zone, all) {
   const body = all
-    .map((l) => `  // ${l.source}\n  ${l.id}: { id: '${l.id}', name: ${JSON.stringify(l.name)}, x: ${l.x}, z: ${l.z} },`)
+    .map((l) => `  // ${l.source}\n  ${l.id}: { id: '${l.id}', name: ${JSON.stringify(l.name)}, x: ${l.x}, z: ${l.z}, zoneId: ${zone.id} },`)
     .join('\n');
 
   return `// GENERATED FILE — DO NOT EDIT.
@@ -258,12 +258,19 @@ function renderTs(zone, all) {
  * props, dungeon entrances, the map) reads it from here rather than repeating
  * the literal. Derived entries trace back to the terrain/${zone.truthNoun} truth that
  * already owned them; authored entries live in ${zone.key}_world.json \`anchors\`.
+ *
+ * \`zoneId\` (M11-6) makes this the same shape as NpcDef/SpawnDef/WaypointDef:
+ * every entry in content/index.ts's cross-zone ALL_LANDMARKS carries the zone
+ * its x/z are local to, so a Unity-side (or any other) consumer of the
+ * flattened array never has to guess which zone's origin a row is relative
+ * to. \`id\` stays the only thing required to be globally unique.
  */
 export interface LandmarkDef {
   readonly id: string;
   readonly name: string;
   readonly x: number;
   readonly z: number;
+  readonly zoneId: number;
 }
 
 export const LANDMARKS = {
