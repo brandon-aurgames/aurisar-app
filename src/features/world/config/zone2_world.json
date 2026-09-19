@@ -74,7 +74,7 @@
   "anchors": {
     "kestrel_hold": { "x": 0, "z": -120, "name": "Kestrel Hold" },
     "south_pass": { "x": 0, "z": -170, "name": "The South Pass" },
-    "graveyard": { "x": -26, "z": -150, "name": "Kestrel Rest" },
+    "kestrel_rest": { "x": -26, "z": -150, "name": "Kestrel Rest" },
     "hollowmoor": { "x": -70, "z": -40, "name": "Hollowmoor" },
     "cairnfield": { "x": 60, "z": 10, "name": "Cairnfield" },
     "windward_scarp": { "x": -20, "z": 80, "name": "Windward Scarp" },
