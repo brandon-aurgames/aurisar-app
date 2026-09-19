@@ -126,8 +126,25 @@ export function castleInteriorRecoverSurface(
   );
 }
 
-export function pxToWorldM(px: number): number {
-  return (px - 1600) / 32;
+/**
+ * STDB px → world meters, one axis at a time. `originOffsetM` is that
+ * axis's component of the owning zone's `originOffsetM` (world/zones.ts) —
+ * 0, zone 1's default, reproduces this function's exact pre-fix output, so
+ * every existing call site (none of which pass it) is unchanged.
+ *
+ * Kept scalar/per-axis, unlike world/zones.ts's contentPosToPx, because the
+ * castle-interior nav-bitmap math below (surfaceAt, isInCastleInterior)
+ * already calls this one axis at a time, and contentPosToPx's Math.round
+ * would perturb the sub-pixel wall-slide math this feeds on the
+ * movePlayer hot path — the "byte-identical" bar this fix is held to rules
+ * that out (D173 item 3). worldMToPx below takes the same parameter for the
+ * same reason. Neither is wired to a non-zero offset anywhere yet: Castle
+ * Ashwood is zone 1's only dungeon, so 0 is still the only value ever
+ * needed — a future non-zone-1 dungeon's own interior wrapper passes its
+ * zone's offset once one exists.
+ */
+export function pxToWorldM(px: number, originOffsetM = 0): number {
+  return (px - 1600) / 32 - originOffsetM;
 }
 
 export function isInCastleInterior(worldXM: number, worldZM: number): boolean {
@@ -147,8 +164,9 @@ export function castleInteriorSurfaceAt(
   return surfaceAt(worldXM, worldZM, currentY);
 }
 
-export function worldMToPx(m: number): number {
-  return m * 32 + 1600;
+/** m → STDB px, one axis at a time. See pxToWorldM's doc comment above — same D173 fix, same reasoning, same default. */
+export function worldMToPx(m: number, originOffsetM = 0): number {
+  return (m + originOffsetM) * 32 + 1600;
 }
 
 /** Wall-slide one interior step — mirrors castleNav.resolveMove / castleNavSurface.js. */

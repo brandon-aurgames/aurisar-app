@@ -37,17 +37,18 @@ import {
   SPAWNS,
   WAYPOINTS,
 } from './content/index.js';
-import type { MobDef, QuestDef, QuestObjective, SpawnDef } from './content/types.js';
+import type { DungeonDef, MobDef, QuestDef, QuestObjective, SpawnDef } from './content/types.js';
 import { worldLevelFromFitnessXp } from './content/formulas/xp.js';
 import {
   DUNGEONS_BY_ID,
   DUNGEON_EXIT_RANGE_PX,
   DUNGEON_GATE_RANGE_PX,
   DUNGEON_MAX_PLAYERS,
-  castleExitHotspotPx,
-  castleSpawnPx,
   distSqPx,
+  dungeonExitHotspotPx,
   dungeonSpawnByNetId,
+  dungeonSpawnPx,
+  dungeonUsesCastleInteriorNav,
   interiorLocalToPx,
   zoneEntranceToPx,
   dungeonSpawnFloorYM,
@@ -1045,10 +1046,28 @@ export const movePlayer = spacetimedb.reducer(
     const worldZM = pxToWorldM(clampedY);
     let nextFloorYM = existing.floorYM;
 
-    // Interior rules apply only inside an instance (D65 puts the interior at world coordinates
-    // 782..898 × -44..44, which the overworld also covers; an outdoor player crossing that
-    // footprint must not be resolved against the castle grids).
-    if (existing.dungeonInstanceId > 0n) {
+    // Which dungeon (if any) this instance actually belongs to — resolved
+    // from the instance row, not assumed from a nonzero dungeonInstanceId.
+    // Before this fix ANY instance ran the castle-nav branch below, i.e. was
+    // resolved against Castle Ashwood's own grids regardless of which
+    // dungeon it was (D174 item 3). Today Ashwood is still the only dungeon
+    // that registers interior data, so dungeonUsesCastleInteriorNav is true
+    // for every real instance and this is byte-identical; a hypothetical
+    // dungeon with no registered interior instead skips wall collision here
+    // (falls to the outdoor branch below) rather than being checked against
+    // the wrong dungeon's walls.
+    const activeDungeonInstance = existing.dungeonInstanceId > 0n
+      ? ctx.db.dungeonInstance.instanceId.find(existing.dungeonInstanceId)
+      : undefined;
+    const activeDungeon = activeDungeonInstance
+      ? DUNGEONS_BY_ID[activeDungeonInstance.dungeonId]
+      : undefined;
+
+    // Interior rules apply only inside an instance whose dungeon actually has
+    // castle-nav data (D65 puts Ashwood's interior at world coordinates
+    // 782..898 × -44..44, which the overworld also covers; an outdoor player
+    // crossing that footprint must not be resolved against the castle grids).
+    if (activeDungeon && dungeonUsesCastleInteriorNav(activeDungeon.id)) {
       // Strict resolution starts at the stored floor. D92 recovery is considered
       // only after rejection, and still requires a real surface at the guarded XZ.
       const refY = existing.floorYM > 0 ? existing.floorYM : CASTLE_LEVELS[1].y;
@@ -1160,7 +1179,11 @@ export const enterDungeon = spacetimedb.reducer(
       created = true;
     }
 
-    const spawnPx = dungeonId === 'castle_ashwood' ? castleSpawnPx() : gatePx;
+    // Per-DungeonDef lookup, not a literal compare against one dungeon's id
+    // (D174 item 1) — dungeonSpawnPx resolves whichever dungeon is actually
+    // being entered's own registered interior spawn point, falling back to
+    // its gate (== gatePx above) when no interior entry is registered yet.
+    const spawnPx = dungeonSpawnPx(dungeon);
     ctx.db.player.identity.update({
       ...player,
       x: spawnPx.x,
@@ -1195,12 +1218,17 @@ export const leaveDungeon = spacetimedb.reducer(
       return;
     }
 
-    const exitPx = castleExitHotspotPx();
+    // Resolved BEFORE the exit-proximity check (D174 item 2) — the old code
+    // called the Ashwood-only castleExitHotspotPx() unconditionally here, so
+    // leaving any OTHER dungeon checked proximity against Ashwood's hotspot
+    // in zone 1 before ever looking up which dungeon the instance actually
+    // was.
+    const dungeon = DUNGEONS_BY_ID[instance.dungeonId];
+    const exitPx = dungeon ? dungeonExitHotspotPx(dungeon) : { x: WORLD_ORIGIN_PX, y: WORLD_ORIGIN_PX };
     if (distSqPx(player.x, player.y, exitPx.x, exitPx.y) > DUNGEON_EXIT_RANGE_PX * DUNGEON_EXIT_RANGE_PX) {
       return;
     }
 
-    const dungeon = DUNGEONS_BY_ID[instance.dungeonId];
     const gatePx = dungeon ? zoneEntranceToPx(dungeon) : { x: WORLD_ORIGIN_PX, y: WORLD_ORIGIN_PX };
     const leavingInstance = player.dungeonInstanceId;
 
@@ -2308,13 +2336,24 @@ export const respawnMob = spacetimedb.reducer(
     const dungeonInst = schedule.dungeonInstanceId;
 
     if (dungeonInst > 0n) {
-      if (!ctx.db.dungeonInstance.instanceId.find(dungeonInst)) return;
+      const dungeonInstanceRow = ctx.db.dungeonInstance.instanceId.find(dungeonInst);
+      if (!dungeonInstanceRow) return;
+      // insertMobFromDungeonSpawn now takes the instance's own DungeonDef
+      // directly (it used to re-derive this same row internally) — a
+      // mechanical follow-through of D173 item 2's interiorLocalToPx fix,
+      // not a behavior change: an instance's dungeonId is only ever written
+      // by enterDungeon after that same DUNGEONS_BY_ID lookup already
+      // succeeded, so this can only fail to find a dungeon for content
+      // removed after the instance was created — safer to skip the respawn
+      // than to insert a mob against no DungeonDef at all.
+      const dungeon = DUNGEONS_BY_ID[dungeonInstanceRow.dungeonId];
+      if (!dungeon) return;
       const entry = dungeonSpawnByNetId.get(spawnNetId);
       if (!entry) return;
       for (const m of ctx.db.mob.iter()) {
         if (m.spawnNetId === spawnNetId && m.dungeonInstanceId === dungeonInst) return;
       }
-      insertMobFromDungeonSpawn(ctx, entry, spawnNetId, dungeonInst, 0);
+      insertMobFromDungeonSpawn(ctx, dungeon, entry, spawnNetId, dungeonInst, 0);
       return;
     }
 
@@ -2863,6 +2902,7 @@ function insertMobFromSpawn(
 
 function insertMobFromDungeonSpawn(
   ctx: any,
+  dungeon: DungeonDef,
   entry: DungeonSpawnEntry,
   netId: string,
   instanceId: bigint,
@@ -2870,14 +2910,16 @@ function insertMobFromDungeonSpawn(
 ): void {
   const { spawn, mobDef, instanceIndex } = entry;
   const offset = spawnInstanceOffsetM(instanceIndex, spawn.radiusM);
-  const px = interiorLocalToPx({
+  const px = interiorLocalToPx(dungeon, {
     x: spawn.pos.x + offset.dx,
     z: spawn.pos.z + offset.dz,
   });
 
-  const inst = ctx.db.dungeonInstance.instanceId.find(instanceId);
-  const dungeon = inst ? DUNGEONS_BY_ID[inst.dungeonId] : undefined;
-  const isBoss = dungeon && spawn.mobType === dungeon.bossMobType;
+  // dungeon is the caller's own already-resolved DungeonDef for this exact
+  // instance (seedDungeonInstanceMobs looks it up from the same dungeonId
+  // the instance row was just created with), so no re-lookup here — this
+  // used to re-derive it via a redundant ctx.db.dungeonInstance read.
+  const isBoss = spawn.mobType === dungeon.bossMobType;
   const nowMicros = ctx.timestamp.microsSinceUnixEpoch;
 
   ctx.db.mob.insert({
@@ -2930,7 +2972,7 @@ function seedDungeonInstanceMobs(ctx: any, instanceId: bigint, dungeonId: string
       const netId = `${spawn.netId}_${i}`;
       const entry = dungeonSpawnByNetId.get(netId);
       if (!entry) continue;
-      insertMobFromDungeonSpawn(ctx, entry, netId, instanceId, counter++);
+      insertMobFromDungeonSpawn(ctx, dungeon, entry, netId, instanceId, counter++);
     }
   }
 }
