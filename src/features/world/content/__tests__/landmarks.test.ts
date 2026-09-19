@@ -15,13 +15,19 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  ALL_LANDMARKS,
   ALL_WAYPOINTS,
   LANDMARKS,
   MOBS,
   SPAWNS,
   landmarkPos,
 } from '../index';
+
+// Zone 1's OWN table, not index.ts's cross-zone ALL_LANDMARKS (that now includes Zone 2's
+// landmarks since M11-3) — every assertion below is zone-1-local metres, per this file's own
+// header comment. Measuring against Zone 2's landmarks too is the exact "category error" that
+// comment warns about, and silently weakens both the 40m camp-reach guard and the >2m distinct-
+// position check.
+import { ALL_LANDMARKS } from '../zones/zone1/landmarks.generated';
 
 // eslint-disable-next-line -- JS module without types
 import { createWorldgen } from '../../worldgen/index.js';
