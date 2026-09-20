@@ -114,7 +114,10 @@ describe('picker add-commit is a bottom overlay', () => {
     expect(picker).toContain('wb-picker-add-dock');
     expect(picker).toContain('commitPickerToWorkout');
     expect(picker).not.toContain('wo-label-chip');
-    expect(picker).not.toMatch(/headerRight=\{[\s\S]*commitPickerToWorkout/);
+    const headerBlock = picker.match(/headerRight=\{\s*<button[\s\S]*?<\/button>\s*\}/);
+    expect(headerBlock, 'headerRight slot').not.toBeNull();
+    expect(headerBlock[0]).not.toContain('commitPickerToWorkout');
+    expect(headerBlock[0]).not.toMatch(/Add /);
     expect(picker).not.toMatch(/Add to Workout ·/);
   });
 });
