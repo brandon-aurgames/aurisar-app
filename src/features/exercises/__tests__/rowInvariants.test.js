@@ -126,10 +126,8 @@ describe('exercise-list XP is parchment, not gold', () => {
   const css = read('src/styles/app.css');
 
   it('paints .picker-ex-xp in the exercise-name color', () => {
-    const block = css.match(/\.picker-ex-xp\{[^}]+\}/);
-    expect(block, '.picker-ex-xp rule').not.toBeNull();
-    expect(block[0]).toMatch(/color:#ece6da/);
-    expect(block[0]).not.toMatch(/#e8c766|#E8B44A|#F0C868|#FCE29A|text-shadow/);
+    expect(css).toMatch(/\.picker-ex-xp\{[^}]*color:#ece6da/);
+    expect(css).not.toMatch(/\.picker-ex-xp\{[^}]*(#e8c766|#E8B44A|#F0C868|#FCE29A|text-shadow)/);
   });
 });
 
@@ -141,6 +139,7 @@ describe('picker virtualizes against a definite box', () => {
   // jsdom has no layout engine, so this can only be asserted at the source
   // level — the List must sit in a definite box, not a percentage height.
   const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
+  const css = read('src/styles/app.css');
 
   it('gives the picker sheet a definite height so the flex chain resolves', () => {
     // A `max-height`-only (tall) sheet is content-sized; the List needs the
