@@ -858,9 +858,11 @@
       background:radial-gradient(circle,color-mix(in srgb,var(--mg-color) 15%,transparent) 0%,transparent 68%);
       opacity:.65
     }
-    /* The picker renders fixed-height virtualized rows; fill the slot so every
-       card is identical whether its name is one line or two. */
-    .picker-ex-row.wb-pcard{height:100%}
+    /* Picker cards are inset and compact so they read as slim rows, not
+       full-bleed slabs. height:100% still fills the fixed virtualized slot. */
+    .picker-ex-row.wb-pcard{height:100%;padding:6px 10px;gap:9px;border-radius:10px}
+    .wb-pcard .picker-ex-orb{width:30px;height:30px;border-radius:8px}
+    .wb-pcard .picker-ex-xp{font-size:.64rem}
     /* These were <div>s with onClick — invisible to keyboard and announced as
        nothing. They are <button>s now; this normalises the UA button styling
        so the conversion is semantic only and changes no boxes. Each class

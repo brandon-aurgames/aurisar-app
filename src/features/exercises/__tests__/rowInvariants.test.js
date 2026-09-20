@@ -161,6 +161,14 @@ describe('picker virtualizes against a definite box', () => {
     ).toBe(false);
   });
 
+  it('keeps picker exercise cards compact and inset', () => {
+    const match = picker.match(/const ROW_H\s*=\s*(\d+)/);
+    expect(match, 'ROW_H must be declared').not.toBeNull();
+    expect(Number(match[1]), 'picker rows should stay slimmer than the old 86px slab').toBeLessThanOrEqual(76);
+    expect(Number(match[1])).toBeGreaterThanOrEqual(68);
+    expect(css).toMatch(/\.picker-ex-row\.wb-pcard\{[^}]*padding:\s*6px 10px/);
+  });
+
   it('gives muscle-group headers a 44px touch target', () => {
     const match = picker.match(/const HEADER_H\s*=\s*(\d+)/);
     expect(match, 'HEADER_H must be declared').not.toBeNull();

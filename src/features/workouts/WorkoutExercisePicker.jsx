@@ -27,10 +27,10 @@ const typeLabel = v => TYPE_LABELS[v];
  */
 
 const HEADER_H = 44;
-// Tall enough for a two-line (clamped) exercise name plus its meta line; the
-// old 60 clipped wrapping names on narrow phones, so cards overlapped. The
-// library list renders the same ExerciseRow at 88.
-const ROW_H = 86;
+// Compact picker slot: 12px horizontal inset + 6px vertical padding inside
+// the card. Tall enough for a two-line clamped name plus its meta line —
+// 60 used to clip and overlap on phones. The library list stays at 88.
+const ROW_H = 72;
 
 // One row adapter for the virtualised list. Each item is either a collapsible
 // muscle-group header or an exercise row (the shared ExerciseRow) — react-window
@@ -60,7 +60,7 @@ const WbPickerItem = React.memo(function WbPickerItem({
   }
   const ex = it.ex;
   return (
-    <div style={{ ...style, paddingTop: 4, paddingBottom: 4 }} {...ariaAttributes}>
+    <div style={{ ...style, padding: "3px 12px" }} {...ariaAttributes}>
       <ExerciseRow
         ex={ex}
         selected={selIds.has(ex.id)}
