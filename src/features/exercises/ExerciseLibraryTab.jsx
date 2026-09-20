@@ -10,6 +10,7 @@ import ExerciseRow from './ExerciseRow';
 import DiscoverCustomizeMenu from './DiscoverCustomizeMenu';
 import { TYPE_OPTS, TYPE_LABELS, muscleLabel } from './exerciseFilterOptions';
 import { DISCOVER_CATEGORY_GROUPS, DISCOVER_PICK_COUNT, DISCOVER_CATEGORIES_BY_KEY } from './discoverCategories';
+import { measureVisibleListHeight } from './visibleListHeight';
 
 // Row adapter for the virtualised filtered list — mirrors
 // WorkoutExercisePicker's WbExPickerRow: maps react-window's props onto the
@@ -98,6 +99,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
   // ── Virtual-list plumbing ──
   const rootRef = useRef(null);          // tab root, used to find the .scroll-area to lock
   const listRef = useRef(null);          // react-window imperative API ({ element, scrollToRow })
+  const vlistWrapRef = useRef(null);     // list box we size to the viewport (see below)
   const listSaveTimer = useRef(null);
   const LIB_ROW_H = 88;                  // ~78px row (fav star) + 8px wrapper padding
   const LIST_SCROLL_KEY = 'aurisar-scroll:lib-filtered-list';
@@ -149,6 +151,58 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
     }
     scroller.classList.remove('lib-list-locked');
     return undefined;
+  }, [libBrowseMode]);
+
+  // Give the virtualized list a DEFINITE height. The app shell (.hud) sizes
+  // with min-height, not a fixed height, so the flex chain above the list never
+  // resolves to real pixels: the List's height:100% collapsed to `auto`, the
+  // list inflated to its full content height, every row mounted, and because
+  // the locked .scroll-area is overflow:hidden the whole thing became
+  // unscrollable (it "pops back like it's locked"). Measuring against
+  // visualViewport (not innerHeight) keeps the list inside the visible
+  // band when iOS shrinks it for the keyboard, and never floors at 200px.
+  useLayoutEffect(() => {
+    if (libBrowseMode !== 'filtered') return undefined;
+    const wrap = vlistWrapRef.current;
+    if (!wrap || typeof ResizeObserver === 'undefined') return undefined;
+    let raf = 0;
+    const measure = () => {
+      raf = 0;
+      const top = wrap.getBoundingClientRect().top;
+      const nav = document.querySelector('.hud-nav-panel');
+      const navTop = nav ? nav.getBoundingClientRect().top : Infinity;
+      const h = measureVisibleListHeight({
+        wrapTop: top,
+        navTop,
+        visualViewport: window.visualViewport,
+        innerHeight: window.innerHeight,
+      });
+      wrap.style.height = h + 'px';
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(measure); };
+    measure();
+    const ro = new ResizeObserver(schedule);
+    ro.observe(document.body);
+    const nav = document.querySelector('.hud-nav-panel');
+    if (nav) ro.observe(nav);
+    window.addEventListener('resize', schedule);
+    window.addEventListener('orientationchange', schedule);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', schedule);
+      vv.addEventListener('scroll', schedule);
+    }
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener('resize', schedule);
+      window.removeEventListener('orientationchange', schedule);
+      if (vv) {
+        vv.removeEventListener('resize', schedule);
+        vv.removeEventListener('scroll', schedule);
+      }
+      if (wrap) wrap.style.height = '';
+    };
   }, [libBrowseMode]);
 
   // Tidy the throttle timer on unmount.
@@ -532,7 +586,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
       null}  {
         /* Exercise list (paginated) */
       }
-      <div className={"lib-vlist-wrap"}>{visibleFiltered.length === 0
+      <div className={"lib-vlist-wrap"} ref={vlistWrapRef}>{visibleFiltered.length === 0
         ? (_exReady
             ? <div className={"empty"} style={{ padding: "24px 0" }}>{"No exercises match your filters."}</div>
             // Nothing matched *yet* only because the catalog is still arriving —

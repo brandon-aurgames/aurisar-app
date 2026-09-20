@@ -434,7 +434,10 @@
     .scroll-area.lib-list-locked{display:flex;flex-direction:column;overflow:hidden;padding-bottom:0;-webkit-mask-image:none;mask-image:none;overscroll-behavior:contain}
     .lib-tab-root--filtered{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
     .lib-filtered-view{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
-    .lib-vlist-wrap{flex:1 1 auto;min-height:0}
+    /* Height is set precisely in JS (measured against the viewport); this dvh
+       value is only the pre-measure fallback so the list is never zero-height
+       and always scrolls even before the ResizeObserver fires. */
+    .lib-vlist-wrap{flex:0 0 auto;min-height:0;position:relative;height:calc(100dvh - 280px)}
     .lib-vlist-wrap > [role="list"]{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 
     /* LIBRARY HOME SCROLL */
@@ -833,14 +836,33 @@
     /* ── EXERCISE PICKER: Themed Selection Rows (Add Exercise screens) ── */
     .picker-ex-row{
       --mg-color:#B0A090;
-      position:relative;border-radius:10px;padding:9px 12px;cursor:pointer;
-      display:flex;align-items:center;gap:11px;
-      background:linear-gradient(155deg,color-mix(in srgb,var(--mg-color) 11%,rgba(45,42,36,.36)),color-mix(in srgb,var(--mg-color) 4%,rgba(32,30,26,.2)));
-      border:1px solid color-mix(in srgb,var(--mg-color) 16%,transparent);
-      border-left:3px solid color-mix(in srgb,var(--mg-color) 38%,transparent);
-      box-shadow:0 2px 10px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.025);
-      transition:all var(--dur-fast) var(--ease-standard);-webkit-tap-highlight-color:transparent
+      position:relative;isolation:isolate;border-radius:13px;padding:10px 13px;cursor:pointer;
+      display:flex;align-items:center;gap:12px;overflow:hidden;
+      background:
+        linear-gradient(158deg,
+          color-mix(in srgb,var(--mg-color) 13%,rgba(26,24,20,.62)) 0%,
+          color-mix(in srgb,var(--mg-color) 5%,rgba(18,17,14,.74)) 52%,
+          rgba(14,13,11,.8) 100%);
+      border:1px solid color-mix(in srgb,var(--mg-color) 17%,rgba(180,172,158,.05));
+      border-left:2px solid color-mix(in srgb,var(--mg-color) 52%,transparent);
+      box-shadow:0 3px 14px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.035);
+      transition:transform var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard);
+      -webkit-tap-highlight-color:transparent
     }
+    /* A faint forge-glow rises behind the sigil. z-index:-1 within the row's
+       own stacking context (isolation:isolate) keeps it above the card fill
+       but below the content, and it never intercepts the stretched hit area. */
+    .picker-ex-row::before{
+      content:'';position:absolute;left:-14px;top:50%;width:96px;height:96px;
+      transform:translateY(-50%);border-radius:50%;pointer-events:none;z-index:-1;
+      background:radial-gradient(circle,color-mix(in srgb,var(--mg-color) 15%,transparent) 0%,transparent 68%);
+      opacity:.65
+    }
+    /* Picker cards are inset and compact so they read as slim rows, not
+       full-bleed slabs. height:100% still fills the fixed virtualized slot. */
+    .picker-ex-row.wb-pcard{height:100%;padding:6px 10px;gap:9px;border-radius:10px}
+    .wb-pcard .picker-ex-orb{width:30px;height:30px;border-radius:8px}
+    .wb-pcard .picker-ex-xp{font-size:.64rem}
     /* These were <div>s with onClick — invisible to keyboard and announced as
        nothing. They are <button>s now; this normalises the UA button styling
        so the conversion is semantic only and changes no boxes. Each class
@@ -860,6 +882,10 @@
     .picker-ex-main{
       background:none;border:none;padding:0;margin:0;font:inherit;
       color:inherit;text-align:left;cursor:pointer;
+      /* Clamp to two lines so a long name can never overflow the fixed-height
+         virtualized row and overlap the card below it. */
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+      overflow:hidden;min-width:0;max-width:100%;
       -webkit-tap-highlight-color:transparent
     }
     .picker-ex-main::after{content:'';position:absolute;inset:0;border-radius:inherit}
@@ -881,19 +907,68 @@
     .stretch-row a,
     .stretch-row input,
     .stretch-row select{position:relative;z-index:1}
-    .picker-ex-row:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--mg-color) 26%,transparent);box-shadow:0 4px 16px rgba(0,0,0,.32),0 0 12px color-mix(in srgb,var(--mg-color) 8%,transparent),inset 0 1px 0 rgba(255,255,255,.04)}
+    .picker-ex-row:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--mg-color) 30%,transparent);box-shadow:0 6px 20px rgba(0,0,0,.36),0 0 16px color-mix(in srgb,var(--mg-color) 12%,transparent),inset 0 1px 0 rgba(255,255,255,.05)}
     .picker-ex-row:active{transform:scale(.985);transition:transform var(--dur-instant) var(--ease-standard)}
     .picker-ex-row.sel{
-      background:linear-gradient(155deg,color-mix(in srgb,var(--mg-color) 22%,rgba(45,42,36,.4)),color-mix(in srgb,var(--mg-color) 9%,rgba(32,30,26,.25)));
-      border-color:color-mix(in srgb,var(--mg-color) 45%,transparent);
-      border-left-color:color-mix(in srgb,var(--mg-color) 70%,transparent);
-      box-shadow:0 0 0 1.5px color-mix(in srgb,var(--mg-color) 35%,transparent),0 4px 16px color-mix(in srgb,var(--mg-color) 12%,rgba(0,0,0,.3))
+      background:linear-gradient(155deg,color-mix(in srgb,var(--mg-color) 24%,rgba(45,42,36,.44)),color-mix(in srgb,var(--mg-color) 10%,rgba(28,26,22,.3)));
+      border-color:color-mix(in srgb,var(--mg-color) 48%,transparent);
+      border-left:2px solid color-mix(in srgb,var(--cls-color,#c49428) 62%,var(--mg-color));
+      box-shadow:0 0 0 1.5px color-mix(in srgb,var(--mg-color) 38%,transparent),0 6px 20px color-mix(in srgb,var(--mg-color) 14%,rgba(0,0,0,.34))
     }
+    /* XP sits in the same parchment as the exercise name — gold is reserved
+       for earned rewards, not the catalog listing. */
+    .picker-ex-xp{
+      font-family:'Inter',sans-serif;font-weight:600;font-size:.72rem;letter-spacing:.02em;
+      color:#ece6da;white-space:nowrap
+    }
+    .picker-ex-meta{letter-spacing:.01em;opacity:.92}
+    /* Collapsible muscle-section header inside the virtualized picker list.
+       Lives in a react-window row, so it fills the row box (height comes from
+       the List's per-index rowHeight); the muscle colour keys it to its rows. */
+    .wb-ex-group-hdr{
+      --mg-color:#B0A090;
+      width:100%;height:100%;display:flex;align-items:center;gap:8px;
+      padding:0 10px;margin:0;background:none;border:none;cursor:pointer;font:inherit;
+      color:#d4cec4;text-align:left;border-radius:8px;-webkit-tap-highlight-color:transparent
+    }
+    .wb-ex-group-hdr:hover{background:color-mix(in srgb,var(--mg-color) 12%,transparent)}
+    .wb-ex-group-hdr:focus-visible{outline:2px solid var(--cls-color,#c49428);outline-offset:-2px}
+    .wb-ex-group-chevron{flex-shrink:0;width:14px;text-align:center;color:var(--mg-color);font-size:.7rem}
+    .wb-ex-group-name{
+      flex:1;min-width:0;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+    }
+    .wb-ex-group-count{
+      flex-shrink:0;font-size:.66rem;font-weight:700;color:#8a8478;
+      background:color-mix(in srgb,var(--mg-color) 14%,rgba(45,42,36,.5));
+      border:1px solid color-mix(in srgb,var(--mg-color) 22%,transparent);
+      border-radius:999px;padding:1px 8px;min-width:22px;text-align:center
+    }
+    /* Commit dock — floats over the virtualized list so it stays reachable
+       while scrolling. Hidden until at least one exercise is selected. */
+    .wb-picker-body{position:relative}
+    .wb-picker-add-dock{
+      position:absolute;left:0;right:0;bottom:0;z-index:4;pointer-events:none;
+      padding:28px 2px 4px;
+      background:linear-gradient(180deg,transparent,rgba(12,12,10,.88) 42%,rgba(12,12,10,.96))
+    }
+    .wb-picker-add-btn{
+      pointer-events:auto;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;
+      padding:12px 16px;border-radius:14px;cursor:pointer;
+      border:1px solid rgba(180,172,158,.22);
+      background:rgba(22,20,16,.94);
+      color:#efe9dd;font-family:'Cinzel',serif;font-weight:600;font-size:.86rem;letter-spacing:.05em;text-transform:uppercase;
+      box-shadow:0 10px 24px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;
+      transition:transform var(--dur-fast) var(--ease-standard),border-color var(--dur-fast)
+    }
+    .wb-picker-add-btn:hover{border-color:rgba(180,172,158,.36)}
+    .wb-picker-add-btn:active{transform:scale(.98)}
     .picker-ex-orb{
-      width:34px;height:34px;border-radius:9px;flex-shrink:0;
+      width:40px;height:40px;border-radius:11px;flex-shrink:0;
       display:flex;align-items:center;justify-content:center;
-      background:radial-gradient(circle at 35% 35%,color-mix(in srgb,var(--mg-color) 26%,rgba(45,42,36,.5)),color-mix(in srgb,var(--mg-color) 10%,rgba(25,23,18,.62)));
-      box-shadow:0 2px 8px rgba(0,0,0,.4),0 0 10px color-mix(in srgb,var(--mg-color) 10%,transparent),inset 0 0 6px rgba(0,0,0,.3)
+      background:radial-gradient(circle at 34% 30%,color-mix(in srgb,var(--mg-color) 32%,rgba(45,42,36,.55)),color-mix(in srgb,var(--mg-color) 9%,rgba(20,18,14,.7)));
+      border:1px solid color-mix(in srgb,var(--mg-color) 32%,transparent);
+      box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 14px color-mix(in srgb,var(--mg-color) 16%,transparent),inset 0 1px 0 rgba(255,255,255,.07),inset 0 0 8px rgba(0,0,0,.35)
     }
 
     /* ── LIBRARY HOME: Discover Cards ── */
@@ -1435,11 +1510,65 @@
 
     /* ── Create orb (Forge Glass nav) ────────────────────────────────────
        Docks between the two tab pairs; the crown rides 22px above the bar
-       (--bottom-nav-h is untouched — consumers keep their offsets). */
+       (--bottom-nav-h is untouched — consumers keep their offsets).
+       Steel/stone — teal is the action accent; gold is reserved for earned
+       XP. Idle is still. Motion is hover-only (opacity/transform, not
+       box-shadow) so it stays compositor-safe on iPhone-class devices. */
     .orb-slot{flex:none;width:64px;display:flex;justify-content:center;align-items:flex-start}
-    .orb-btn{width:56px;height:56px;margin-top:-22px;border-radius:50%;cursor:pointer;border:1px solid rgba(232,180,74,.55);background:radial-gradient(circle at 36% 30%,#F2CE7A,#C08C20);color:#171106;font-family:var(--font-cond);font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;box-shadow:0 8px 26px rgba(232,180,74,.35),inset 0 1px 2px rgba(255,255,255,.5);transition:transform var(--dur-base) var(--ease-standard);-webkit-tap-highlight-color:transparent}
-    .orb-btn.open{transform:rotate(90deg)}
-    .orb-btn:active{transform:scale(.94)}
+    .orb-btn{
+      position:relative;isolation:isolate;width:56px;height:56px;margin-top:-22px;border-radius:50%;cursor:pointer;
+      border:1px solid rgba(180,172,158,.34);
+      background:radial-gradient(circle at 32% 28%,#3a3834 0%,#1f1d1a 58%,#141310 100%);
+      color:#d4cec4;font-family:var(--font-cond);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+      box-shadow:0 6px 16px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.1),inset 0 -3px 8px rgba(0,0,0,.35);
+      transition:transform var(--dur-base) var(--ease-standard),border-color var(--dur-base) var(--ease-standard),box-shadow var(--dur-base) var(--ease-standard);
+      -webkit-tap-highlight-color:transparent
+    }
+    .orb-btn::before{
+      content:'';position:absolute;inset:-6px;border-radius:50%;z-index:-1;pointer-events:none;
+      background:conic-gradient(from 180deg,transparent 0 18%,rgba(143,227,210,.55) 36%,transparent 52%,rgba(180,172,158,.35) 70%,transparent 88%);
+      -webkit-mask:radial-gradient(closest-side,transparent 62%,#000 68%);mask:radial-gradient(closest-side,transparent 62%,#000 68%);
+      opacity:0;transform:scale(.88);transition:opacity var(--dur-base) var(--ease-standard),transform var(--dur-base) var(--ease-standard)
+    }
+    .orb-btn::after{content:none}
+    .orb-btn.open{transform:rotate(90deg);border-color:rgba(180,172,158,.5);color:#e8e0d0}
+    .orb-btn:active{transform:scale(.93)}
+    .orb-btn.open:active{transform:rotate(90deg) scale(.93)}
+    @media (hover:hover) and (pointer:fine){
+      .orb-btn:hover{border-color:rgba(143,227,210,.42);box-shadow:0 8px 18px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12),inset 0 -3px 8px rgba(0,0,0,.35)}
+      .orb-btn:hover::before{opacity:.9;transform:scale(1);animation:orbHoverSpin 3.6s linear infinite}
+    }
+    .orb-btn:focus-visible::before{opacity:.75;transform:scale(1)}
+    @keyframes orbHoverSpin{to{transform:rotate(360deg) scale(1)}}
+
+    /* ── Orb create-menu action cards ── restrained glass rows; a per-action
+       accent (--orb-accent) keys the edge and glyph, never a gold default. */
+    .orb-action{
+      --orb-accent:#8FE3D2;
+      position:relative;isolation:isolate;overflow:hidden;
+      display:flex;align-items:center;gap:12px;width:100%;min-height:64px;
+      padding:11px 14px;border-radius:14px;cursor:pointer;text-align:left;color:#e4ded3;
+      background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(20,18,14,.92) 55%,rgba(12,11,9,.96));
+      border:1px solid rgba(180,172,158,.12);
+      box-shadow:0 10px 24px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.04);
+      animation:orbRise .4s var(--ease-out) both;-webkit-tap-highlight-color:transparent;
+      transition:transform var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),background var(--dur-fast) var(--ease-standard);
+    }
+    .orb-action::before{content:'';position:absolute;left:0;top:0;bottom:0;width:72px;z-index:-1;pointer-events:none;background:linear-gradient(90deg,color-mix(in srgb,var(--orb-accent) 12%,transparent),transparent);opacity:.9}
+    .orb-action:hover{transform:translateY(-1px);border-color:rgba(180,172,158,.22);background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(20,18,14,.94) 55%,rgba(12,11,9,.97))}
+    .orb-action:active{transform:scale(.99)}
+    .orb-action:disabled{opacity:.5;cursor:default}
+    .orb-action-sigil{
+      flex:none;width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;
+      background:rgba(255,255,255,.04);
+      border:1px solid color-mix(in srgb,var(--orb-accent) 28%,rgba(180,172,158,.1));
+      color:var(--orb-accent)
+    }
+    .orb-action-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+    .orb-action-label{font-family:'Cinzel',serif;font-weight:600;font-size:.86rem;letter-spacing:.05em;text-transform:uppercase;line-height:1.1;color:#efe9dd}
+    .orb-action-sub{font-family:'Inter',sans-serif;font-size:.66rem;line-height:1.3;color:rgba(232,226,216,.58)}
+    .orb-action-arrow{flex:none;font-family:'Inter',sans-serif;font-size:1rem;color:color-mix(in srgb,var(--orb-accent) 50%,#8a8478);opacity:.8;transition:transform var(--dur-fast) var(--ease-standard),opacity var(--dur-fast)}
+    .orb-action:hover .orb-action-arrow{transform:translateX(3px);opacity:1}
     @keyframes orbRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
     @keyframes orbFade{from{opacity:0}to{opacity:1}}
 
@@ -2138,7 +2267,8 @@
         animation: none; opacity: 1; transform: none;
       }
       /* Purely decorative loops — stop outright rather than run 500×/s. */
-      .lib-hero-orb, .lw-dot, .sf-xp-sweep, .wb-drop-line .dl-bar::after, .wb-drag-ghost::after { animation: none; }
+      .lib-hero-orb, .lw-dot, .sf-xp-sweep, .wb-drop-line .dl-bar::after, .wb-drag-ghost::after,
+      .orb-btn:hover::before { animation: none; }
       .pt { display: none; }
       /* Hover/press displacement reads as motion too. */
       .lib-hero-card:hover, .lib-muscle-tile:hover, .lib-discover-card:hover,
