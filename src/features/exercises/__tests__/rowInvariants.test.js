@@ -43,6 +43,14 @@ describe('stretched-row overlay safeguard', () => {
     expect(css).toMatch(/\.stretch-row\s*\{[^}]*position:\s*relative/);
   });
 
+  it('clamps the exercise name so it cannot overflow a fixed virtualized row', () => {
+    // The picker renders fixed-height react-window rows. Before the clamp, a
+    // two-line name on a narrow phone overflowed its 60px slot and the cards
+    // overlapped (reported on deploy-preview-362). The name button must stay
+    // line-clamped so this can't come back.
+    expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?-webkit-line-clamp:\s*2/);
+  });
+
   it('applies .stretch-row wherever the stretched primary action is used', () => {
     for (const file of STRETCH_ROW_FILES) {
       const src = read(file);
@@ -97,6 +105,125 @@ describe('picker dismissal runs the full teardown', () => {
     for (const setter of ['setPickerSearch', 'setPickerMuscle', 'setPickerTypeFilter', 'setPickerEquipFilter', 'setPickerSelected']) {
       expect(fn, `closePicker does not reset ${setter}`).toContain(setter);
     }
+    expect(fn, 'closePicker must not commit staged picks — that is the overlay button').not.toContain('setWbExercises');
+  });
+});
+
+describe('picker add-commit is a bottom overlay', () => {
+  const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
+
+  it('keeps the Add N control out of the header and off the filter row', () => {
+    expect(picker).toContain('wb-picker-add-overlay');
+    expect(picker).toContain('commitPickerToWorkout');
+    expect(picker).not.toContain('wo-label-chip');
+    const headerBlock = picker.match(/headerRight=\{\s*<button[\s\S]*?<\/button>\s*\}/);
+    expect(headerBlock, 'headerRight slot').not.toBeNull();
+    expect(headerBlock[0]).not.toContain('commitPickerToWorkout');
+    expect(headerBlock[0]).not.toMatch(/Add /);
+    expect(picker).not.toMatch(/Add to Workout ·/);
+  });
+});
+
+describe('exercise-list XP is parchment, not gold', () => {
+  const css = read('src/styles/app.css');
+
+  it('paints .picker-ex-xp in the exercise-name color', () => {
+    expect(css).toMatch(/\.picker-ex-xp\{[^}]*color:#ece6da/);
+    expect(css).not.toMatch(/\.picker-ex-xp\{[^}]*(#e8c766|#E8B44A|#F0C868|#FCE29A|text-shadow)/);
+  });
+});
+
+describe('picker virtualizes against a definite box', () => {
+  // Layout regression guard (audit finding #7): the react-window List was
+  // styled height:100% inside a content-sized flex chain, so the percentage
+  // resolved to `auto`, the List inflated to full content height, and every
+  // one of ~1,500 rows mounted on open and re-rendered on every keystroke.
+  // jsdom has no layout engine, so this can only be asserted at the source
+  // level — the List must sit in a definite box, not a percentage height.
+  const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
+  const css = read('src/styles/app.css');
+
+  it('gives the picker sheet a definite height so the flex chain resolves', () => {
+    // A `max-height`-only (tall) sheet is content-sized; the List needs the
+    // chain above it to be definite. height:100% fills the nav-padded backdrop.
+    expect(picker, 'picker Sheet must set an explicit height').toMatch(/height:\s*['"]100%['"]/);
+  });
+
+  it('bounds the List in a positioned wrapper instead of a percentage height', () => {
+    // The wrapper is position:relative and the List is absolutely inset, so
+    // react-window measures real pixels regardless of the flex chain.
+    expect(picker).toMatch(/position:\s*["']relative["']/);
+    expect(picker, 'List must be absolutely inset').toMatch(/position:\s*["']absolute["'][^}]*inset:\s*0/);
+    // The old, broken shape: the List styled with a percentage height. If this
+    // ever comes back, the list stops virtualizing.
+    expect(
+      /rowComponent=\{WbPickerItem\}[\s\S]*?height:\s*['"]100%['"]/.test(picker),
+      'picker List must not use a percentage height — it will not virtualize'
+    ).toBe(false);
+  });
+
+  it('keeps picker exercise cards compact and inset', () => {
+    const match = picker.match(/const ROW_H\s*=\s*(\d+)/);
+    expect(match, 'ROW_H must be declared').not.toBeNull();
+    expect(Number(match[1]), 'picker rows should stay slimmer than the old 86px slab').toBeLessThanOrEqual(76);
+    expect(Number(match[1])).toBeGreaterThanOrEqual(68);
+    expect(css).toMatch(/\.picker-ex-row\.wb-pcard\{[^}]*padding:\s*6px 10px/);
+  });
+
+  it('gives muscle-group headers a 44px touch target', () => {
+    const match = picker.match(/const HEADER_H\s*=\s*(\d+)/);
+    expect(match, 'HEADER_H must be declared').not.toBeNull();
+    expect(Number(match[1]), 'HEADER_H must meet the 44pt iOS minimum').toBeGreaterThanOrEqual(44);
+  });
+
+  it('keeps a selected search pick visible after the query is cleared', () => {
+    expect(picker).toContain('muscleKey');
+    expect(picker).toMatch(/if \(searching \|\| pickerSelected\.length === 0\) return/);
+  });
+});
+
+describe('library list sizes against the visual viewport', () => {
+  const lib = read('src/features/exercises/ExerciseLibraryTab.jsx');
+
+  it('measures with visualViewport and never floors at 200px', () => {
+    expect(lib).toContain('measureVisibleListHeight');
+    expect(lib).toContain('window.visualViewport');
+    expect(lib).toMatch(/visualViewport\.resize|addEventListener\('resize'/);
+    expect(lib).not.toMatch(/Math\.max\(\s*200/);
+  });
+});
+
+describe('orb menu rows and picker group titles stay in the same type', () => {
+  const css = read('src/styles/app.css');
+  const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
+
+  it('does not paint a separate left accent border on orb-action', () => {
+    const block = css.match(/\.orb-action\{[\s\S]*?\n\s*\}/);
+    expect(block, '.orb-action rule').not.toBeNull();
+    expect(block[0]).not.toMatch(/border-left\s*:/);
+  });
+
+  it('uses the orb menu label class on muscle-group titles', () => {
+    expect(picker).toMatch(/className=\{["']wb-ex-group-name orb-action-label["']\}/);
+  });
+});
+
+describe('orb button is idle until hover', () => {
+  const css = read('src/styles/app.css');
+
+  it('composes the open rotation with the pressed scale', () => {
+    expect(css).toMatch(/\.orb-btn\.open:active\s*\{[^}]*rotate\(90deg\)\s+scale\(/);
+  });
+
+  it('does not run a looping animation on the idle orb', () => {
+    const idle = css.match(/\.orb-btn::before\{[^}]+\}/);
+    expect(idle, 'orb-btn::before rule').not.toBeNull();
+    expect(idle[0]).not.toMatch(/animation\s*:/);
+    expect(css).not.toMatch(/\.orb-btn::after\{[^}]*animation\s*:/);
+  });
+
+  it('gates the orb ring animation to hover on fine pointers', () => {
+    expect(css).toMatch(/@media \(hover:hover\) and \(pointer:fine\)[\s\S]*?\.orb-btn:hover::before\{[^}]*animation\s*:\s*orbHoverSpin/);
   });
 });
 

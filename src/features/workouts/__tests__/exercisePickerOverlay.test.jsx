@@ -62,6 +62,7 @@ it('opens a glass swipe-dismiss picker and overlays a shrink-wrapped Add N contr
   expect(dialog.classList.contains('wb-picker-sheet')).toBe(true);
   expect(dialog.closest('.ui-sheet-backdrop--nav')).toBeNull();
 
+  fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
   fireEvent.click(screen.getByText('Bench Press'));
   const commit = screen.getByRole('button', { name: '＋ Add 1' });
   expect(commit.closest('.wb-picker-add-overlay')).toBeTruthy();
