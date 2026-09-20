@@ -133,6 +133,47 @@ describe('picker virtualizes against a definite box', () => {
       'picker List must not use a percentage height — it will not virtualize'
     ).toBe(false);
   });
+
+  it('gives muscle-group headers a 44px touch target', () => {
+    const match = picker.match(/const HEADER_H\s*=\s*(\d+)/);
+    expect(match, 'HEADER_H must be declared').not.toBeNull();
+    expect(Number(match[1]), 'HEADER_H must meet the 44pt iOS minimum').toBeGreaterThanOrEqual(44);
+  });
+
+  it('keeps a selected search pick visible after the query is cleared', () => {
+    expect(picker).toContain('muscleKey');
+    expect(picker).toMatch(/if \(searching \|\| pickerSelected\.length === 0\) return/);
+  });
+});
+
+describe('library list sizes against the visual viewport', () => {
+  const lib = read('src/features/exercises/ExerciseLibraryTab.jsx');
+
+  it('measures with visualViewport and never floors at 200px', () => {
+    expect(lib).toContain('measureVisibleListHeight');
+    expect(lib).toContain('window.visualViewport');
+    expect(lib).toMatch(/visualViewport\.resize|addEventListener\('resize'/);
+    expect(lib).not.toMatch(/Math\.max\(\s*200/);
+  });
+});
+
+describe('orb button is idle until hover', () => {
+  const css = read('src/styles/app.css');
+
+  it('composes the open rotation with the pressed scale', () => {
+    expect(css).toMatch(/\.orb-btn\.open:active\s*\{[^}]*rotate\(90deg\)\s+scale\(/);
+  });
+
+  it('does not run a looping animation on the idle orb', () => {
+    const idle = css.match(/\.orb-btn::before\{[^}]+\}/);
+    expect(idle, 'orb-btn::before rule').not.toBeNull();
+    expect(idle[0]).not.toMatch(/animation\s*:/);
+    expect(css).not.toMatch(/\.orb-btn::after\{[^}]*animation\s*:/);
+  });
+
+  it('gates the orb ring animation to hover on fine pointers', () => {
+    expect(css).toMatch(/@media \(hover:hover\) and \(pointer:fine\)[\s\S]*?\.orb-btn:hover::before\{[^}]*animation\s*:\s*orbHoverSpin/);
+  });
 });
 
 describe('filter vocabulary has a single source', () => {

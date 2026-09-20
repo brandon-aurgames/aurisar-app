@@ -3,7 +3,7 @@ import TabIcon from "./TabIcons";
 
 // ─── Bottom tab bar ────────────────────────────────────────────────────────────
 // Extracted from App.jsx as part of the Forge Glass redesign. The World tab
-// moved to the ☰ menu; the gold Create orb docks between the two tab pairs.
+// moved to the ☰ menu; the steel Create orb docks between the two tab pairs.
 // All navigation behavior (guardAll, per-tab side effects) stays in App via
 // onSelectTab so the extraction cannot change routing semantics.
 

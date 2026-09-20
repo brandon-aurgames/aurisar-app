@@ -128,9 +128,9 @@ function OrbCreateMenu({ open, onClose, log, allExercises, onPickExercise, onBui
       label: "Quick Log",
       sub: "Straight into the Set Forge for one exercise",
       glyph: "⚡",
-      color: FG.goldSoft,
-      border: "rgba(232,180,74,.42)",
-      orb: "rgba(232,180,74,.24)",
+      color: FG.teal,
+      border: "rgba(143,227,210,.38)",
+      orb: "rgba(143,227,210,.18)",
       run: () => setView("pick"),
     },
     {
@@ -204,7 +204,7 @@ function OrbCreateMenu({ open, onClose, log, allExercises, onPickExercise, onBui
             fontSize: ".52rem",
             letterSpacing: ".3em",
             textTransform: "uppercase",
-            color: "rgba(232,180,74,.8)",
+            color: "rgba(180,172,158,.78)",
             margin: "0 2px 2px",
             animation: "orbRise var(--dur-slow) var(--ease-out) both",
           }}
