@@ -64,6 +64,13 @@ jobs:
       - name: Castle manifest up to date
         run: pnpm run emit:castle:check
 
+      # The Barrowdeep's own emitter (Zone 2's dungeon). Same shape as the
+      # castle gate above, separate script and separate committed output —
+      # including ~472 KB of nav bitmaps that ship inside the SpacetimeDB
+      # module, so drift here is a real published artifact, not a local file.
+      - name: Barrowdeep manifest up to date
+        run: pnpm run emit:barrowdeep:check
+
       - name: World chest manifest up to date
         run: pnpm run emit:world-chests:check
 

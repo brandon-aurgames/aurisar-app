@@ -96,6 +96,12 @@ jobs:
         # checkout before tsc bundles the module.
         run: node scripts/emit-castle-manifest.mjs
 
+      - name: Generate Barrowdeep nav grids
+        # Same reason, same shape: dungeon/helpers.ts imports
+        # spacetimedb/src/barrowdeep/navGrids.ts (emitted from
+        # barrowdeepPlan.js) for its spawn floor-Y table.
+        run: node scripts/emit-barrowdeep-manifest.mjs
+
       - name: Install module dependencies
         # `--frozen-lockfile` (not a plain install) so the lockfile is the
         # source of truth — fails if package.json and pnpm-lock.yaml drift.

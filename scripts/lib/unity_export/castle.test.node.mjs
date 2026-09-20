@@ -1,4 +1,8 @@
 // Included by export.test.node.mjs; also runnable with node --test on this file.
+// Despite the filename (kept per TASKS.md's "castle.mjs (-> dungeon-parameterized)"
+// wording — see that file's own header), this suite covers every registered
+// dungeon's nav/blockers export (M11-6): Castle Ashwood's own tests are
+// unchanged in substance, and The Barrowdeep's mirror them.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -7,8 +11,9 @@ import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { CASTLE_NAV_BITMAPS_B64 } from '../../../spacetimedb/src/castle/navGrids.ts';
+import { BARROWDEEP_NAV_BITMAPS_B64 } from '../../../spacetimedb/src/barrowdeep/navGrids.ts';
 import { collectNavBlockers } from '../../../src/features/world/castle/castleNavBlockers.js';
-import { exportCastle, assertCastleNavParity, CASTLE_NAV_PATH, CASTLE_BLOCKERS_PATH } from './castle.mjs';
+import { exportDungeon, assertDungeonNavParity, dungeonNavPath, dungeonBlockersPath } from './castle.mjs';
 import { sha256, writeOrCheck } from './manifest.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
@@ -23,12 +28,12 @@ function withFixture(run) {
 }
 
 test('castle nav is 1,617,000 LE bytes, level-major, with the architect populations and server parity', () => {
-  const files = exportCastle();
-  const bytes = files.get(CASTLE_NAV_PATH);
+  const files = exportDungeon('castle_ashwood');
+  const bytes = files.get(dungeonNavPath('castle_ashwood'));
   assert.equal(bytes.length, 1617000);
   // Independent native TS import/decode checks the comparand parser as well.
   assert.deepEqual(bytes, Buffer.concat(CASTLE_NAV_BITMAPS_B64.map((b64) => Buffer.from(b64, 'base64'))));
-  assertCastleNavParity(bytes, repoRoot);
+  assertDungeonNavParity('castle_ashwood', files, repoRoot);
   const populations = Array.from({ length: 5 }, (_, level) => {
     const counts = { blocked: 0, flat: 0, stair: 0 };
     for (let cell = 0; cell < 462 * 350; cell++) {
@@ -50,7 +55,7 @@ test('castle nav is 1,617,000 LE bytes, level-major, with the architect populati
     { blocked: 87873, flat: 68972, stair: 4855 },
     { blocked: 51239, flat: 110461, stair: 0 },
   ]);
-  assert.deepEqual(exportCastle(), files, 'repeated generation is deterministic');
+  assert.deepEqual(exportDungeon('castle_ashwood'), files, 'repeated generation is deterministic');
   const manifest = JSON.parse(readFileSync(join(outputRoot, 'manifest.json')));
   for (const [path, expected] of files) {
     assert.deepEqual(readFileSync(join(outputRoot, path)), expected);
@@ -58,8 +63,8 @@ test('castle nav is 1,617,000 LE bytes, level-major, with the architect populati
   }
 });
 
-test('blocker header, raw rects, explicit expansion and full sort order match the contract', () => {
-  const bytes = exportCastle().get(CASTLE_BLOCKERS_PATH);
+test('castle blocker header, raw rects, explicit expansion and full sort order match the contract', () => {
+  const bytes = exportDungeon('castle_ashwood').get(dungeonBlockersPath('castle_ashwood'));
   assert.equal(bytes.includes(13), false);
   assert.equal(bytes.at(-1), 10);
   const { blockers, ...header } = JSON.parse(bytes);
@@ -85,51 +90,121 @@ test('blocker header, raw rects, explicit expansion and full sort order match th
   assert.deepEqual(blockers.map(canonical).sort(), collectNavBlockers().map(canonical).sort());
 });
 
+test('barrowdeep nav is 360,448 LE bytes, level-major (2 levels), with server parity', () => {
+  const files = exportDungeon('barrowdeep');
+  const bytes = files.get(dungeonNavPath('barrowdeep'));
+  assert.equal(bytes.length, 360448);
+  // Independent native TS import/decode checks the comparand parser as well.
+  assert.deepEqual(bytes, Buffer.concat(BARROWDEEP_NAV_BITMAPS_B64.map((b64) => Buffer.from(b64, 'base64'))));
+  assertDungeonNavParity('barrowdeep', files, repoRoot);
+  const populations = Array.from({ length: 2 }, (_, level) => {
+    const counts = { blocked: 0, flat: 0, stair: 0 };
+    for (let cell = 0; cell < 352 * 256; cell++) {
+      const code = bytes.readUInt16LE(2 * (level * 352 * 256 + cell));
+      if (code === 0) counts.blocked++;
+      else if (code === 1) counts.flat++;
+      else {
+        assert.equal(code, level + 2);
+        counts.stair++;
+      }
+    }
+    return counts;
+  });
+  console.log('Measured barrowdeep populations (blocked/flat/stair):', JSON.stringify(populations));
+  assert.deepEqual(populations, [
+    { blocked: 48992, flat: 39040, stair: 2080 },
+    { blocked: 64352, flat: 25760, stair: 0 },
+  ]);
+  assert.deepEqual(exportDungeon('barrowdeep'), files, 'repeated generation is deterministic');
+  const manifest = JSON.parse(readFileSync(join(outputRoot, 'manifest.json')));
+  for (const [path, expected] of files) {
+    assert.deepEqual(readFileSync(join(outputRoot, path)), expected);
+    assert.equal(manifest.files[path], sha256(expected));
+  }
+});
+
+test('barrowdeep blocker header matches the contract and reports ZERO blockers (no furniture/blocker pass, unlike Castle Ashwood)', () => {
+  const bytes = exportDungeon('barrowdeep').get(dungeonBlockersPath('barrowdeep'));
+  assert.equal(bytes.includes(13), false);
+  assert.equal(bytes.at(-1), 10);
+  const { blockers, ...header } = JSON.parse(bytes);
+  assert.deepEqual(header, {
+    cols: 352, rows: 256, levels: 2, cell: 0.25,
+    bounds: { x0: -44, z0: -32, x1: 44, z1: 32 },
+  });
+  // Deliberate, not a gap: emit-barrowdeep-manifest.mjs's own comment records
+  // that the Barrowdeep ships no furniture/blocker pass. If this ever becomes
+  // non-empty, that comment (and this assertion) need to change together.
+  assert.deepEqual(blockers, []);
+});
+
+test('an unregistered dungeon id fails loudly rather than guessing a location', () => {
+  assert.throws(() => exportDungeon('nosuchdungeon'), /Unregistered dungeon nav source: nosuchdungeon/);
+  assert.throws(() => assertDungeonNavParity('nosuchdungeon', new Map(), repoRoot),
+    /Unregistered dungeon nav source: nosuchdungeon/);
+});
+
 test('binary check preserves CRLF and invalid UTF-8 bytes without text normalization', (t) => withFixture((root) => {
   t.mock.method(console, 'log', () => {});
   t.mock.method(console, 'error', () => {});
-  const files = new Map([[CASTLE_NAV_PATH, Buffer.from([13, 10, 255, 0, 128, 10])]]);
+  const navPath = dungeonNavPath('castle_ashwood');
+  const files = new Map([[navPath, Buffer.from([13, 10, 255, 0, 128, 10])]]);
   assert.equal(writeOrCheck(root, files, false), true);
   assert.equal(writeOrCheck(root, files, true), true);
-  writeFileSync(join(root, CASTLE_NAV_PATH), Buffer.from([10, 255, 0, 128, 10]));
+  writeFileSync(join(root, navPath), Buffer.from([10, 255, 0, 128, 10]));
   assert.equal(writeOrCheck(root, files, true), false);
 }));
 
-test('full CLI check rejects stale nav, stale blockers and changed server comparand read-only', () => withFixture((root) => {
+test('full CLI check rejects stale nav, stale blockers and changed server comparand read-only, for every registered dungeon', () => withFixture((root) => {
   for (const path of [
     'scripts/export_unity_content.mjs', 'scripts/lib/unity_export',
     'src/features/world/content', 'src/features/world/config', 'src/features/world/worldgen',
-    'src/features/world/castle', 'spacetimedb/src/castle/navGrids.ts',
-    'spacetimedb/src/manifests/world_chests.json', 'public/assets/castle/castle_ashwood.json',
+    'src/features/world/castle', 'src/features/world/barrowdeep',
+    'spacetimedb/src/castle/navGrids.ts', 'spacetimedb/src/barrowdeep/navGrids.ts',
+    'spacetimedb/src/manifests/world_chests.json',
+    'public/assets/castle/castle_ashwood.json', 'public/assets/barrowdeep/barrowdeep.json',
     'export/unity-content',
   ]) cpSync(join(repoRoot, path), join(root, path), { recursive: true });
   writeFileSync(join(root, 'package.json'), '{"type":"module"}\n');
   const check = () => spawnSync(process.execPath, ['scripts/export_unity_content.mjs', '--check'], {
     cwd: root, encoding: 'utf8',
   });
-  for (const path of [CASTLE_NAV_PATH, CASTLE_BLOCKERS_PATH]) {
-    const target = join(root, 'export/unity-content', path);
-    const original = readFileSync(target);
-    const stale = Buffer.from(original);
-    stale[0] ^= 1;
-    writeFileSync(target, stale);
+  const dungeons = [
+    { id: 'castle_ashwood', serverPath: 'spacetimedb/src/castle/navGrids.ts', bitmapConst: 'CASTLE_NAV_BITMAPS_B64' },
+    { id: 'barrowdeep', serverPath: 'spacetimedb/src/barrowdeep/navGrids.ts', bitmapConst: 'BARROWDEEP_NAV_BITMAPS_B64' },
+  ];
+  for (const { id } of dungeons) {
+    for (const path of [dungeonNavPath(id), dungeonBlockersPath(id)]) {
+      const target = join(root, 'export/unity-content', path);
+      const original = readFileSync(target);
+      const stale = Buffer.from(original);
+      stale[0] ^= 1;
+      writeFileSync(target, stale);
+      const result = check();
+      assert.equal(result.error, undefined);
+      assert.equal(result.status, 1, result.stderr);
+      assert.ok(result.stderr.includes(`STALE: export/unity-content/${path}`), result.stderr);
+      assert.deepEqual(readFileSync(target), stale);
+      writeFileSync(target, original);
+    }
+  }
+  for (const { serverPath, bitmapConst } of dungeons) {
+    const server = join(root, serverPath);
+    const original = readFileSync(server, 'utf8');
+    const pattern = new RegExp(`(${bitmapConst}[^=]*=\\s*\\[\\s*')([A-Za-z0-9+/])`);
+    const changed = original.replace(pattern, (_, prefix, first) => prefix + (first === 'A' ? 'B' : 'A'));
+    assert.notEqual(changed, original, `${serverPath}: mutation regex did not match`);
+    writeFileSync(server, changed);
     const result = check();
     assert.equal(result.error, undefined);
     assert.equal(result.status, 1, result.stderr);
-    assert.ok(result.stderr.includes(`STALE: export/unity-content/${path}`), result.stderr);
-    assert.deepEqual(readFileSync(target), stale);
-    writeFileSync(target, original);
+    assert.ok(result.stderr.includes('Dungeon nav anti-drift mismatch'), result.stderr);
+    assert.equal(readFileSync(server, 'utf8'), changed);
+    writeFileSync(server, original);
   }
-  const server = join(root, 'spacetimedb/src/castle/navGrids.ts');
-  const changed = readFileSync(server, 'utf8').replace(
-    /(CASTLE_NAV_BITMAPS_B64[^=]*=\s*\[\s*')([A-Za-z0-9+/])/, (_, prefix, first) => prefix + (first === 'A' ? 'B' : 'A'));
-  writeFileSync(server, changed);
-  const result = check();
-  assert.equal(result.error, undefined);
-  assert.equal(result.status, 1, result.stderr);
-  assert.ok(result.stderr.includes('Castle nav anti-drift mismatch'), result.stderr);
-  assert.equal(readFileSync(server, 'utf8'), changed);
-  for (const path of [CASTLE_NAV_PATH, CASTLE_BLOCKERS_PATH]) {
-    assert.deepEqual(readFileSync(join(root, 'export/unity-content', path)), readFileSync(join(outputRoot, path)));
+  for (const { id } of dungeons) {
+    for (const path of [dungeonNavPath(id), dungeonBlockersPath(id)]) {
+      assert.deepEqual(readFileSync(join(root, 'export/unity-content', path)), readFileSync(join(outputRoot, path)));
+    }
   }
 }));

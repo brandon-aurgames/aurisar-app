@@ -24,6 +24,10 @@ public/assets/terrain/generated/** binary
 public/assets/castle/** text eol=lf
 spacetimedb/src/castle/** text eol=lf
 spacetimedb/src/manifests/** text eol=lf
+# emit-barrowdeep-manifest.mjs --check (its manifests land under
+# spacetimedb/src/manifests/**, already pinned by the line above)
+public/assets/barrowdeep/** text eol=lf
+spacetimedb/src/barrowdeep/** text eol=lf
 # assets_pipeline.mjs --check (manifests + the generated ATTRIBUTION block)
 public/assets/manifest/** text eol=lf
 public/assets/ATTRIBUTION.md text eol=lf

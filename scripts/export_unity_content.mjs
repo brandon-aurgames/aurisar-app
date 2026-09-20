@@ -11,9 +11,9 @@ import { fileURLToPath } from 'node:url';
 import { loadValidatedContent } from './lib/unity_export/loader.mjs';
 import { exportContent } from './lib/unity_export/content.mjs';
 import { exportWorldgen, SITE_KINDS } from './lib/unity_export/worldgen.mjs';
-import { exportTerrain, terrainPaths } from './lib/unity_export/terrain.mjs';
+import { exportTerrain, terrainPaths, hasTerrain } from './lib/unity_export/terrain.mjs';
 import { exportSplat } from './lib/unity_export/splat.mjs';
-import { exportCastle, assertCastleNavParity, CASTLE_NAV_PATH } from './lib/unity_export/castle.mjs';
+import { exportDungeon, assertDungeonNavParity } from './lib/unity_export/castle.mjs';
 import { addManifest, retainTerrain, writeOrCheck } from './lib/unity_export/manifest.mjs';
 
 async function main() {
@@ -25,23 +25,54 @@ async function main() {
   const repoRoot = fileURLToPath(new URL('../', import.meta.url));
   const outputRoot = fileURLToPath(new URL('../export/unity-content/', import.meta.url));
   const content = await loadValidatedContent(); // Before worldgen, serialization, or any writes.
-  const { wg, realized } = exportWorldgen(repoRoot);
-  const files = await exportContent(content, realized, repoRoot);
-  for (const [path, bytes] of exportCastle()) files.set(path, bytes);
-  if (args.includes('--check')) assertCastleNavParity(files.get(CASTLE_NAV_PATH), repoRoot);
-  console.log(`Realized: ${SITE_KINDS.map((kind) => `${kind}=${realized[kind].length}`).join(', ')}`);
+  // One worldgen instance + realized site set per zone the manifest actually defines
+  // (today: zone1, zone2) — nothing here assumes there is exactly one zone.
+  const zoneWorldgens = new Map();
+  const realizedByZone = {};
+  for (const zone of content.ZONES) {
+    const { wg, realized } = exportWorldgen(repoRoot, zone);
+    zoneWorldgens.set(zone.id, wg);
+    realizedByZone[zone.id] = realized;
+    console.log(`Realized (zone ${zone.id} "${zone.key}"): ` +
+      `${SITE_KINDS.map((kind) => `${kind}=${realized[kind].length}`).join(', ')}`);
+  }
+  const files = await exportContent(content, realizedByZone, repoRoot);
+  // One nav .bin + blockers .json per registered dungeon (M11-6); an
+  // unregistered dungeon's layout already throws inside exportContent's own
+  // DUNGEON_LAYOUT_DIRS lookup, so DUNGEONS here is never a partial list.
+  for (const dungeon of content.DUNGEONS) {
+    for (const [path, bytes] of exportDungeon(dungeon.id)) files.set(path, bytes);
+  }
+  if (args.includes('--check')) {
+    for (const dungeon of content.DUNGEONS) assertDungeonNavParity(dungeon.id, files, repoRoot);
+  }
+
+  // Terrain (and the splat sidecar derived from it) exists only for zones that
+  // have actually been baked (see terrain.mjs's ZONE_TERRAIN). Zone 2's bake is
+  // M10-8, a later Unity-side task — until then it emits no terrain files at
+  // all, which is the correct current state, not a bug to route around here.
+  const bakedZones = content.ZONES.filter((zone) => hasTerrain(zone.key));
+  const skippedZones = content.ZONES.filter((zone) => !hasTerrain(zone.key));
+  for (const zone of skippedZones) {
+    console.log(`Terrain: zone "${zone.key}" has no baked terrain yet — skipping.`);
+  }
 
   if (args.includes('--no-terrain')) {
-    for (const [path, bytes] of retainTerrain(outputRoot, terrainPaths())) files.set(path, bytes);
+    const allTerrainPaths = bakedZones.flatMap((zone) => terrainPaths(zone.key));
+    for (const [path, bytes] of retainTerrain(outputRoot, allTerrainPaths)) files.set(path, bytes);
     console.log('Terrain retained from verified export; analytic regeneration skipped.');
   } else {
-    const terrain = exportTerrain(wg);
-    for (const [path, bytes] of terrain.files) files.set(path, bytes);
-    console.log(`Terrain: measured height [${terrain.minMeters}, ${terrain.maxMeters}] m; ` +
-      `max |analytic - grid| = ${terrain.maxAnalyticGridErrorM} m (1000 samples, limit 8 m).`);
+    for (const zone of bakedZones) {
+      const terrain = exportTerrain(zoneWorldgens.get(zone.id), zone.key);
+      for (const [path, bytes] of terrain.files) files.set(path, bytes);
+      console.log(`Terrain (zone "${zone.key}"): measured height [${terrain.minMeters}, ${terrain.maxMeters}] m; ` +
+        `max |analytic - grid| = ${terrain.maxAnalyticGridErrorM} m (1000 samples, limit 8 m).`);
+    }
   }
   // Re-evaluate visual config even with --no-terrain; heights use verified tiles.
-  files.set('terrain/zone1_splat.json', exportSplat(wg, files));
+  for (const zone of bakedZones) {
+    files.set(`terrain/${zone.key}_splat.json`, exportSplat(zoneWorldgens.get(zone.id), files, zone.key));
+  }
   addManifest(files);
   const check = args.includes('--check');
   if (!writeOrCheck(outputRoot, files, check)) {

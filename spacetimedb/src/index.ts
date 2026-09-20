@@ -14,15 +14,17 @@
  *   world units → STDB px:   units * 32 + 1600    (client toStdb)
  *   Spawn at STDB (1600, 1600) = world origin.
  *
- * Server MOVEMENT bounds are an intentionally symmetric legacy clamp — distinct
- * from tile coverage. The tiling grid (world_build_config.tiling_streaming.
- * world_bounds_m) spans -1000..+1048 m (8 × 256), while the server clamps player
- * movement to a symmetric ±1000 m box; both comfortably contain the ~520 m
- * playable disc, so the difference is not player-visible. The px/meter/origin
- * constants mirror src/features/world/worldSpace.js (client source of truth).
- *   ±1000 world units → in STDB px: 1600 ± 32000 → [-30400, 33600]
- *   With 32 px (= 1 world unit) player half-width buffer: clamp to
- *   [-30368, 33568] on both axes.
+ * Server MOVEMENT bounds are PER-ZONE and derived from the content manifest —
+ * see world/zones.ts, which owns both the bounds and the px → zone mapping.
+ * Each zone gets a square box of ZoneDef.boundsHalfExtentM (default 1000 m)
+ * around its originOffsetM, less a 32 px (= 1 world unit) player half-width.
+ * Zone 1 sits at the origin and does not set the field, so its box is
+ * [-30368, 33568] on both axes — exactly the single global clamp this
+ * replaced. The tiling grid (world_build_config.tiling_streaming.
+ * world_bounds_m) spans -1000..+1048 m (8 × 256); both comfortably contain the
+ * ~520 m playable disc, so the difference is not player-visible. The
+ * px/meter/origin constants mirror src/features/world/worldSpace.js (client
+ * source of truth).
  */
 
 import { schema, table, t } from 'spacetimedb/server';
@@ -34,20 +36,23 @@ import {
   QUESTS,
   SPAWNS,
   WAYPOINTS,
-  ZONES_BY_ID,
 } from './content/index.js';
-import type { MobDef, QuestDef, QuestObjective, SpawnDef } from './content/types.js';
+import type { DungeonDef, MobDef, QuestDef, QuestObjective, SpawnDef } from './content/types.js';
 import { worldLevelFromFitnessXp } from './content/formulas/xp.js';
 import {
   DUNGEONS_BY_ID,
   DUNGEON_EXIT_RANGE_PX,
   DUNGEON_GATE_RANGE_PX,
   DUNGEON_MAX_PLAYERS,
-  castleExitHotspotPx,
-  castleSpawnPx,
   distSqPx,
+  dungeonExitHotspotPx,
   dungeonSpawnByNetId,
+  dungeonSpawnPx,
+  dungeonInteriorNavFor,
+  getDungeonForInstance,
   interiorLocalToPx,
+  interiorNavForDungeon,
+  interiorNavForInstance,
   zoneEntranceToPx,
   dungeonSpawnFloorYM,
   type DungeonSpawnEntry,
@@ -56,18 +61,16 @@ import {
   bossAoeRadiusPx,
   bossDamageMult,
   bossEnraged,
-  getBossMechanicsForMob,
+  bossMechanicsFor,
   shouldBossAoePulse,
 } from './dungeon/bossMechanics.js';
-import { castleInteriorRecoverSurface } from './castle/surface.js';
 import {
-  castleInteriorResolveMove,
-  castleInteriorSurfaceAt,
-  pxToWorldM,
-  sameInteriorFloor,
-  worldMToPx,
-} from './castle/validate.js';
-import { CASTLE_LEVELS, CASTLE_STEP_DOWN, CASTLE_STEP_UP } from './castle/navGrids.js';
+  interiorFloorYAtPx,
+  interiorMobStepPx,
+  resolveInteriorStep,
+  type DungeonInteriorNav,
+} from './dungeon/interiorNav.js';
+import { sameInteriorFloor } from './castle/validate.js';
 import {
   addCopper,
   addItemStack,
@@ -104,6 +107,8 @@ import {
   playerNearLitCampfire,
 } from './world/chest.js';
 import { clampMoveToMaxSpeed } from './world/moveGuard.js';
+import { contentPosToPx, resolveZone, WORLD_ORIGIN_PX } from './world/zones.js';
+import { resolveGateTravel } from './world/travel.js';
 import {
   equipItemForPlayer,
   unequipSlotForPlayer,
@@ -142,12 +147,10 @@ import {
 } from './content/formulas/abilityResolve.js';
 import { mulberry32, seedFrom } from './content/formulas/combat.js';
 
-// World bounds in STDB px. Derived from world_build_config — see header.
-const WORLD_HALF_PX = 32000;        // 1000 world units * 32 px/unit
-const WORLD_CENTER_PX = 1600;       // legacy origin offset; mirrors client worldSpace.js WORLD_ORIGIN_PX
-const PLAYER_HALF_PX = 32;          // 1 world unit player half-width
-const WORLD_MIN_PX = WORLD_CENTER_PX - WORLD_HALF_PX + PLAYER_HALF_PX; // -30368
-const WORLD_MAX_PX = WORLD_CENTER_PX + WORLD_HALF_PX - PLAYER_HALF_PX; // 33568
+// World bounds are per-zone and content-derived — see world/zones.ts. The
+// constants that used to live here (WORLD_HALF_PX / WORLD_CENTER_PX /
+// PLAYER_HALF_PX / WORLD_MIN_PX / WORLD_MAX_PX) described one global box
+// around the origin; WORLD_ORIGIN_PX is imported from that module now.
 
 // ── Slice 5c combat / AI constants ───────────────────────────────────────────
 //
@@ -209,20 +212,6 @@ for (const spawn of SPAWNS) {
   for (let i = 0; i < spawn.count; i++) {
     spawnByNetId.set(`${spawn.netId}_${i}`, { spawn, mobDef, instanceIndex: i });
   }
-}
-
-/**
- * Content positions are zone-local meters; zones share one STDB px plane
- * offset by their manifest originOffsetM (zone 1 = origin for now).
- */
-function contentPosToPx(zoneId: number, pos: { x: number; z: number }): { x: number; y: number } {
-  const zone = ZONES_BY_ID[zoneId];
-  const ox = zone ? zone.originOffsetM.x : 0;
-  const oz = zone ? zone.originOffsetM.z : 0;
-  return {
-    x: Math.round((pos.x + ox) * PX_PER_M + WORLD_CENTER_PX),
-    y: Math.round((pos.z + oz) * PX_PER_M + WORLD_CENTER_PX),
-  };
 }
 
 /**
@@ -307,7 +296,13 @@ const spacetimedb = schema({
       y:            t.f32(),        // world Y position (pixels)
       direction:    t.u8(),         // 0=down 1=up 2=left 3=right
       isMoving:     t.bool(),       // for animation state
-      zoneId:       t.u8(),         // 0=hub 1=training 2=plaza
+      // Content ZoneDef.id of the zone this player is standing in (D157).
+      // Previously a separate hub/training/plaza scheme produced by
+      // detectZone's hardcoded pixel rectangles; nothing read those values, so
+      // the column was repurposed in place — same t.u8(), same position, no
+      // ADD COLUMN and no manual migration. Indexed because the zone-scoped
+      // player subscription filters on it.
+      zoneId:       t.u8().index('btree'),
       online:       t.bool(),       // true while connection is active
       // Appended columns — declared after the originals so the live table
       // gets ADD COLUMN semantics, not a manual reorder migration.
@@ -683,18 +678,19 @@ export const setPlayerInfo = spacetimedb.reducer(
         online: true,
       });
     } else {
-      // Spawn in the hub zone center
+      // Spawn at the world origin (zone 1's own origin, for now — ZoneDef's
+      // spawnPos is still unread; see manifest.ts).
       ctx.db.player.insert({
         identity,
         username: safeName,
         classType: safeClass,
         avatarColor,
         avatarConfig,
-        x: 1600,
-        y: 1600,
+        x: WORLD_ORIGIN_PX,
+        y: WORLD_ORIGIN_PX,
         direction: 0,
         isMoving: false,
-        zoneId: 0,
+        zoneId: resolveZone(WORLD_ORIGIN_PX, WORLD_ORIGIN_PX).zoneId,
         online: true,
         lastChatAt: 0n,
         lastAttackAt: 0n,
@@ -921,18 +917,6 @@ export const setAvatarConfig = spacetimedb.reducer(
  * teleport them to origin when the timer fires.
  */
 /**
- * D92 recovery, bounded by the STORED floor: the claimed floorYM is client-controlled, so a
- * recovered surface must also lie within CASTLE_STEP_DOWN of the row's own floor. A freeze only
- * ever accumulates in sub-0.55 m steps (the strict window), so every real freeze is within reach,
- * while a spoofed claim of another level (floors are >= 9.6 m apart) is refused.
- */
-function recoverNearStoredFloor(wx: number, wz: number, claimedY: number, storedY: number) {
-  const recovered = castleInteriorRecoverSurface(wx, wz, claimedY);
-  if (!recovered || Math.abs(recovered.y - storedY) > CASTLE_STEP_DOWN) return null;
-  return recovered;
-}
-
-/**
  * Every `playerAura` row belonging to `owner`, taken as ONE pass (M9-6).
  *
  * `playerAura` has no index by owner, so each consumer that "just needs the
@@ -1001,10 +985,16 @@ export const movePlayer = spacetimedb.reducer(
     const control = movementRestriction(playerAuraRows(ctx, identity), nowMicros);
     if (control.blocked) return;
 
-    // World bounds: 64000x64000 px (2km x 2km world), with 32px player half-width buffer.
-    // See header for derivation from world_build_config.tiling_streaming.
-    const boundedX = Math.max(WORLD_MIN_PX, Math.min(WORLD_MAX_PX, x));
-    const boundedY = Math.max(WORLD_MIN_PX, Math.min(WORLD_MAX_PX, y));
+    // Per-zone world bounds (D156). resolveZone answers "which zone owns this
+    // px pair, and is it inside that zone's box" in one pass and hands back
+    // the claim clamped into it. Clamp, not reject: that is what the single
+    // global box did for zone 1 and what moveGuard.ts's own doc comment
+    // explains — a rejected move strands the stored row while the client keeps
+    // walking. An out-of-bounds claim is pulled to the nearest edge of the
+    // nearest zone, so no position the retired clamp accepted is refused here.
+    const bounded = resolveZone(x, y);
+    const boundedX = bounded.x;
+    const boundedY = bounded.y;
 
     // Speed ceiling on the claimed position. Bounds-clamping alone let a
     // modified client rewrite this row to anywhere in the disc between calls,
@@ -1026,9 +1016,9 @@ export const movePlayer = spacetimedb.reducer(
     let clampedX = guarded.x;
     let clampedY = guarded.y;
 
-    // Cheap no-op check BEFORE the castle-nav branch: identical inputs against
-    // an already-validated row resolve to the identical row, so bail before
-    // paying pxToWorldM/isInCastleInterior/surfaceAt for a resend. (The full
+    // Cheap no-op check BEFORE the interior-nav branch: identical inputs
+    // against an already-validated row resolve to the identical row, so bail
+    // before paying the px→m conversion and grid scan for a resend. (The full
     // post-computation dead-band below still catches zoneId/floor no-ops.)
     if (
       existing.x === clampedX && existing.y === clampedY &&
@@ -1038,62 +1028,55 @@ export const movePlayer = spacetimedb.reducer(
       return;
     }
 
-    // Castle Ashwood interior: reject moves into nav-blocked columns (walls,
-    // furniture footprints baked into emitted nav bitmaps). Outside the
-    // interior footprint this returns null and we fall through to normal px clamp.
-    const worldXM = pxToWorldM(clampedX);
-    const worldZM = pxToWorldM(clampedY);
     let nextFloorYM = existing.floorYM;
 
-    // Interior rules apply only inside an instance (D65 puts the interior at world coordinates
-    // 782..898 × -44..44, which the overworld also covers; an outdoor player crossing that
-    // footprint must not be resolved against the castle grids).
-    if (existing.dungeonInstanceId > 0n) {
-      // Strict resolution starts at the stored floor. D92 recovery is considered
-      // only after rejection, and still requires a real surface at the guarded XZ.
-      const refY = existing.floorYM > 0 ? existing.floorYM : CASTLE_LEVELS[1].y;
+    // The nav grids of whichever dungeon this instance ACTUALLY belongs to —
+    // resolved from the instance row, never assumed from a nonzero
+    // dungeonInstanceId and never from a dungeon id literal.
+    //
+    // This branch used to run against Castle Ashwood's grids for every
+    // instance (D174 item 3). M11-1 narrowed it to "the dungeon that claims
+    // Ashwood's bitmaps", which at the time meant Ashwood alone, so the
+    // Barrowdeep — a real, shipped dungeon whose own bitmaps were already
+    // committed — fell to the `else` below: no wall collision inside it at
+    // all, and its players' floorYM zeroed on their first step while the
+    // instance's mobs sat on 11.0 / 0.6. R21 routes the branch through the
+    // per-dungeon descriptor instead, so each dungeon is checked against its
+    // own walls and no dungeon is checked against another's.
+    //
+    // The lookup itself lives in dungeon/helpers.ts so it is unit-testable
+    // against a fake instance table for a NON-Ashwood dungeon — this file
+    // cannot be imported under vitest. See dungeonInteriorNav.test.ts, which
+    // also pins structurally that this call is the one made here.
+    const interiorNav: DungeonInteriorNav | null =
+      interiorNavForInstance(ctx, existing.dungeonInstanceId);
 
-      if (guarded.clamped) {
-        // A shortened step is projected along the straight chord to the claim,
-        // and indoors that chord can clip a wall even when both endpoints are
-        // walkable — so the guard could synthesise a nav-blocked point out of
-        // a legal move and wedge the row. Resolve it the same way the client
-        // resolves its own steps (wall-slide per axis, else stay put), which
-        // walks the corner the chord cut. castleInteriorResolveMove always
-        // returns a surface when the stored position has one, so a clamped
-        // step can no longer strand the row on a rejection.
-        const resolved = castleInteriorResolveMove(
-          pxToWorldM(existing.x), pxToWorldM(existing.y), worldXM, worldZM, refY,
-        );
-        if (!resolved.surface || (floorYM > 0 && Math.abs(floorYM - resolved.floorYM) > CASTLE_STEP_UP)) {
-          const recovered = recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
-          if (!recovered) return;
-          // Keep the upstream speed-clamped endpoint, never the unguarded claim.
-          nextFloorYM = recovered.y;
-        } else {
-          clampedX = worldMToPx(resolved.x);
-          clampedY = worldMToPx(resolved.z);
-          nextFloorYM = resolved.floorYM;
-        }
-      } else {
-        // Unclamped claims keep the strict all-or-nothing check: the client
-        // already wall-slides locally, so a blocked point here is spoofed or
-        // desynced and should be refused rather than quietly slid.
-        let surface = castleInteriorSurfaceAt(worldXM, worldZM, refY)
-          ?? recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
-        if (!surface) return;
-        if (floorYM > 0 && Math.abs(floorYM - surface.y) > CASTLE_STEP_UP) {
-          surface = recoverNearStoredFloor(worldXM, worldZM, floorYM, refY);
-          if (!surface) return;
-        }
-        nextFloorYM = surface.y;
-      }
+    // Interior rules apply only inside an instance whose dungeon has
+    // registered nav grids (D65 puts Ashwood's interior at world coordinates
+    // 782..898 × -44..44, which the overworld also covers; an outdoor player
+    // crossing that footprint must not be resolved against the castle grids).
+    // A dungeon with no interior row still skips wall collision here rather
+    // than being checked against the wrong dungeon's walls — but every shipped
+    // DungeonDef has one, pinned by dungeonInteriorCoupling.test.ts.
+    if (interiorNav) {
+      const step = resolveInteriorStep(
+        interiorNav,
+        existing.x, existing.y, existing.floorYM,
+        clampedX, clampedY, floorYM,
+        guarded.clamped,
+      );
+      if (!step) return;
+      clampedX = step.x;
+      clampedY = step.y;
+      nextFloorYM = step.floorYM;
     } else if (existing.floorYM !== 0) {
       nextFloorYM = 0;
     }
 
-    // Zone detection based on position
-    const zoneId = detectZone(clampedX, clampedY);
+    // Zone id from the content manifest, resolved against the position we are
+    // actually about to store — the speed guard and the castle-interior
+    // resolution above can both move the point after the bounds pass.
+    const zoneId = resolveZone(clampedX, clampedY).zoneId;
 
     // No-op dead-band: a row update is broadcast to EVERY subscriber, so a
     // call that changes nothing (client resend, isMoving heartbeat) must not
@@ -1158,15 +1141,28 @@ export const enterDungeon = spacetimedb.reducer(
       created = true;
     }
 
-    const spawnPx = dungeonId === 'castle_ashwood' ? castleSpawnPx() : gatePx;
+    // Per-DungeonDef lookup, not a literal compare against one dungeon's id
+    // (D174 item 1) — dungeonSpawnPx resolves whichever dungeon is actually
+    // being entered's own registered interior spawn point, falling back to
+    // its gate (== gatePx above) when no interior entry is registered yet.
+    const spawnPx = dungeonSpawnPx(dungeon);
+    // The ENTERED dungeon's own entry-storey floor, not Castle Ashwood's.
+    // This was `CASTLE_LEVELS[1].y` for every dungeon — correct today only by
+    // coincidence, since D171 gave the Barrowdeep Ashwood's level Y verbatim
+    // (the last surviving D174 item-1 literal). 0 when the dungeon registers
+    // no interior: dungeonSpawnPx then fell back to its outdoor gate, so the
+    // player is standing outside and 0 is what movePlayer's own else-branch
+    // would write on their first step anyway. Unreachable for shipped content
+    // — every DungeonDef has an interior row (dungeonInteriorCoupling.test.ts).
+    const entryFloorYM = dungeonInteriorNavFor(dungeonId)?.entryFloorYM ?? 0;
     ctx.db.player.identity.update({
       ...player,
       x: spawnPx.x,
       y: spawnPx.y,
       isMoving: false,
-      zoneId: detectZone(spawnPx.x, spawnPx.y),
+      zoneId: resolveZone(spawnPx.x, spawnPx.y).zoneId,
       dungeonInstanceId: instanceId,
-      floorYM: CASTLE_LEVELS[1].y,
+      floorYM: entryFloorYM,
       // Teleports bypass the speed guard by writing the row directly, but they
       // must still restart its clock: leaving a stale lastMoveAt here would
       // hand the first step inside the interior a budget earned outdoors.
@@ -1193,13 +1189,18 @@ export const leaveDungeon = spacetimedb.reducer(
       return;
     }
 
-    const exitPx = castleExitHotspotPx();
+    // Resolved BEFORE the exit-proximity check (D174 item 2) — the old code
+    // called the Ashwood-only castleExitHotspotPx() unconditionally here, so
+    // leaving any OTHER dungeon checked proximity against Ashwood's hotspot
+    // in zone 1 before ever looking up which dungeon the instance actually
+    // was.
+    const dungeon = DUNGEONS_BY_ID[instance.dungeonId];
+    const exitPx = dungeon ? dungeonExitHotspotPx(dungeon) : { x: WORLD_ORIGIN_PX, y: WORLD_ORIGIN_PX };
     if (distSqPx(player.x, player.y, exitPx.x, exitPx.y) > DUNGEON_EXIT_RANGE_PX * DUNGEON_EXIT_RANGE_PX) {
       return;
     }
 
-    const dungeon = DUNGEONS_BY_ID[instance.dungeonId];
-    const gatePx = dungeon ? zoneEntranceToPx(dungeon) : { x: WORLD_CENTER_PX, y: WORLD_CENTER_PX };
+    const gatePx = dungeon ? zoneEntranceToPx(dungeon) : { x: WORLD_ORIGIN_PX, y: WORLD_ORIGIN_PX };
     const leavingInstance = player.dungeonInstanceId;
 
     ctx.db.player.identity.update({
@@ -1207,13 +1208,74 @@ export const leaveDungeon = spacetimedb.reducer(
       x: gatePx.x,
       y: gatePx.y,
       isMoving: false,
-      zoneId: detectZone(gatePx.x, gatePx.y),
+      zoneId: resolveZone(gatePx.x, gatePx.y).zoneId,
       dungeonInstanceId: 0n,
       floorYM: 0,
       lastMoveAt: ctx.timestamp.microsSinceUnixEpoch,
     });
 
     cleanupDungeonInstanceIfEmpty(ctx, leavingInstance);
+  }
+);
+
+/**
+ * Gate-based zone-to-zone travel (D155). Zone 2+ are offset regions on the
+ * shared px plane, not a contiguous terrain extension and not a dungeon
+ * instance — this reducer is the transition D155 calls for, modeled directly
+ * on enterDungeon/leaveDungeon above as the working mechanism to follow.
+ *
+ * Guard order mirrors enterDungeon's own chain:
+ *   • player exists and is alive — dead (hp/deadUntil) and stunned/rooted
+ *     (movementRestriction), the same guards movePlayer applies;
+ *   • the named gate resolves in the CURRENT zone (player.zoneId, D157), the
+ *     caller is within range of it, the destination zone/gate both actually
+ *     exist in the manifest (defensive — content validation should already
+ *     guarantee this, but a reducer must not trust content shape blindly at
+ *     runtime either), and the caller's level clears the destination zone's
+ *     levelBand floor — see world/travel.ts's resolveGateTravel for that
+ *     chain, kept there (not inlined) so it is unit-testable without a
+ *     spacetimedb/server runtime.
+ *
+ * Takes only the gate id the player claims to be standing at; the
+ * destination is derived from the gate's own toZoneId/toGateId. The
+ * proximity check reads the player's own stored x/y, never a client-supplied
+ * coordinate, so — unlike buildCampfire (PR #363 review, finding M1) — there
+ * is no spoofable claim here for a non-finite value to bypass.
+ *
+ * Inert today: zone 1's only gate (z1_north_pass) names toZoneId: 2, which
+ * has no manifest entry yet, so every call resolves to resolveGateTravel's
+ * 'bad-destination' rejection until a second zone ships (M10-2+).
+ */
+export const travelToZone = spacetimedb.reducer(
+  { gateId: t.string() },
+  (ctx, { gateId }) => {
+    const identity = ctx.sender;
+    const player = ctx.db.player.identity.find(identity);
+    if (!player) return;
+
+    const now = ctx.timestamp.microsSinceUnixEpoch;
+    if (player.hp <= 0 || player.deadUntil > now) return;
+    if (movementRestriction(playerAuraRows(ctx, identity), now).blocked) return;
+
+    const outcome = resolveGateTravel(player, player.zoneId, gateId, getPlayerLevel(ctx, identity));
+    if (!outcome.ok) return;
+
+    ctx.db.player.identity.update({
+      ...player,
+      x: outcome.x,
+      y: outcome.y,
+      isMoving: false,
+      // Re-derived from the position we are actually about to store, same as
+      // movePlayer/enterDungeon/leaveDungeon: the zoneId written must come
+      // from resolveZone, not trusted straight off the content's own
+      // toZoneId, in case a gate's declared position doesn't actually fall
+      // inside its destination zone's playable box.
+      zoneId: resolveZone(outcome.x, outcome.y).zoneId,
+      floorYM: 0,
+      // Teleports bypass the speed guard by writing the row directly, but
+      // must still restart its clock — see enterDungeon/leaveDungeon.
+      lastMoveAt: now,
+    });
   }
 );
 
@@ -1320,12 +1382,21 @@ export const buildCampfire = spacetimedb.reducer(
     if (player.hp <= 0 || player.deadUntil > nowMicros) return; // dead can't build
 
     // Must be placed within reach of where the server thinks the player is.
+    // Inverted (`!(... <= R*R)`, not `... > R*R`) so a non-finite x/y — the BSATN f32 decode is a
+    // bare DataView.getFloat32 with no validation, so a malformed client packet can send NaN —
+    // fails closed. `NaN > anything` is false, so the un-inverted guard let NaN through to
+    // resolveZone(NaN, NaN), which places a working, lit campfire at the first zone's centre on
+    // behalf of a player standing anywhere on the map (PR #363 review, finding M1).
     const dx = x - player.x;
     const dy = y - player.y;
-    if (dx * dx + dy * dy > CAMPFIRE_PLACE_RANGE_PX * CAMPFIRE_PLACE_RANGE_PX) return;
+    if (!(dx * dx + dy * dy <= CAMPFIRE_PLACE_RANGE_PX * CAMPFIRE_PLACE_RANGE_PX)) return;
 
-    const fx = Math.max(WORLD_MIN_PX, Math.min(WORLD_MAX_PX, x));
-    const fy = Math.max(WORLD_MIN_PX, Math.min(WORLD_MAX_PX, y));
+    // Same per-zone bounds the move path uses. The fire is placed within 3 m
+    // of the builder, so this only ever trims a claim the builder's own row
+    // could not have reached.
+    const placed = resolveZone(x, y);
+    const fx = placed.x;
+    const fy = placed.y;
 
     // Scan the caller's fires once for both the cooldown and the cap.
     let count = 0;
@@ -2119,7 +2190,11 @@ export const tickMobAI = spacetimedb.reducer(
       let nextLastAoeAt = mob.lastAoeAt;
       let nextEnraged = mob.enraged;
 
-      const bossMech = getBossMechanicsForMob(ctx, mob);
+      // One instance lookup per mob, reused for both the boss mechanics and
+      // the interior nav grids below — these used to be two separate
+      // dungeonInstance reads (the nav side not existing at all).
+      const mobDungeon = getDungeonForInstance(ctx, mob.dungeonInstanceId);
+      const bossMech = bossMechanicsFor(mobDungeon, mob);
       if (bossMech && nextSpawnedAt === 0n) nextSpawnedAt = now;
       if (bossMech) {
         nextEnraged = bossEnraged(bossMech, nextSpawnedAt, now, nextEnraged);
@@ -2140,17 +2215,25 @@ export const tickMobAI = spacetimedb.reducer(
       const dmgMult = bossMech ? bossDamageMult(bossMech, nextEnraged) : 1;
       const effectiveDamage = Math.round(attackDamage * dmgMult);
 
-      const inDungeon = mob.dungeonInstanceId > 0n;
-      if (inDungeon && nextFloorYM === 0) {
-        nextFloorYM = resolveMobFloorYM(mob.x, mob.y, 0);
+      // THIS mob's dungeon's own grids, off the DungeonDef already resolved
+      // above — never a dungeon id literal. Before R21 every dungeon mob
+      // stepped through Castle Ashwood's, with a zero origin offset: a
+      // Barrowdeep mob (zone 2, 3 km east) resolved to no surface at all, so
+      // castleInteriorResolveMove handed back its previous position and it
+      // never chased or returned. A dungeon with no registered interior now
+      // steps freely rather than being pinned by another dungeon's walls.
+      const mobNav = interiorNavForDungeon(mobDungeon);
+      if (mob.dungeonInstanceId > 0n && nextFloorYM === 0) {
+        nextFloorYM = mobNav ? interiorFloorYAtPx(mobNav, mob.x, mob.y, 0) : 0;
       }
 
       const stepMob = (fromX: number, fromY: number, toX: number, toY: number) => {
-        if (inDungeon) {
-          return mobInteriorStepPx(fromX, fromY, toX, toY, moveStepPx, nextFloorYM);
-        }
         const step = stepToward(fromX, fromY, toX, toY, moveStepPx);
-        return { x: step.x, y: step.y, floorYM: nextFloorYM, arrived: step.arrived };
+        if (!mobNav) {
+          return { x: step.x, y: step.y, floorYM: nextFloorYM, arrived: step.arrived };
+        }
+        const slid = interiorMobStepPx(mobNav, fromX, fromY, step.x, step.y, nextFloorYM);
+        return { x: slid.x, y: slid.y, floorYM: slid.floorYM, arrived: step.arrived && slid.landed };
       };
 
       if (mob.state === 'returning' || homeDistSq > leashSq) {
@@ -2236,13 +2319,24 @@ export const respawnMob = spacetimedb.reducer(
     const dungeonInst = schedule.dungeonInstanceId;
 
     if (dungeonInst > 0n) {
-      if (!ctx.db.dungeonInstance.instanceId.find(dungeonInst)) return;
+      const dungeonInstanceRow = ctx.db.dungeonInstance.instanceId.find(dungeonInst);
+      if (!dungeonInstanceRow) return;
+      // insertMobFromDungeonSpawn now takes the instance's own DungeonDef
+      // directly (it used to re-derive this same row internally) — a
+      // mechanical follow-through of D173 item 2's interiorLocalToPx fix,
+      // not a behavior change: an instance's dungeonId is only ever written
+      // by enterDungeon after that same DUNGEONS_BY_ID lookup already
+      // succeeded, so this can only fail to find a dungeon for content
+      // removed after the instance was created — safer to skip the respawn
+      // than to insert a mob against no DungeonDef at all.
+      const dungeon = DUNGEONS_BY_ID[dungeonInstanceRow.dungeonId];
+      if (!dungeon) return;
       const entry = dungeonSpawnByNetId.get(spawnNetId);
       if (!entry) return;
       for (const m of ctx.db.mob.iter()) {
         if (m.spawnNetId === spawnNetId && m.dungeonInstanceId === dungeonInst) return;
       }
-      insertMobFromDungeonSpawn(ctx, entry, spawnNetId, dungeonInst, 0);
+      insertMobFromDungeonSpawn(ctx, dungeon, entry, spawnNetId, dungeonInst, 0);
       return;
     }
 
@@ -2279,11 +2373,11 @@ export const respawnPlayer = spacetimedb.reducer(
 
     ctx.db.player.identity.update({
       ...p,
-      x: WORLD_CENTER_PX,
-      y: WORLD_CENTER_PX,
+      x: WORLD_ORIGIN_PX,
+      y: WORLD_ORIGIN_PX,
       direction: 0,
       isMoving: false,
-      zoneId: detectZone(WORLD_CENTER_PX, WORLD_CENTER_PX),
+      zoneId: resolveZone(WORLD_ORIGIN_PX, WORLD_ORIGIN_PX).zoneId,
       hp: p.maxHp > 0 ? p.maxHp : PLAYER_MAX_HP,
       deadUntil: 0n,
       dungeonInstanceId: 0n,
@@ -2347,6 +2441,12 @@ export const clientConnected = spacetimedb.clientConnected((ctx) => {
       // Regen resumes from the connect; the pool itself was settled above through
       // regeneratedResource(), so time away counts at the same D94 rate.
       lastRegenAt: ctx.timestamp.microsSinceUnixEpoch,
+      // D157: backfills a row still carrying the legacy hub/training/plaza/wilderness scheme
+      // (0/1/2/3) to the content ZoneDef.id — this is the only always-reached write path for a
+      // player who reconnects without moving first (setPlayerInfo's existing-player branch
+      // spreads ...existing and movePlayer only runs after a move); every returning player's
+      // zoneId converges to the new scheme within one connect (PR #363 review, finding M2).
+      zoneId: resolveZone(existing.x, existing.y).zoneId,
     });
   }
   // If no row exists, setPlayerInfo will create one.
@@ -2372,24 +2472,10 @@ export const clientDisconnected = spacetimedb.clientDisconnected((ctx) => {
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Returns the zone ID for a given world position.
- *
- * Original gameplay zones occupy the inner 3200×3200 px area (their fixed
- * STDB px ranges). The surrounding 2km × 2km world is all Wilderness — that
- * is where the castle-approach biome lives and where future zones can attach.
- *
- *   Zone 0 — The Aurisar Hub:     (1200-2000, 1200-2000)
- *   Zone 1 — Training Grounds:    (0-1200, 0-1200)
- *   Zone 2 — Leaderboard Plaza:   (2000-3200, 2000-3200)
- *   Zone 3 — Wilderness:          everywhere else, including all new bounds
- */
-function detectZone(x: number, y: number): number {
-  if (x >= 1200 && x <= 2000 && y >= 1200 && y <= 2000) return 0; // Hub
-  if (x >= 0 && x <= 1200 && y >= 0 && y <= 1200) return 1;       // Training
-  if (x >= 2000 && x <= 3200 && y >= 2000 && y <= 3200) return 2; // Plaza
-  return 3; // Wilderness
-}
+// detectZone lived here: four hardcoded pixel rectangles (hub / training /
+// plaza / wilderness) that predated the content package and shared no ids with
+// it. Replaced by world/zones.ts's resolveZone (D157), which answers from the
+// manifest instead.
 
 function getPlayerLevel(ctx: any, identity: any): number {
   const row = ctx.db.playerProgress.identity.find(identity);
@@ -2435,35 +2521,6 @@ function isValidMobTarget(
   if (player.dungeonInstanceId !== mob.dungeonInstanceId) return false;
   if (mob.dungeonInstanceId > 0n && !sameInteriorFloor(mobFloorYM, player.floorYM)) return false;
   return true;
-}
-
-/** Resolve mob floor Y from px position when floorYM was unset (migration backfill). */
-function resolveMobFloorYM(pxX: number, pxY: number, fallback: number): number {
-  const wx = pxToWorldM(pxX);
-  const wz = pxToWorldM(pxY);
-  for (const lv of CASTLE_LEVELS) {
-    const s = castleInteriorSurfaceAt(wx, wz, lv.y);
-    if (s) return s.y;
-  }
-  return fallback;
-}
-
-function mobInteriorStepPx(
-  fromX: number, fromY: number, toX: number, toY: number,
-  maxStepPx: number, floorYM: number,
-): { x: number; y: number; floorYM: number; arrived: boolean } {
-  const step = stepToward(fromX, fromY, toX, toY, maxStepPx);
-  const prevWX = pxToWorldM(fromX);
-  const prevWZ = pxToWorldM(fromY);
-  const nextWX = pxToWorldM(step.x);
-  const nextWZ = pxToWorldM(step.y);
-  const resolved = castleInteriorResolveMove(prevWX, prevWZ, nextWX, nextWZ, floorYM);
-  return {
-    x: worldMToPx(resolved.x),
-    y: worldMToPx(resolved.z),
-    floorYM: resolved.floorYM,
-    arrived: step.arrived && resolved.surface != null,
-  };
 }
 
 /**
@@ -2799,6 +2856,7 @@ function insertMobFromSpawn(
 
 function insertMobFromDungeonSpawn(
   ctx: any,
+  dungeon: DungeonDef,
   entry: DungeonSpawnEntry,
   netId: string,
   instanceId: bigint,
@@ -2806,14 +2864,16 @@ function insertMobFromDungeonSpawn(
 ): void {
   const { spawn, mobDef, instanceIndex } = entry;
   const offset = spawnInstanceOffsetM(instanceIndex, spawn.radiusM);
-  const px = interiorLocalToPx({
+  const px = interiorLocalToPx(dungeon, {
     x: spawn.pos.x + offset.dx,
     z: spawn.pos.z + offset.dz,
   });
 
-  const inst = ctx.db.dungeonInstance.instanceId.find(instanceId);
-  const dungeon = inst ? DUNGEONS_BY_ID[inst.dungeonId] : undefined;
-  const isBoss = dungeon && spawn.mobType === dungeon.bossMobType;
+  // dungeon is the caller's own already-resolved DungeonDef for this exact
+  // instance (seedDungeonInstanceMobs looks it up from the same dungeonId
+  // the instance row was just created with), so no re-lookup here — this
+  // used to re-derive it via a redundant ctx.db.dungeonInstance read.
+  const isBoss = spawn.mobType === dungeon.bossMobType;
   const nowMicros = ctx.timestamp.microsSinceUnixEpoch;
 
   ctx.db.mob.insert({
@@ -2866,7 +2926,7 @@ function seedDungeonInstanceMobs(ctx: any, instanceId: bigint, dungeonId: string
       const netId = `${spawn.netId}_${i}`;
       const entry = dungeonSpawnByNetId.get(netId);
       if (!entry) continue;
-      insertMobFromDungeonSpawn(ctx, entry, netId, instanceId, counter++);
+      insertMobFromDungeonSpawn(ctx, dungeon, entry, netId, instanceId, counter++);
     }
   }
 }

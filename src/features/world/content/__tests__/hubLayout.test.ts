@@ -39,7 +39,11 @@ function roadDist(x: number, z: number): number {
   return best;
 }
 
-const hubNpcs = ALL_NPCS.filter((n) => Math.hypot(n.pos.x, n.pos.z) < 45);
+// ALL_NPCS is cross-zone and every pos is zone-LOCAL, so the radius filter has
+// to be preceded by a zone filter: zone 2's outpost NPCs are also authored near
+// their own origin, and measuring them against zone 1's roads and props would
+// compare two frames 3000 m apart on the shared px plane.
+const hubNpcs = ALL_NPCS.filter((n) => n.zoneId === 1 && Math.hypot(n.pos.x, n.pos.z) < 45);
 
 describe('Oakrest hub layout', () => {
   it('no NPC stands in a carriageway', () => {

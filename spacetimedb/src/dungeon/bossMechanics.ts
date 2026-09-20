@@ -2,28 +2,35 @@
  * Instance boss mechanics — aoePulse + enrage from DungeonDef.bossMechanics.
  */
 
-import { DUNGEONS_BY_ID } from './helpers.js';
+import { getDungeonForInstance, type DungeonInstanceLookup } from './helpers.js';
 import type { BossMechanics, DungeonDef } from '../content/types.js';
 
 export const PX_PER_M = 32;
 
-export function getDungeonForInstance(
-  ctx: { db: { dungeonInstance: { instanceId: { find: (id: bigint) => { dungeonId: string } | null } } } },
-  instanceId: bigint,
-): DungeonDef | null {
-  if (instanceId === 0n) return null;
-  const inst = ctx.db.dungeonInstance.instanceId.find(instanceId);
-  if (!inst) return null;
-  return DUNGEONS_BY_ID[inst.dungeonId] ?? null;
+// Moved to dungeon/helpers.ts, beside DUNGEONS_BY_ID which it reads and the
+// interior-nav gate that now shares it. Re-exported so existing importers of
+// this module are unaffected.
+export { getDungeonForInstance };
+
+/**
+ * The boss-mechanics half of `getBossMechanicsForMob`, split out so a caller
+ * that already holds the instance's DungeonDef does not pay a second
+ * `dungeonInstance` lookup for it. `tickMobAI` now needs that DungeonDef
+ * anyway, to pick the dungeon's own interior nav grids (R21).
+ */
+export function bossMechanicsFor(
+  dungeon: DungeonDef | null,
+  mob: { mobType: string },
+): BossMechanics | null {
+  if (!dungeon || mob.mobType !== dungeon.bossMobType) return null;
+  return dungeon.bossMechanics;
 }
 
 export function getBossMechanicsForMob(
-  ctx: { db: { dungeonInstance: { instanceId: { find: (id: bigint) => { dungeonId: string } | null } } } },
+  ctx: DungeonInstanceLookup,
   mob: { mobType: string; dungeonInstanceId: bigint },
 ): BossMechanics | null {
-  const dungeon = getDungeonForInstance(ctx, mob.dungeonInstanceId);
-  if (!dungeon || mob.mobType !== dungeon.bossMobType) return null;
-  return dungeon.bossMechanics;
+  return bossMechanicsFor(getDungeonForInstance(ctx, mob.dungeonInstanceId), mob);
 }
 
 export function bossEnraged(

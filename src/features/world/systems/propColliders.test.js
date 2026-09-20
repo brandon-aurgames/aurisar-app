@@ -115,7 +115,12 @@ describe('the live settlement', () => {
     // A talk prompt is a 5 m radius test with no line-of-sight check, so an
     // NPC inside a building is still talkable from outside; but a player who
     // walks to them stops at the wall. Flag any NPC standing in a solid.
-    const sealed = ALL_NPCS.filter((n) => P.blocked(n.pos.x, n.pos.z)).map((n) => n.id);
+    // Zone 1 only: ZONE1_PROPS is zone 1's prop set and NPC positions are
+    // zone-local, so a zone 2 NPC tested against these colliders is comparing
+    // two different local frames.
+    const sealed = ALL_NPCS
+      .filter((n) => n.zoneId === 1 && P.blocked(n.pos.x, n.pos.z))
+      .map((n) => n.id);
     expect(sealed, `NPCs standing inside a prop collider: ${sealed.join(', ')}`).toEqual([]);
   });
 

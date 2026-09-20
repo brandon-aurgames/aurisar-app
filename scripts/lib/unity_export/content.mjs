@@ -4,6 +4,16 @@ import { join } from 'node:path';
 import { loadContentModule } from './loader.mjs';
 import { jsonBytes, normalizeText } from './manifest.mjs';
 
+/**
+ * DungeonDef.layoutManifest → the repo directory its emitter writes it to.
+ * Registering a dungeon here is the one step that makes its layout cross into
+ * export/unity-content/dungeons/; an unknown manifest still throws.
+ */
+const DUNGEON_LAYOUT_DIRS = {
+  'castle_ashwood.json': 'public/assets/castle',
+  'barrowdeep.json': 'public/assets/barrowdeep',
+};
+
 /** Only named data exports cross the boundary; combat functions stay in TS. */
 async function formulas() {
   const [xp, combat, prices, loot, cooking] = await Promise.all([
@@ -37,7 +47,7 @@ async function formulas() {
   return { schemaVersion: 1, constants, tables };
 }
 
-export async function exportContent(content, realized, repoRoot) {
+export async function exportContent(content, realizedByZone, repoRoot) {
   const c = content;
   const classes = c.CLASS_IDS.map((id) => c.CLASS_KITS[id]);
   const abilitiesById = new Map(c.ALL_ABILITIES.map((ability) => [ability.id, ability]));
@@ -64,30 +74,41 @@ export async function exportContent(content, realized, repoRoot) {
     ['classes.json', jsonBytes({ schemaVersion: 1, classes, abilities })],
     ['items.json', jsonBytes({ schemaVersion: 1, items: c.ALL_ITEMS })],
     ['quests.json', jsonBytes({ schemaVersion: 1, quests })],
+    // schemaVersion 2 (M10-3): `realized` is now keyed by zone id (string) rather
+    // than being one flat site-kind object for the single zone that used to exist.
     ['zones.json', jsonBytes({
-      schemaVersion: 1,
+      schemaVersion: 2,
       zones: c.ZONES,
       npcs: c.ALL_NPCS,
       mobs: c.ALL_MOBS,
       spawns: c.SPAWNS,
       waypoints: c.ALL_WAYPOINTS,
       landmarks: c.ALL_LANDMARKS,
-      realized,
+      realized: realizedByZone,
     })],
     ['dungeons.json', jsonBytes({ schemaVersion: 1, dungeons: c.DUNGEONS })],
     ['formulas.json', jsonBytes(await formulas())],
   ]);
   // D50: preserve authored JSON formatting; only normalize Windows line endings.
-  files.set('worldgen/zone1_world.json', normalizeText(
-    readFileSync(join(repoRoot, 'src/features/world/config/zone1_world.json')),
-  ));
+  // Every zone the manifest defines ships its own worldConfig verbatim, not just zone1's.
+  for (const zone of c.ZONES) {
+    files.set(`worldgen/${zone.worldConfig}`, normalizeText(
+      readFileSync(join(repoRoot, 'src/features/world/config/', zone.worldConfig)),
+    ));
+  }
   for (const dungeon of c.DUNGEONS) {
-    // M1 has one layout source. Fail on new layouts rather than guess their location.
-    if (dungeon.layoutManifest !== 'castle_ashwood.json') {
+    // Each layout manifest has its own emitter and therefore its own output
+    // directory (emit-castle-manifest.mjs / emit-barrowdeep-manifest.mjs).
+    // A lookup table, not a literal compare — but it still FAILS on an
+    // unregistered layout rather than guessing a location, which is the part
+    // of M1's original rule that matters. M11-6 generalizes the rest of the
+    // dungeon export (nav .bin + blockers) from here.
+    const dir = DUNGEON_LAYOUT_DIRS[dungeon.layoutManifest];
+    if (!dir) {
       throw new Error(`Unregistered dungeon layout: ${dungeon.layoutManifest}`);
     }
     // D22: no parse/reserialize, extra wrapper, schemaVersion, or second nav serializer.
-    const bytes = normalizeText(readFileSync(join(repoRoot, 'public/assets/castle', dungeon.layoutManifest)));
+    const bytes = normalizeText(readFileSync(join(repoRoot, dir, dungeon.layoutManifest)));
     files.set(`dungeons/${dungeon.layoutManifest}`, bytes);
   }
   return files;

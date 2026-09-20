@@ -10,6 +10,11 @@
  * NOT in this manifest: it stays in the repo as a dev/test world only.
  * Level bands cap at 35 until more zones ship (plan §2b). All names are
  * placeholders for the story pass.
+ *
+ * This manifest is also the server's bounds table: world/zones.ts derives each
+ * zone's playable px box from `originOffsetM` + `boundsHalfExtentM` (D156), and
+ * `validateContent` rejects two boxes that overlap. Moving a zone's origin or
+ * extent therefore changes what `movePlayer` accepts — it is not cosmetic data.
  */
 import type { ZoneDef } from '../types';
 import { LANDMARKS as L } from './zone1/landmarks.generated';
@@ -22,9 +27,10 @@ export const ZONES: ZoneDef[] = [
     // a working placeholder the story pass renames.
     name: 'Zone One',
     levelBand: [1, 7],
-    // Zone 1 lives at the world origin (it replaces Ashwood in place, and
-    // movePlayer's ±1000 m bounds assume the origin region). Zones 2+ get
-    // k·3000 m offsets in P5, when per-zone bounds + travel land.
+    // Zone 1 lives at the world origin (it replaces Ashwood in place). It
+    // deliberately does NOT set boundsHalfExtentM: the 1000 m default is
+    // exactly the global clamp zone 1 shipped with, so its accept region is
+    // unchanged by the move to per-zone bounds (pinned by zoneBounds.test.js).
     originOffsetM: { x: 0, z: 0 },
     worldConfig: 'zone1_world.json',
     // NOTE: neither of these is read by anything yet — the server hardcodes
@@ -39,7 +45,58 @@ export const ZONES: ZoneDef[] = [
       { id: 'z1_north_pass', pos: { x: 0, z: 170 }, toZoneId: 2, toGateId: 'z2_south_pass' },
     ],
   },
-  // Zone 2 (levels 12–24) and zone 3 (levels 24–35) land in P5.
+  {
+    id: 2,
+    key: 'zone2',
+    // Working placeholder, same convention as Zone One.
+    name: 'Zone Two',
+    // Continues zone 1's [1,7] band at its own top end — the boundary level is
+    // shared by both zones, which is how the band list is meant to read (a
+    // level-7 player belongs in either). Zone 2's authored content currently
+    // tops out at L12; the band's remaining headroom is M11's to fill.
+    levelBand: [7, 14],
+    // The k·3000 m offset this file has promised since P1: zone 2 is an offset
+    // region on the same px plane, not a contiguous extension of zone 1 (D155).
+    // 3000 m → STDB px 97600, the number zoneBounds.test.js pins.
+    originOffsetM: { x: 3000, z: 0 },
+    // Zone 2 is a smaller region than zone 1 (a 360 m playable disc against
+    // zone 1's 520 m), so it claims a smaller box rather than inheriting the
+    // 1000 m default, leaving a wide unclaimed gap between the two zones which
+    // resolveZone clamps into the nearer zone instead of accepting as valid
+    // ground.
+    //
+    // 400 -> 500 (D175, M11-5). The Barrowdeep's interior is a real region of
+    // the shared px plane at zone-local {x: 430, z: 0} — footprint
+    // 386..474 x -32..32 — the same way Castle Ashwood's sits at 840 m east of
+    // zone 1's origin. Zone 1 sets no extent, so its 1000 m default absorbs
+    // Ashwood with room to spare; zone 2's 400 m box against a 360 m playable
+    // disc left a 40 m rind, nowhere near the ~88 x 64 m an interior needs, so
+    // a zone-2 interior placed the Ashwood way would sit OUTSIDE its own
+    // zone's box and resolveZone would clamp every step taken inside it.
+    //
+    // 500 was chosen over 1000 because both zones hold an invariant worth
+    // keeping: the playable box sits INSIDE the baked terrain (zone 1: 1000 <
+    // terrain +/-1024; zone 2: 500 < terrain +/-512, ZoneGrid's zone 2
+    // descriptor being 4 tiles x 256 m from origin -512). A 1000 m box would
+    // let a zone-2 player walk 488 m past the terrain edge. Effective reach is
+    // 499 m after PLAYER_HALF_PX, so the interior's far edge at 474 m keeps
+    // 25 m of margin. Boxes stay disjoint: zone 1 spans px -30368..33568,
+    // zone 2 spans px 81632..113568.
+    boundsHalfExtentM: 500,
+    worldConfig: 'zone2_world.json',
+    // As with zone 1, nothing reads these yet — travelToZone (M10-11) is the
+    // reducer that will. Pointed at Kestrel Hold and its burial ground so they
+    // cannot drift before then; both mirror zone2_world.json's `anchors`.
+    spawnPos: { x: 0, z: -120 },
+    graveyardPos: { x: -26, z: -150 },
+    gates: [
+      // The other half of z1_north_pass. The two gates are each other's only
+      // link, and validateContent now checks the back-link for real rather
+      // than tolerating it as dangling.
+      { id: 'z2_south_pass', pos: { x: 0, z: -170 }, toZoneId: 1, toGateId: 'z1_north_pass' },
+    ],
+  },
+  // Zone 3 (levels 14–35) lands later; see WORLD-PLAN.md.
 ];
 
 export const ZONES_BY_ID: Record<number, ZoneDef> = Object.fromEntries(

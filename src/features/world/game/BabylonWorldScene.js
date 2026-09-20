@@ -3473,12 +3473,17 @@ export class BabylonWorldScene {
   // (minimap + World Map). Cached: same reference each call so React effects
   // don't re-run. worldgen is built synchronously in the constructor.
   getMapData() {
+    // Zone-1 only. This scene renders zone 1's worldgen, and ALL_WAYPOINTS /
+    // ALL_NPCS became cross-zone lists when zone 2's content landed — their
+    // positions are zone-LOCAL metres, so an unfiltered list would plot zone 2's
+    // outpost on zone 1's map at zone-1 coordinates. The Babylon world has no
+    // zone concept (the Unity client owns multi-zone rendering), so it filters.
     return (this._mapData ??= {
       worldgen:  this._worldgen,
       config:    this._worldgen.config,
       sites:     this._worldgen.sites,
-      waypoints: ALL_WAYPOINTS,   // static POIs (incl. the Castle Ashwood gate)
-      npcs:      ALL_NPCS,        // static NPC anchors
+      waypoints: ALL_WAYPOINTS.filter((w) => w.zoneId === 1), // static POIs (incl. the Castle Ashwood gate)
+      npcs:      ALL_NPCS.filter((n) => n.zoneId === 1),      // static NPC anchors
     });
   }
 

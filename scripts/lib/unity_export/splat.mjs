@@ -1,6 +1,6 @@
 import { computeGroundSplat } from '../../../src/features/world/worldgen/groundSplat.js';
 import { jsonBytes } from './manifest.mjs';
-import { gridHeight } from './terrain.mjs';
+import { gridHeight, terrainExtent } from './terrain.mjs';
 
 export const LAYER_ORDER = Object.freeze([
   'Grass_Lush', 'Grass_Dry', 'Forest_Floor', 'Dirt_Trail',
@@ -58,18 +58,21 @@ function halton(index, base) {
   return value;
 }
 
-export function exportSplat(wg, terrainFiles) {
+export function exportSplat(wg, terrainFiles, zoneKey = 'zone1') {
   // Fixed pattern over the entire exported extent; no shared or derived RNG.
+  // Extent comes from the zone's own baked grid (terrain.mjs's ZONE_TERRAIN),
+  // not a hardcoded zone1 copy — M10-7a gave zone 2 its own, smaller grid.
+  const { origin, span } = terrainExtent(zoneKey);
   const samples = Array.from({ length: 1000 }, (_, index) => {
-    const x = -1024 + 2048 * halton(index + 1, 2);
-    const z = -1024 + 2048 * halton(index + 1, 3);
-    const alt = gridHeight(terrainFiles, x, z);
+    const x = origin + span * halton(index + 1, 2);
+    const z = origin + span * halton(index + 1, 3);
+    const alt = gridHeight(terrainFiles, x, z, zoneKey);
     return { x, z, alt, weights: computeUnitySplat(wg, x, z, alt) };
   });
   return jsonBytes({
     layerOrder: LAYER_ORDER,
     formulaVersion: 1,
-    samplePointRule: 'Halton indices 1..1000; x = -1024 + 2048 * H2(i); z = -1024 + 2048 * H3(i).',
+    samplePointRule: `Halton indices 1..1000; x = ${origin} + ${span} * H2(i); z = ${origin} + ${span} * H3(i).`,
     samples,
   });
 }

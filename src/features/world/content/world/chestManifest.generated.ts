@@ -1,5 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
-// Source: scripts/emit_world_chests.mjs (zone1_world.json worldgen)
+// Source: scripts/emit_world_chests.mjs (every zone in content/zones/manifest.ts
+//         ZONES whose own scatter.chestCount > 0 — see that zone's *_world.json)
 // Regenerate with: node scripts/emit_world_chests.mjs
 
 export interface WorldChestDef {
@@ -7,6 +8,8 @@ export interface WorldChestDef {
   x: number;
   z: number;
   seed: number;
+  /** Content ZoneDef.id this chest is zone-local to. Omitted for Zone 1. */
+  zoneId?: number;
 }
 
 export const WORLD_CHESTS: WorldChestDef[] = [
@@ -159,5 +162,89 @@ export const WORLD_CHESTS: WorldChestDef[] = [
     "x": -252.91533626616,
     "z": -254.14449801668525,
     "seed": 1303311996
+  },
+  {
+    "id": 2160078065,
+    "x": -50.85425661876798,
+    "z": 171.83027213439345,
+    "seed": 2328604025,
+    "zoneId": 2
+  },
+  {
+    "id": 1997648602,
+    "x": 191.76007753238082,
+    "z": 135.08525485172868,
+    "seed": 1951149056,
+    "zoneId": 2
+  },
+  {
+    "id": 1067150959,
+    "x": 250.7995437271893,
+    "z": -27.795074712485075,
+    "seed": 2908928851,
+    "zoneId": 2
+  },
+  {
+    "id": 2726859950,
+    "x": -11.672012563794851,
+    "z": -196.73640808090568,
+    "seed": 1311365552,
+    "zoneId": 2
+  },
+  {
+    "id": 473446047,
+    "x": -177.04822042956948,
+    "z": -279.4552434235811,
+    "seed": 2940414525,
+    "zoneId": 2
+  },
+  {
+    "id": 3676580765,
+    "x": 90.53433744236827,
+    "z": -157.98985401168466,
+    "seed": 3530820667,
+    "zoneId": 2
+  },
+  {
+    "id": 1777056995,
+    "x": -138.93222704529762,
+    "z": -302.08552937954664,
+    "seed": 2757040787,
+    "zoneId": 2
+  },
+  {
+    "id": 3668227932,
+    "x": -86.5858493372798,
+    "z": -125.74810422956944,
+    "seed": 261321803,
+    "zoneId": 2
+  },
+  {
+    "id": 856786405,
+    "x": -238.1404520943761,
+    "z": -189.7188650071621,
+    "seed": 4005304181,
+    "zoneId": 2
+  },
+  {
+    "id": 3150981040,
+    "x": -8.230038173496723,
+    "z": 209.66258151456714,
+    "seed": 227544935,
+    "zoneId": 2
+  },
+  {
+    "id": 3375104481,
+    "x": -111.2290089391172,
+    "z": -169.2248829267919,
+    "seed": 1246611376,
+    "zoneId": 2
+  },
+  {
+    "id": 1313394492,
+    "x": -207.087284848094,
+    "z": -130.94813503324986,
+    "seed": 3218827027,
+    "zoneId": 2
   }
 ];
