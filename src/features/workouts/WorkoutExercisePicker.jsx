@@ -110,6 +110,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
       layer={"picker"}
       glass
       swipeDismiss
+      navOffset={false}
       innerScrolledToTop={listAtTop}
       scroll={"none"}
       className={"wb-picker-sheet"}

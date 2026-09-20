@@ -60,6 +60,7 @@ it('opens a glass swipe-dismiss picker and overlays a shrink-wrapped Add N contr
   expect(dialog.classList.contains('ui-sheet--glass')).toBe(true);
   expect(dialog.classList.contains('ui-sheet--swipe')).toBe(true);
   expect(dialog.classList.contains('wb-picker-sheet')).toBe(true);
+  expect(dialog.closest('.ui-sheet-backdrop--nav')).toBeNull();
 
   fireEvent.click(screen.getByText('Bench Press'));
   const commit = screen.getByRole('button', { name: '＋ Add 1' });
@@ -70,4 +71,6 @@ it('opens a glass swipe-dismiss picker and overlays a shrink-wrapped Add N contr
   const btnRule = css.slice(css.indexOf('.wb-picker-add-btn{'), css.indexOf('.wb-picker-add-btn:hover'));
   expect(btnRule).toMatch(/width:\s*auto/);
   expect(btnRule).not.toMatch(/width:\s*100%/);
+  expect(css).toMatch(/\.wb-picker-sheet\{[^}]*height:\s*100%/);
+  expect(css).toMatch(/\.ui-sheet-backdrop:has\(\.wb-picker-sheet\)\{[^}]*align-items:\s*stretch/);
 });
