@@ -157,6 +157,21 @@ describe('library list sizes against the visual viewport', () => {
   });
 });
 
+describe('orb menu rows and picker group titles stay in the same type', () => {
+  const css = read('src/styles/app.css');
+  const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
+
+  it('does not paint a separate left accent border on orb-action', () => {
+    const block = css.match(/\.orb-action\{[\s\S]*?\n\s*\}/);
+    expect(block, '.orb-action rule').not.toBeNull();
+    expect(block[0]).not.toMatch(/border-left\s*:/);
+  });
+
+  it('uses the orb menu label class on muscle-group titles', () => {
+    expect(picker).toMatch(/className=\{["']wb-ex-group-name orb-action-label["']\}/);
+  });
+});
+
 describe('orb button is idle until hover', () => {
   const css = read('src/styles/app.css');
 

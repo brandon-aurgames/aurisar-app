@@ -933,9 +933,7 @@
     .wb-ex-group-hdr:focus-visible{outline:2px solid var(--cls-color,#c49428);outline-offset:-2px}
     .wb-ex-group-chevron{flex-shrink:0;width:14px;text-align:center;color:var(--mg-color);font-size:.7rem}
     .wb-ex-group-name{
-      flex:1;min-width:0;font-family:'Inter',sans-serif;font-weight:700;font-size:.74rem;
-      letter-spacing:.08em;text-transform:uppercase;
-      color:color-mix(in srgb,var(--mg-color) 55%,#d4cec4);
+      flex:1;min-width:0;
       overflow:hidden;text-overflow:ellipsis;white-space:nowrap
     }
     .wb-ex-group-count{
@@ -1531,7 +1529,6 @@
       padding:11px 14px;border-radius:14px;cursor:pointer;text-align:left;color:#e4ded3;
       background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(20,18,14,.92) 55%,rgba(12,11,9,.96));
       border:1px solid rgba(180,172,158,.12);
-      border-left:2px solid color-mix(in srgb,var(--orb-accent) 62%,transparent);
       box-shadow:0 10px 24px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.04);
       animation:orbRise .4s var(--ease-out) both;-webkit-tap-highlight-color:transparent;
       transition:transform var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),background var(--dur-fast) var(--ease-standard);

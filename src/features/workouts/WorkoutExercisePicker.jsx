@@ -52,7 +52,7 @@ const WbPickerItem = React.memo(function WbPickerItem({
           onClick={() => onToggleGroup(it.muscle)}
         >
           <span className={"wb-ex-group-chevron"} aria-hidden={"true"}>{it.expanded ? "▾" : "▸"}</span>
-          <span className={"wb-ex-group-name"}>{it.label}</span>
+          <span className={"wb-ex-group-name orb-action-label"}>{it.label}</span>
           <span className={"wb-ex-group-count"}>{it.count}</span>
         </button>
       </div>
