@@ -10,6 +10,7 @@ import ExerciseRow from './ExerciseRow';
 import DiscoverCustomizeMenu from './DiscoverCustomizeMenu';
 import { TYPE_OPTS, TYPE_LABELS, muscleLabel } from './exerciseFilterOptions';
 import { DISCOVER_CATEGORY_GROUPS, DISCOVER_PICK_COUNT, DISCOVER_CATEGORIES_BY_KEY } from './discoverCategories';
+import { measureVisibleListHeight } from './visibleListHeight';
 
 // Row adapter for the virtualised filtered list — mirrors
 // WorkoutExercisePicker's WbExPickerRow: maps react-window's props onto the
@@ -157,8 +158,9 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
   // resolves to real pixels: the List's height:100% collapsed to `auto`, the
   // list inflated to its full content height, every row mounted, and because
   // the locked .scroll-area is overflow:hidden the whole thing became
-  // unscrollable (it "pops back like it's locked"). Measuring the box against
-  // the viewport is self-contained and doesn't touch the global shell.
+  // unscrollable (it "pops back like it's locked"). Measuring against
+  // visualViewport (not innerHeight) keeps the list inside the visible
+  // band when iOS shrinks it for the keyboard, and never floors at 200px.
   useLayoutEffect(() => {
     if (libBrowseMode !== 'filtered') return undefined;
     const wrap = vlistWrapRef.current;
@@ -168,8 +170,13 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
       raf = 0;
       const top = wrap.getBoundingClientRect().top;
       const nav = document.querySelector('.hud-nav-panel');
-      const navH = nav ? nav.getBoundingClientRect().height : 76;
-      const h = Math.max(200, Math.round(window.innerHeight - top - navH - 6));
+      const navTop = nav ? nav.getBoundingClientRect().top : Infinity;
+      const h = measureVisibleListHeight({
+        wrapTop: top,
+        navTop,
+        visualViewport: window.visualViewport,
+        innerHeight: window.innerHeight,
+      });
       wrap.style.height = h + 'px';
     };
     const schedule = () => { if (!raf) raf = requestAnimationFrame(measure); };
@@ -180,11 +187,20 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
     if (nav) ro.observe(nav);
     window.addEventListener('resize', schedule);
     window.addEventListener('orientationchange', schedule);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', schedule);
+      vv.addEventListener('scroll', schedule);
+    }
     return () => {
       if (raf) cancelAnimationFrame(raf);
       ro.disconnect();
       window.removeEventListener('resize', schedule);
       window.removeEventListener('orientationchange', schedule);
+      if (vv) {
+        vv.removeEventListener('resize', schedule);
+        vv.removeEventListener('scroll', schedule);
+      }
       if (wrap) wrap.style.height = '';
     };
   }, [libBrowseMode]);

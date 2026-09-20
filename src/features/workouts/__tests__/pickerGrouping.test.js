@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupByMuscle, buildGroupedItems } from '../pickerGrouping';
+import { groupByMuscle, buildGroupedItems, muscleKey } from '../pickerGrouping';
 
 const ex = (id, muscleGroup) => ({ id, name: id, muscleGroup });
 
@@ -17,6 +17,14 @@ const CATALOG = [
 
 const expandAll = () => true;
 const collapseAll = () => false;
+
+describe('muscleKey', () => {
+  it('normalises blank and mixed-case groups onto the same section key', () => {
+    expect(muscleKey({ muscleGroup: 'Chest' })).toBe('chest');
+    expect(muscleKey({ muscleGroup: '  ' })).toBe('other');
+    expect(muscleKey({})).toBe('other');
+  });
+});
 
 describe('groupByMuscle', () => {
   it('buckets by muscle in facet order, unknown/empty last', () => {

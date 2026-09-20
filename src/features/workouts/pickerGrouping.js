@@ -15,11 +15,16 @@ import { MUSCLE_OPTS, muscleLabel } from '../exercises/exerciseFilterOptions';
 // vocabulary (or has no muscleGroup) sorts to the end.
 export const MUSCLE_ORDER = new Map(MUSCLE_OPTS.map((m, i) => [m, i]));
 
+/** Canonical section key for an exercise — shared by grouping and "keep open". */
+export function muscleKey(ex) {
+  return (ex?.muscleGroup || '').toLowerCase().trim() || 'other';
+}
+
 /** Bucket the filtered exercises by muscle, in facet order. */
 export function groupByMuscle(filtered) {
   const byMuscle = new Map();
   for (const ex of filtered) {
-    const m = (ex.muscleGroup || '').toLowerCase().trim() || 'other';
+    const m = muscleKey(ex);
     let g = byMuscle.get(m);
     if (!g) { g = []; byMuscle.set(m, g); }
     g.push(ex);

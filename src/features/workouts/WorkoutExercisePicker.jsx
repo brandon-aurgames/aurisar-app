@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useDeferredValue, useMemo, useState } from 'react';
+import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { List } from 'react-window';
 import { UI_COLORS } from '../../data/constants';
 import { getMuscleColor, getTypeColor } from '../../utils/xp';
@@ -11,7 +11,7 @@ import { matchesAll, facetCounts as countFacet, NO_FACET, muscleKeys, typeKeys, 
 import {
   TYPE_OPTS, TYPE_LABELS, MUSCLE_OPTS, EQUIP_OPTS, muscleLabel, equipLabel,
 } from '../exercises/exerciseFilterOptions';
-import { buildGroupedItems } from './pickerGrouping';
+import { buildGroupedItems, muscleKey } from './pickerGrouping';
 
 // Module scope so the memo'd FilterDropdown sees a stable optionLabel identity.
 const typeLabel = v => TYPE_LABELS[v];
@@ -26,7 +26,7 @@ const typeLabel = v => TYPE_LABELS[v];
  * Uses createPortal to render into document.body.
  */
 
-const HEADER_H = 40;
+const HEADER_H = 44;
 // Tall enough for a two-line (clamped) exercise name plus its meta line; the
 // old 60 clipped wrapping names on narrow phones, so cards overlapped. The
 // library list renders the same ExerciseRow at 88.
@@ -137,6 +137,27 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
   const allExpanded = groups.length > 0 && groups.every(g => expandedGroups.has(g.muscle));
   const expandAll = useCallback(() => setExpandedGroups(new Set(groups.map(g => g.muscle))), [groups]);
   const collapseAll = useCallback(() => setExpandedGroups(new Set()), []);
+
+  // After a search pick, clearing the query used to collapse every section
+  // again — the selected row vanished even though its removal chip stayed.
+  // When search goes idle, keep each selected exercise's muscle group open.
+  useEffect(() => {
+    if (searching || pickerSelected.length === 0) return;
+    setExpandedGroups(prev => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const sel of pickerSelected) {
+        const ex = allExercises.find(e => e.id === sel.exId);
+        if (!ex) continue;
+        const muscle = muscleKey(ex);
+        if (!next.has(muscle)) {
+          next.add(muscle);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [searching, pickerSelected, allExercises]);
 
   // Stable rowProps identity so the memo'd rows only re-render when the data
   // they show actually changes.
