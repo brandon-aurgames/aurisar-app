@@ -985,7 +985,10 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
         fontSize: FS.fs65,
         color: "#b4ac9e",
         fontFamily: "'Inter',sans-serif"
-      }}>{"⚡ "}{formatXP(wbTotalXP)}{" total"}</span>}</label></div>{wbExercises.length === 0 && <div className={"empty"} style={{
+      }}>{"⚡ "}{formatXP(wbTotalXP)}{" total"}</span>}</label><div style={{
+      display: "flex",
+      gap: S.s6
+    }}><button className={"btn btn-ghost btn-xs"} onClick={() => setWbExPickerOpen(true)}>{"＋ Add Exercise"}</button><button className={"btn btn-ghost btn-xs"} onClick={() => openExEditor("create", null)}>{"⚔ Forge Custom"}</button></div></div>{wbExercises.length === 0 && <div className={"empty"} style={{
     padding: "16px 0"
   }}>{"No techniques yet. Add from the arsenal or forge a custom one."}</div>}<div className={"wb-ex-list"} ref={wbListRef}><div className={"wb-drop-line"} aria-hidden={"true"}><div className={"dl-bar"} /><span className={"dl-plus"}>{"+"}</span></div>{(() => {
     const minSsChecked = ssChecked.size > 0 ? Math.min(...ssChecked) : -1;
@@ -1027,7 +1030,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
       });
     });
     return nodes;
-  })()}</div><div className={"wb-footer"}><div className={"wb-add-ex-overlay"}><button type={"button"} className={"btn btn-ghost wb-add-ex-btn"} onClick={() => setWbExPickerOpen(true)}>{"＋ Add Exercise"}</button><button type={"button"} className={"btn btn-ghost wb-add-ex-btn"} onClick={() => openExEditor("create", null)}>{"⚔ Forge Custom"}</button></div><div className={"wb-footer-actions"}>{wbIsOneOff ? wbEditId ?
+  })()}</div><div className={"wb-footer"}>{wbIsOneOff ? wbEditId ?
   // Editing an existing scheduled one-off — save changes in place
   <button className={"btn btn-gold"} style={{
     flex: 1
@@ -1127,7 +1130,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
     openCompletionFlow(wo);
     setWorkoutView("list");
   }}>{"✓ Complete / Schedule"}</button>
-  </>}</div></div></>;
+  </>}</div></>;
 return null;
 });
 

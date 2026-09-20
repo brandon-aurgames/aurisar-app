@@ -237,7 +237,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
                   {pickerSelected.length > 0 && (
                     <button
                       type="button"
-                      className={"btn btn-gold wb-picker-add-btn"}
+                      className={"btn wb-picker-add-btn"}
                       onClick={commitPickerToWorkout}
                     >
                       {"＋ Add " + pickerSelected.length}

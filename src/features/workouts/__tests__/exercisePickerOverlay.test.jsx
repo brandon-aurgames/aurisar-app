@@ -2,7 +2,10 @@
 import React, { createRef } from 'react';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import WorkoutsTabContainer from '../WorkoutsTabContainer';
+
+const css = readFileSync('src/styles/app.css', 'utf8');
 
 vi.mock('../useBuilderPointerDnd', () => ({ useBuilderPointerDnd() {} }));
 vi.mock('../detailsFire', () => ({ createDetailsFire: () => ({ start() {}, stop() {}, destroy() {} }) }));
@@ -42,15 +45,15 @@ function setup() {
   return view;
 }
 
-it('floats Add Exercise over the builder list as a glass overlay', () => {
-  setup();
+it('keeps the builder Add Exercise control in the techniques header', () => {
+  const { container } = setup();
   const add = screen.getByRole('button', { name: '＋ Add Exercise' });
-  expect(add.className).toMatch(/wb-add-ex-btn/);
-  expect(add.closest('.wb-add-ex-overlay')).toBeTruthy();
-  expect(add.closest('.wb-footer')).toBeTruthy();
+  expect(add.closest('.wb-footer')).toBeNull();
+  expect(add.closest('.wb-add-ex-overlay')).toBeNull();
+  expect(container.querySelector('.wb-section-hdr, .wo-section-hdr')).toBeTruthy();
 });
 
-it('opens a glass swipe-dismiss picker and overlays the commit control on the list', () => {
+it('opens a glass swipe-dismiss picker and overlays a shrink-wrapped Add N control', () => {
   setup();
   fireEvent.click(screen.getByRole('button', { name: '＋ Add Exercise' }));
   const dialog = screen.getByRole('dialog', { name: 'Add exercises to workout' });
@@ -61,5 +64,10 @@ it('opens a glass swipe-dismiss picker and overlays the commit control on the li
   fireEvent.click(screen.getByText('Bench Press'));
   const commit = screen.getByRole('button', { name: '＋ Add 1' });
   expect(commit.closest('.wb-picker-add-overlay')).toBeTruthy();
+  expect(commit.className).toMatch(/wb-picker-add-btn/);
+  expect(commit.className).not.toMatch(/btn-gold/);
   expect(dialog.querySelector('.wb-picker-list-wrap.has-add-overlay')).toBeTruthy();
+  const btnRule = css.slice(css.indexOf('.wb-picker-add-btn{'), css.indexOf('.wb-picker-add-btn:hover'));
+  expect(btnRule).toMatch(/width:\s*auto/);
+  expect(btnRule).not.toMatch(/width:\s*100%/);
 });

@@ -505,15 +505,18 @@
     .ui-sheet--swipe .ui-sheet-handle,.ui-sheet--swipe .ui-sheet-header{touch-action:none;cursor:grab}
     .ui-sheet--dragging{animation:none!important;transition:none;cursor:grabbing}
     .wb-picker-sheet{height:min(78dvh,720px);max-height:min(78dvh,720px)}
-    .wb-picker-list-wrap{position:relative;flex:1 1 auto;min-height:120px}
-    .wb-picker-list-wrap.has-add-overlay{padding-bottom:4px}
+    .wb-picker-list-wrap{position:relative;flex:1 1 0;min-height:120px;overflow:hidden}
     .wb-picker-add-overlay{
-      position:absolute;left:0;right:0;bottom:0;z-index:2;
-      padding:28px 4px 6px;
-      background:linear-gradient(180deg,rgba(14,13,10,0) 0%,rgba(14,13,10,.38) 42%,rgba(14,13,10,.55) 100%);
-      pointer-events:none
+      position:absolute;left:0;right:0;bottom:12px;z-index:2;
+      display:flex;justify-content:center;pointer-events:none
     }
-    .wb-picker-add-btn{pointer-events:auto;width:100%;min-height:44px}
+    .wb-picker-add-btn{
+      pointer-events:auto;width:auto;min-width:0;min-height:44px;padding:8px 16px;
+      background:rgba(14,13,10,.32);border:1px solid rgba(232,180,74,.32);color:#f0e2b8;
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:none;
+      text-shadow:0 1px 2px rgba(0,0,0,.55)
+    }
+    .wb-picker-add-btn:hover{background:rgba(14,13,10,.42);border-color:rgba(232,180,74,.45)}
 
     /* ── SetsEditor primitive (src/components/ui/SetsEditor.jsx) ─────────
        One field grid for sets/reps/weight and duration/distance/HR across
@@ -1186,7 +1189,7 @@
     }
     .wb-ex-row:hover::before{opacity:.5}
     .wb-ex-row.dragging{border-color:color-mix(in srgb,var(--mg-color) 45%,transparent);background:rgba(26,25,20,.8)}
-    .wb-ex-list{position:relative;padding-bottom:8px}
+    .wb-ex-list{position:relative}
     .wb-drop-line{position:absolute;left:4px;right:4px;height:0;z-index:5;pointer-events:none;display:none}
     .wb-drop-line.on{display:block}
     .wb-drop-line .dl-bar{position:absolute;left:0;right:0;top:-1px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,#c49428 12%,#c49428 88%,transparent);overflow:hidden}
@@ -1382,11 +1385,8 @@
 
     /* Builder save/complete bar — sticky in normal flow instead of a fixed
        overlay with a spacer hack, so it never covers the last exercise. */
-    .wb-footer{position:sticky;bottom:0;z-index:var(--z-sticky);display:flex;flex-direction:column;gap:8px;margin:14px -12px 0;padding:18px 12px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(14,13,10,0) 0%,rgba(14,13,10,.42) 28%,rgba(14,13,10,.62) 100%);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(180,172,158,.10)}
+    .wb-footer{position:sticky;bottom:0;z-index:var(--z-sticky);display:flex;gap:8px;margin:14px -12px 0;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(14,13,10,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid rgba(180,172,158,.12)}
     .wb-footer .btn{min-height:44px}
-    .wb-add-ex-overlay{display:flex;gap:8px}
-    .wb-add-ex-btn{flex:1}
-    .wb-footer-actions{display:flex;gap:8px}
 
     /* Reorder ▲/▼ column — IconButtons whose 44px hit boxes must not overlap,
        so the visual chips are small but the column has room for two of them. */
@@ -2122,7 +2122,6 @@
       .hud-nav-panel,
       .ex-picker-sheet,
       .ui-sheet--glass,
-      .wb-footer,
       .completion-sheet,
       .modal-sheet,
       .hud-top {
