@@ -94,6 +94,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
   closePicker,
   openExEditor,
   pickerToggleEx,
+  commitPickerToWorkout,
 }) {
   const closeDrops = useCallback(() => setPickerOpenDrop(null), [setPickerOpenDrop]);
   const toggleMuscle = useCallback(v => toggleFilter(setPickerMuscle, v), [setPickerMuscle]);
@@ -191,6 +192,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
       style={{ height: '100%' }}
       title={"Add to Workout"}
       ariaLabel={"Add exercises to workout"}
+      bodyClassName={"wb-picker-body"}
       headerRight={
         <button className={"btn btn-ghost btn-xs"} onClick={() => { closePicker(); openExEditor("create", null); }}>{"✦ New Custom"}</button>
       }
@@ -298,10 +300,27 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
                 rowComponent={WbPickerItem}
                 rowProps={rowProps}
                 overscanCount={6}
-                style={{ position: "absolute", inset: 0, width: "100%", overscrollBehavior: "contain" }}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  bottom: pickerSelected.length > 0 ? 76 : 0,
+                  width: "100%",
+                  overscrollBehavior: "contain",
+                }}
               />
             </div>
           </>
+        )}
+        {pickerSelected.length > 0 && (
+          <div className={"wb-picker-add-dock"}>
+            <button
+              type="button"
+              className={"wb-picker-add-btn"}
+              onClick={commitPickerToWorkout}
+            >
+              {"Add " + pickerSelected.length + (pickerSelected.length === 1 ? " exercise" : " exercises")}
+            </button>
+          </div>
         )}
     </Sheet>
   );

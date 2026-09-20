@@ -103,18 +103,19 @@ describe('picker dismissal runs the full teardown', () => {
     for (const setter of ['setPickerSearch', 'setPickerMuscle', 'setPickerTypeFilter', 'setPickerEquipFilter', 'setPickerSelected']) {
       expect(fn, `closePicker does not reset ${setter}`).toContain(setter);
     }
-    expect(fn, 'closePicker must flush staged picks into the workout').toContain('setWbExercises');
+    expect(fn, 'closePicker must not commit staged picks — that is the dock button').not.toContain('setWbExercises');
   });
 });
 
-describe('picker has no running selection tracker', () => {
+describe('picker add-commit is a bottom overlay', () => {
   const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
 
-  it('does not show an + Add N button, header count, or chip list', () => {
-    expect(picker).not.toMatch(/＋ Add /);
-    expect(picker).not.toMatch(/selected`/);
+  it('keeps the Add N control out of the header and off the filter row', () => {
+    expect(picker).toContain('wb-picker-add-dock');
+    expect(picker).toContain('commitPickerToWorkout');
     expect(picker).not.toContain('wo-label-chip');
-    expect(picker).not.toContain('commitPickerToWorkout');
+    expect(picker).not.toMatch(/headerRight=\{[\s\S]*commitPickerToWorkout/);
+    expect(picker).not.toMatch(/Add to Workout ·/);
   });
 });
 
