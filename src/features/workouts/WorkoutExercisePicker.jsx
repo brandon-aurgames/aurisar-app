@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { List } from 'react-window';
 import { UI_COLORS } from '../../data/constants';
 import { getMuscleColor, getTypeColor } from '../../utils/xp';
@@ -68,6 +68,28 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
   commitPickerToWorkout,
 }) {
   const closeDrops = () => setPickerOpenDrop(null);
+  const listUnlisten = useRef(null);
+  const [listAtTop, setListAtTop] = useState(true);
+
+  // The virtualized list is the sheet's only scroller. Capture its scroll
+  // position so a pull from the top can dismiss the picker — without this,
+  // overscroll is contained and there is no way to "scroll up to exit".
+  // Callback ref so the listener attaches when the list first appears
+  // (empty-filter → matches) and detaches if it unmounts.
+  const setListWrap = useCallback(el => {
+    if (listUnlisten.current) {
+      listUnlisten.current();
+      listUnlisten.current = null;
+    }
+    if (!el) return;
+    const onScroll = e => {
+      if (e.target && typeof e.target.scrollTop === 'number') {
+        setListAtTop(e.target.scrollTop <= 0);
+      }
+    };
+    el.addEventListener('scroll', onScroll, true);
+    listUnlisten.current = () => el.removeEventListener('scroll', onScroll, true);
+  }, []);
 
   const q = pickerSearch;
   const matches = (e, mF, tF, eF) => matchesAll(e, q, mF, tF, eF);
@@ -86,15 +108,15 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
       open
       onClose={closePicker}
       layer={"picker"}
-      tall
+      glass
+      swipeDismiss
+      innerScrolledToTop={listAtTop}
       scroll={"none"}
+      className={"wb-picker-sheet"}
       title={pickerSelected.length > 0 ? `Add to Workout · ${pickerSelected.length} selected` : "Add to Workout"}
       ariaLabel={"Add exercises to workout"}
       headerRight={
         <div style={{ display: "flex", gap: S.s6, flexShrink: 0 }}>
-          {pickerSelected.length > 0 && (
-            <button className={"btn btn-gold btn-xs"} onClick={commitPickerToWorkout}>{"＋ Add " + pickerSelected.length}</button>
-          )}
           <button className={"btn btn-ghost btn-xs"} onClick={() => { closePicker(); openExEditor("create", null); }}>{"✦ New Custom"}</button>
         </div>
       }
@@ -197,8 +219,13 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
                 </div>
               )}
               {/* The virtualized list is the sheet's ONLY scroller (the
-                  Sheet body is scroll="none") — no more scroll-in-scroll. */}
-              <div style={{ flex: "1 1 auto", minHeight: 120 }}>
+                  Sheet body is scroll="none") — no more scroll-in-scroll.
+                  The add control is a glass overlay so the last rows stay
+                  visible behind it. */}
+              <div
+                ref={setListWrap}
+                className={`wb-picker-list-wrap${pickerSelected.length > 0 ? " has-add-overlay" : ""}`}
+              >
                 <List
                   rowCount={filtered.length}
                   rowHeight={60}
@@ -206,6 +233,17 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
                   rowProps={{ exercises: filtered, selIds, onToggle: pickerToggleEx }}
                   style={{ height: '100%', width: '100%' }}
                 />
+                <div className={"wb-picker-add-overlay"} aria-hidden={pickerSelected.length === 0}>
+                  {pickerSelected.length > 0 && (
+                    <button
+                      type="button"
+                      className={"btn btn-gold wb-picker-add-btn"}
+                      onClick={commitPickerToWorkout}
+                    >
+                      {"＋ Add " + pickerSelected.length}
+                    </button>
+                  )}
+                </div>
               </div>
             </>
           );

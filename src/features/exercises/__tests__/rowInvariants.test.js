@@ -83,6 +83,8 @@ describe('picker dismissal runs the full teardown', () => {
     // the picker adopted it.)
     const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
     expect(picker, 'picker must dismiss via closePicker').toMatch(/onClose=\{closePicker\}/);
+    expect(picker, 'picker must support pull-to-exit').toMatch(/swipeDismiss/);
+    expect(picker, 'commit control must overlay the list').toMatch(/wb-picker-add-overlay/);
     expect(app.includes('useModalLifecycle(!!wbExPickerOpen'), 'stale App-level picker lifecycle should be gone').toBe(false);
   });
 
