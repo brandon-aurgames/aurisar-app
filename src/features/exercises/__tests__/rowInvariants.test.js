@@ -103,6 +103,29 @@ describe('picker dismissal runs the full teardown', () => {
     for (const setter of ['setPickerSearch', 'setPickerMuscle', 'setPickerTypeFilter', 'setPickerEquipFilter', 'setPickerSelected']) {
       expect(fn, `closePicker does not reset ${setter}`).toContain(setter);
     }
+    expect(fn, 'closePicker must flush staged picks into the workout').toContain('setWbExercises');
+  });
+});
+
+describe('picker has no running selection tracker', () => {
+  const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
+
+  it('does not show an + Add N button, header count, or chip list', () => {
+    expect(picker).not.toMatch(/＋ Add /);
+    expect(picker).not.toMatch(/selected`/);
+    expect(picker).not.toContain('wo-label-chip');
+    expect(picker).not.toContain('commitPickerToWorkout');
+  });
+});
+
+describe('exercise-list XP is parchment, not gold', () => {
+  const css = read('src/styles/app.css');
+
+  it('paints .picker-ex-xp in the exercise-name color', () => {
+    const block = css.match(/\.picker-ex-xp\{[^}]+\}/);
+    expect(block, '.picker-ex-xp rule').not.toBeNull();
+    expect(block[0]).toMatch(/color:#ece6da/);
+    expect(block[0]).not.toMatch(/#e8c766|#E8B44A|#F0C868|#FCE29A|text-shadow/);
   });
 });
 

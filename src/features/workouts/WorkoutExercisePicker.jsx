@@ -94,7 +94,6 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
   closePicker,
   openExEditor,
   pickerToggleEx,
-  commitPickerToWorkout,
 }) {
   const closeDrops = useCallback(() => setPickerOpenDrop(null), [setPickerOpenDrop]);
   const toggleMuscle = useCallback(v => toggleFilter(setPickerMuscle, v), [setPickerMuscle]);
@@ -190,15 +189,10 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
       // overflowing short viewports where 92dvh + the nav offset exceed the
       // screen. Also keeps the sheet stable when a search has zero matches.
       style={{ height: '100%' }}
-      title={pickerSelected.length > 0 ? `Add to Workout · ${pickerSelected.length} selected` : "Add to Workout"}
+      title={"Add to Workout"}
       ariaLabel={"Add exercises to workout"}
       headerRight={
-        <div style={{ display: "flex", gap: S.s6, flexShrink: 0 }}>
-          {pickerSelected.length > 0 && (
-            <button className={"btn btn-gold btn-xs"} onClick={commitPickerToWorkout}>{"＋ Add " + pickerSelected.length}</button>
-          )}
-          <button className={"btn btn-ghost btn-xs"} onClick={() => { closePicker(); openExEditor("create", null); }}>{"✦ New Custom"}</button>
-        </div>
+        <button className={"btn btn-ghost btn-xs"} onClick={() => { closePicker(); openExEditor("create", null); }}>{"✦ New Custom"}</button>
       }
     >
         {/* ── Search bar ── */}
@@ -286,25 +280,6 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
                 {filtered.length + " match" + (filtered.length !== 1 ? "es" : "")}
               </span>
             </div>
-            {/* Selected-exercise chips (from #358): quick-remove staged picks. */}
-            {pickerSelected.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: S.s4, marginBottom: S.s8, flexShrink: 0 }}>
-                {pickerSelected.map(sel => {
-                  const named = allExercises.find(e => e.id === sel.exId);
-                  return (
-                    <button
-                      type="button"
-                      key={sel.exId}
-                      className="wo-label-chip sel"
-                      onClick={() => pickerToggleEx(sel.exId)}
-                      title="Remove from selection"
-                    >
-                      {(named && named.name) || sel.exId}{" ✕"}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
             {/* The virtualized list is the sheet's ONLY scroller (the Sheet
                 body is scroll="none") — no more scroll-in-scroll. The List is
                 absolutely inset in a position:relative wrapper so it measures a

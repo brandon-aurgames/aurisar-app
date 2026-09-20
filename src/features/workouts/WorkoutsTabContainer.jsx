@@ -272,6 +272,16 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setPickerTypeFilter(new Set());
     setPickerEquipFilter(new Set());
     setPickerOpenDrop(null);
+    // Flush staged picks on dismiss so the picker does not need a running
+    // "+ Add N" button, header count, or chip list while choosing.
+    if (pickerSelected.length > 0) setWbExercises(ex => [...ex, ...pickerSelected.map(e => ({
+      ...e,
+      sets: e.sets || "",
+      reps: e.reps || "",
+      weightLbs: e.weightLbs || null,
+      durationMin: e.durationMin || null,
+      distanceMi: e.distanceMi || null
+    }))]);
     setPickerSelected([]);
   }
 
@@ -290,19 +300,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         hrZone: null
       }];
     });
-  }
-
-  function commitPickerToWorkout() {
-    if (pickerSelected.length === 0) return;
-    setWbExercises(ex => [...ex, ...pickerSelected.map(e => ({
-      ...e,
-      sets: e.sets || "",
-      reps: e.reps || "",
-      weightLbs: e.weightLbs || null,
-      durationMin: e.durationMin || null,
-      distanceMi: e.distanceMi || null
-    }))]);
-    closePicker();
   }
 
   // ── Reorder (group-id model — pairs AND 2–4 member runs) ──
@@ -442,7 +439,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
           closePicker={closePicker}
           openExEditor={openExEditor}
           pickerToggleEx={pickerToggleEx}
-          commitPickerToWorkout={commitPickerToWorkout}
         />
       )}
     </>

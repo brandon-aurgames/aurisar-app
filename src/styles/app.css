@@ -913,11 +913,11 @@
       border-left:2px solid color-mix(in srgb,var(--cls-color,#c49428) 62%,var(--mg-color));
       box-shadow:0 0 0 1.5px color-mix(in srgb,var(--mg-color) 38%,transparent),0 6px 20px color-mix(in srgb,var(--mg-color) 14%,rgba(0,0,0,.34))
     }
-    /* Gilded XP reward + subdued meta line, styled once for the library and the
-       builder picker so the exercise cards read the same across the board. */
+    /* XP sits in the same parchment as the exercise name — gold is reserved
+       for earned rewards, not the catalog listing. */
     .picker-ex-xp{
-      font-family:'Inter',sans-serif;font-weight:800;font-size:.72rem;letter-spacing:.02em;
-      color:#e8c766;text-shadow:0 0 10px rgba(232,199,102,.22);white-space:nowrap
+      font-family:'Inter',sans-serif;font-weight:600;font-size:.72rem;letter-spacing:.02em;
+      color:#ece6da;white-space:nowrap
     }
     .picker-ex-meta{letter-spacing:.01em;opacity:.92}
     /* Collapsible muscle-section header inside the virtualized picker list.
