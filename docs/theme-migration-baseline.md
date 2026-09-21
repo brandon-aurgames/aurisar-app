@@ -6,6 +6,8 @@ This document is the review contract for the incremental Aurisar theme migration
 
 Run `pnpm run theme:audit` to inspect the current source inventory. Run `pnpm run theme:audit:update` only after reviewing intentional theme changes. CI runs `pnpm run theme:audit:check` so unrecorded palette or typography drift is visible in every pull request.
 
+The check also rejects any repository path or text file that reintroduces the removed legacy serif display family or the retired warm UI accent values. These rules cover source, tests, scripts, documentation, mockups, standalone references, and email templates; they do not rewrite Git history.
+
 The committed [`theme-token-baseline.json`](./theme-token-baseline.json) covers tracked runtime source under `src/` and `public/`, plus root HTML entries. Test files are excluded. It reports:
 
 - Raw color occurrences and unique source values.
@@ -13,7 +15,7 @@ The committed [`theme-token-baseline.json`](./theme-token-baseline.json) covers 
 - CSS custom-property definitions and references.
 - JSX inline-style objects.
 - Font declarations.
-- References to the legacy serif display family and legacy warm-accent names.
+- References to the legacy serif display family, retired warm accent values, and legacy warm-accent names.
 - The files with the highest hard-coded color counts.
 
 Counts measure source migration progress. They do not prove that a value is rendered, visible, accessible, or part of the UI. The World renderer contains legitimate material and environment values, so each occurrence still requires classification before replacement.

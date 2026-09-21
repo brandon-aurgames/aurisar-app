@@ -42,7 +42,7 @@ const QuestsTab = memo(function QuestsTab({
                 }}><div className={"quest-name"}>{q.name}</div><div className={"quest-desc"}>{q.desc}</div><div className={"quest-reward"}>{formatXP(q.xp, {
                       signed: true,
                       prefix: "⚡ "
-                    })}{" reward"}</div></div><button className={"btn btn-gold btn-sm"} onClick={() => claimQuestReward(q.id)}>{"Claim!"}</button></div></div>;
+                    })}{" reward"}</div></div><button className={"btn btn-secondary btn-sm"} onClick={() => claimQuestReward(q.id)}>{"Claim!"}</button></div></div>;
           })
 
           /* All quests */}{QUESTS.filter(q => questCat === "All" || q.cat === questCat).map(q => {

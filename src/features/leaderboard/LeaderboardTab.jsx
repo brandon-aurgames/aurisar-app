@@ -404,7 +404,7 @@ return <div> {
         }}>{myRank === 1 ? "\uD83E\uDD47" : myRank === 2 ? "\uD83E\uDD48" : "\uD83E\uDD49"}</span>}<span style={{
           fontSize: FS.fs82,
           fontWeight: "700",
-          color: myRank === 1 ? "#c49428" : myRank === 2 ? "#8a8478" : myRank === 3 ? "#7a5230" : "#b4ac9e"
+          color: myRank === 1 ? "var(--color-action-primary)" : myRank === 2 ? "#8a8478" : myRank === 3 ? "#7a5230" : "#b4ac9e"
         }}>{myRank}</span></div> {
         /* Name + class tag + subtitle */
       }
@@ -516,7 +516,7 @@ return <div> {
       var val = getRowVal(row, lbFilter);
       var rowCls = row.chosen_class ? CLASSES[row.chosen_class] || CLASSES.warrior : CLASSES.warrior;
       var isMe = row.is_me;
-      var rankColor = rank === 1 ? "#c49428" : rank === 2 ? "#8a8478" : rank === 3 ? "#7a5230" : "#8a8478";
+      var rankColor = rank === 1 ? "var(--color-action-primary)" : rank === 2 ? "#8a8478" : rank === 3 ? "#7a5230" : "#8a8478";
       var medal = rank === 1 ? "\uD83E\uDD47" : rank === 2 ? "\uD83E\uDD48" : rank === 3 ? "\uD83E\uDD49" : null;
       var worldRank = lbScope === "friends" ? lbWorldRanks[row.user_id] : null;
       var countryCode = row.country === "United States" ? "US" : row.country === "United Kingdom" ? "UK" : row.country === "Canada" ? "CA" : row.country === "Australia" ? "AU" : row.country === "Germany" ? "DE" : row.country === "France" ? "FR" : row.country === "Mexico" ? "MX" : row.country === "Brazil" ? "BR" : row.country === "India" ? "IN" : row.country === "Japan" ? "JP" : row.country === "South Korea" ? "KR" : row.country === "Philippines" ? "PH" : row.country || "";
@@ -558,7 +558,7 @@ return <div> {
               fontSize: FS.lg,
               fontWeight: "700",
               color: rankColor,
-              fontFamily: "'Inter',sans-serif"
+              fontFamily: "var(--font-family-ui)"
             }}>{rank}</span></div> {
             /* Name + class tag + subtitle */
           }
@@ -611,7 +611,7 @@ return <div> {
               fontSize: FS.fs78,
               fontWeight: "700",
               color: val ? tc : "#8a8478",
-              fontFamily: "'Inter',sans-serif"
+              fontFamily: "var(--font-family-ui)"
             }}>{fmtVal(lbFilter, val)}</div><div style={{
               fontSize: FS.fs44,
               color: "#8a8478",

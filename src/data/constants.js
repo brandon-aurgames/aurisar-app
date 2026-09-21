@@ -1184,11 +1184,11 @@ const NO_SETS_EX_IDS = new Set(["run","walk","cycle_ride","jog","jumpRope","jump
 const RUNNING_EX_ID = "run";
 
 const HR_ZONES = [
-  { z:1, name:"Recovery",  pct:[50,60], color:"#3498db", desc:"Light & conversational. Active recovery." },
-  { z:2, name:"Aerobic",   pct:[60,70], color:"#2ecc71", desc:"Comfortable. Build endurance. Fat burn zone." },
-  { z:3, name:"Tempo",     pct:[70,80], color:"#f1c40f", desc:"Moderately hard. Aerobic capacity improves." },
-  { z:4, name:"Threshold", pct:[80,90], color:"#e67e22", desc:"Hard. Anaerobic. Max sustainable effort." },
-  { z:5, name:"Max",       pct:[90,100],color:"#e74c3c", desc:"All-out. Short bursts only. Peak performance." },
+  { z:1, name:"Recovery",  pct:[50,60], color:"var(--color-border-default)", desc:"Light & conversational. Active recovery." },
+  { z:2, name:"Aerobic",   pct:[60,70], color:"var(--color-text-secondary)", desc:"Comfortable. Build endurance. Fat burn zone." },
+  { z:3, name:"Tempo",     pct:[70,80], color:"var(--color-text-primary)", desc:"Moderately hard. Aerobic capacity improves." },
+  { z:4, name:"Threshold", pct:[80,90], color:"var(--color-action-primary)", desc:"Hard. Anaerobic. Max sustainable effort." },
+  { z:5, name:"Max",       pct:[90,100],color:"var(--color-status-danger)", desc:"All-out. Short bursts only. Peak performance." },
 ];
 // Masculine, darker/desaturated palette — locked Apr 2026
 // Burnt Bronze, Forest Watch, Steel Plum, Burgundy Iron, Tactical Olive,
@@ -1204,17 +1204,16 @@ const TYPE_COLORS = {
   calisthenics:"#8A7858", plyometric:"#8A7858", isometric:"#8A7858", functional:"#8A7858",
   stretching:"#B0A898", warmup:"#B0A898", cooldown:"#B0A898"
 };
-// Canonical UI semantic colors. Use these in inline JSX styles instead of raw hex.
-// CSS files (app.css) keep their hex values — the stylesheet IS the
-// tokenization layer for class-based styling.
+// Canonical UI semantic colors for inline styles and SVG presentation.
+// Raw values live in theme.css so UI components share one palette.
 const UI_COLORS = {
-  success:      "#2ecc71", // positive actions, beginner difficulty, cardio category
-  danger:       "#ff5252", // destructive actions, advanced difficulty, strength category
-  warning:      "#FFE87C", // pace boost highlight, accent emphasis
-  info:         "#2980b9", // informational text, message UI fallback
-  intermediate: "#f1c40f", // intermediate difficulty
-  accent:       "#c49428", // brand gold — active filter/state, CTA highlight
-  fallback:     "#B0A898", // canonical neutral fallback (silver) — replaces stray #B0A090
+  success:      "var(--color-status-success)",
+  danger:       "var(--color-status-danger)",
+  warning:      "var(--color-status-warning)",
+  info:         "var(--color-status-info)",
+  intermediate: "var(--color-status-warning)",
+  accent:       "var(--color-action-primary)",
+  fallback:     "var(--color-text-secondary)",
 };
 const MUSCLE_META = {
   chest:    { emoji:"💪", label:"Chest",    icon:"game-icons:chest-armor" },

@@ -66,7 +66,7 @@ const LogEntryEditModal = memo(function LogEntryEditModal({
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: FS.fs88, color: "#d4cec4" }}>
+            <div style={{ fontFamily: "var(--font-family-ui)", fontSize: FS.fs88, color: "#d4cec4" }}>
               {"✎ Edit Log Entry"}
             </div>
             <div style={{ fontSize: FS.fs65, color: "#8a8478", marginTop: S.s2 }}>
@@ -165,7 +165,7 @@ const LogEntryEditModal = memo(function LogEntryEditModal({
                 {xpDiff > 0 ? "+" : ""}{xpDiff}{" XP"}
               </div>
             )}
-            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: "1rem", color: "#b4ac9e" }}>
+            <div style={{ fontFamily: "var(--font-family-ui)", fontSize: "1rem", color: "#b4ac9e" }}>
               {"⚡ "}{previewXP}
             </div>
           </div>
@@ -180,7 +180,7 @@ const LogEntryEditModal = memo(function LogEntryEditModal({
             }}>{"🗑"}</button>
           <button className={"btn btn-ghost btn-sm"} style={{ flex: 1 }}
             onClick={() => setLogEditModal(null)}>{"Cancel"}</button>
-          <button className={"btn btn-gold"} style={{ flex: 2 }}
+          <button className={"btn btn-secondary"} style={{ flex: 2 }}
             onClick={saveLogEdit}>{"✦ Save Changes"}</button>
         </div>
 

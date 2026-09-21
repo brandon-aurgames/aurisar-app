@@ -116,7 +116,7 @@ export default function TestingHud({ sceneRef, visible = true, mapData = null })
     width: 22, height: 22, lineHeight: '20px', textAlign: 'center',
     background: 'rgba(30,41,59,0.92)', border: '1px solid rgba(255,255,255,0.18)',
     borderRadius: 5, color: '#e2e8f0', fontSize: 14, cursor: 'pointer', padding: 0,
-    fontFamily: 'monospace',
+    fontFamily: 'var(--font-family-mono)',
   };
 
   return (
@@ -139,10 +139,10 @@ export default function TestingHud({ sceneRef, visible = true, mapData = null })
         ref={headerRef}
         style={{
           marginBottom: '2px',
-          fontFamily:   'Cinzel, Inter, serif',
+          fontFamily:   'var(--font-family-ui)',
           fontSize:     '11px',
           fontWeight:   700,
-          color:        '#f0d060',
+          color:        'var(--color-action-primary)',
           textAlign:    'center',
           letterSpacing:'0.03em',
           maxWidth:     `${MAP_SIZE_PX}px`,
@@ -164,7 +164,7 @@ export default function TestingHud({ sceneRef, visible = true, mapData = null })
           border:        '1px solid rgba(255, 255, 255, 0.18)',
           borderRadius:  '8px 8px 0 0',
           overflow:      'hidden',
-          fontFamily:    'monospace',
+          fontFamily:    'var(--font-family-mono)',
           fontSize:      '13px',
           letterSpacing: '0.05em',
           color:         'rgba(255, 255, 255, 0.92)',
@@ -178,7 +178,7 @@ export default function TestingHud({ sceneRef, visible = true, mapData = null })
           style={{
             display:      'block',
             borderRadius: '50%',
-            border:       '2px solid rgba(240, 208, 96, 0.5)',
+            border:       '2px solid color-mix(in srgb, var(--color-action-primary) 50%, transparent)',
             boxShadow:    '0 4px 14px rgba(0,0,0,0.5)',
           }}
         />
@@ -218,7 +218,7 @@ function _renderCompass(host, yaw) {
     if (px < -10 || px > width + 10) continue; // off-screen
     html += `<span style="position:absolute; top:3px; left:${px - 8}px; width:16px; text-align:center; color:#ffffff; font-weight:600">${label}</span>`;
   }
-  html += `<span style="position:absolute; top:0; left:${center - 0.5}px; width:1px; height:20px; background:rgba(255, 220, 120, 0.85)"></span>`;
+  html += `<span style="position:absolute; top:0; left:${center - 0.5}px; width:1px; height:20px; background:rgba(143, 227, 210, 0.85)"></span>`;
   host.innerHTML = html;
 }
 
@@ -290,7 +290,7 @@ function _renderMinimap(ctx, pose, mobs, { baked, viewRadius, mapData, remotes =
   // clip hides any overshoot.
   const discR = (mapData?.config?.radius ?? DEFAULT_PLAYABLE_RADIUS_M) * scale;
   const ex = toMapX(0), ez = toMapY(0);
-  ctx.strokeStyle = 'rgba(255, 220, 80, 0.55)';
+  ctx.strokeStyle = 'rgba(143, 227, 210, 0.55)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(ex, ez, discR, 0, Math.PI * 2);
@@ -314,8 +314,8 @@ function _renderMinimap(ctx, pose, mobs, { baked, viewRadius, mapData, remotes =
     const mx = toMapX(rp.x);
     const my = toMapY(rp.z);
     if (mx < -4 || mx > w + 4 || my < -4 || my > w + 4) continue;
-    ctx.fillStyle = 'rgba(251, 191, 36, 0.95)';
-    ctx.strokeStyle = 'rgba(40, 24, 4, 0.9)';
+    ctx.fillStyle = 'rgba(228, 231, 235, 0.95)';
+    ctx.strokeStyle = 'rgba(12, 14, 17, 0.9)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(mx, my, 3, 0, Math.PI * 2);

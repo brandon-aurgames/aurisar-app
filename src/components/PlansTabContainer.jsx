@@ -298,7 +298,7 @@ const PlansTabContainer = React.memo(React.forwardRef(function PlansTabContainer
         </div>
       </div>
       <div style={{ display: "flex", gap: S.s8, marginBottom: S.s14, flexWrap: "wrap" }}>
-        <button className={"btn btn-gold btn-sm"} onClick={initBuilderScratch}>{"＋ New Plan"}</button>
+        <button className={"btn btn-secondary btn-sm"} onClick={initBuilderScratch}>{"＋ New Plan"}</button>
         <button className={"btn btn-ghost btn-sm"} onClick={() => setPlanView("recipe-pick")}>{"📋 Recipes"}</button>
         <button className={"btn btn-ghost btn-sm"} onClick={() => setPlanView("historical")}>{"📜 History"}</button>
       </div>
@@ -404,7 +404,7 @@ const PlansTabContainer = React.memo(React.forwardRef(function PlansTabContainer
                   </div>
                   <div style={{ display: "flex", gap: S.s8 }}>
                     <button className={"btn btn-ghost btn-sm"} style={{ flex: 1 }} onClick={e => { e.stopPropagation(); initBuilderFromTemplate(tpl, false); }}>{"👁 View This Plan"}</button>
-                    <button className={"btn btn-gold btn-sm"} style={{ flex: 1 }} onClick={e => { e.stopPropagation(); initBuilderFromTemplate(tpl, true); }}>{"✎ Customize First"}</button>
+                    <button className={"btn btn-secondary btn-sm"} style={{ flex: 1 }} onClick={e => { e.stopPropagation(); initBuilderFromTemplate(tpl, true); }}>{"✎ Customize First"}</button>
                   </div>
                 </div>;
               })()}
@@ -431,13 +431,13 @@ const PlansTabContainer = React.memo(React.forwardRef(function PlansTabContainer
         <div style={{ display: "flex", alignItems: "center", gap: S.s8, marginBottom: S.s14 }}>
           <button className={"btn btn-ghost btn-sm"} onClick={() => { setPlanView("list"); setActivePlan(null); setDetailDayIdx(0); }}>{"← Back"}</button>
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: FS.fs86, color: "#d4cec4" }}>
+            <div style={{ fontFamily: "var(--font-family-ui)", fontSize: FS.fs86, color: "#d4cec4" }}>
               {plan.icon}{" "}{plan.name}
               {plan.level && <span className={`plan-level-badge ${plan.level.toLowerCase()}`} style={{ marginLeft: S.s8, verticalAlign: "middle" }}>{plan.level}</span>}
             </div>
           </div>
           <button className={"btn btn-ghost btn-sm"} style={{ flexShrink: 0 }} onClick={() => initBuilderFromTemplate(plan, true)}>{"✎ Customize"}</button>
-          {plan.custom && <button className={"btn btn-gold btn-sm"} onClick={() => savePlanEdits(plan)}>{"💾 Save"}</button>}
+          {plan.custom && <button className={"btn btn-secondary btn-sm"} onClick={() => savePlanEdits(plan)}>{"💾 Save"}</button>}
         </div>
 
         <div className={"xp-projection"} style={{ marginBottom: S.s12 }}>
@@ -612,12 +612,12 @@ const PlansTabContainer = React.memo(React.forwardRef(function PlansTabContainer
           if (!isUserPlan) {
             return <div style={{ background: "rgba(45,42,36,.15)", border: "1px solid rgba(180,172,158,.06)", borderRadius: R.r10, padding: "14px", textAlign: "center" }}>
               <div style={{ fontSize: FS.lg, color: "#8a8478", marginBottom: S.s8 }}>{"This is a recipe preview. Customize it to add it to your plans."}</div>
-              <button className={"btn btn-gold"} style={{ width: "100%" }} onClick={() => initBuilderFromTemplate(plan, true)}>{"✎ Customize & Add to My Plans"}</button>
+              <button className={"btn btn-secondary"} style={{ width: "100%" }} onClick={() => initBuilderFromTemplate(plan, true)}>{"✎ Customize & Add to My Plans"}</button>
             </div>;
           }
           return <>
             <div className={"plan-actions"}>
-              <button className={"btn btn-glass-yellow"} style={{ flex: 1 }} onClick={() => {
+              <button className={"btn btn-accent"} style={{ flex: 1 }} onClick={() => {
                 const synth = { name: currentDay.label || "Day", icon: plan.icon || "📋", exercises: currentDay.exercises, durationMin: currentDay.durationMin || null, activeCal: currentDay.activeCal || null, totalCal: currentDay.totalCal || null };
                 onStatsPrompt(synth, (woWithStats, _sr) => {
                   startPlanWorkout({ ...plan, days: [{ ...currentDay, durationMin: woWithStats.durationMin, activeCal: woWithStats.activeCal, totalCal: woWithStats.totalCal }] });

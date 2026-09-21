@@ -112,7 +112,7 @@ const GuildTab = memo(function GuildTab({
                     color: "#8a8478",
                     fontWeight: 400,
                     marginLeft: S.s6
-                  }}>{"#" + u.publicId}</span>}</div><div className={"friend-meta"}>{uCls?.name || "Unknown"}{friendSearchResult.matchType === "account_id" ? " · Found by Account ID" : " · Found by email"}</div></div>{!ex && <button className={"btn btn-gold btn-xs"} onClick={() => sendFriendRequest(u.id)}>{"+ Add"}</button>}{ex?.status === "pending" && <div style={{
+                  }}>{"#" + u.publicId}</span>}</div><div className={"friend-meta"}>{uCls?.name || "Unknown"}{friendSearchResult.matchType === "account_id" ? " · Found by Account ID" : " · Found by email"}</div></div>{!ex && <button className={"btn btn-secondary btn-xs"} onClick={() => sendFriendRequest(u.id)}>{"+ Add"}</button>}{ex?.status === "pending" && <div style={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "flex-end",
@@ -146,7 +146,7 @@ const GuildTab = memo(function GuildTab({
               fontSize: FS.fs62,
               color: "#8a8478",
               marginTop: S.s2
-            }}>{"Wants to join your party"}</div></div><button className={"btn btn-gold btn-xs"} style={{
+            }}>{"Wants to join your party"}</div></div><button className={"btn btn-secondary btn-xs"} style={{
             marginRight: S.s6
           }} onClick={() => acceptFriendRequest(r.reqId)}>{"Accept"}</button><button className={"btn btn-ghost btn-xs"} onClick={() => rejectFriendRequest(r.reqId)}>{"Decline"}</button></div>)}</>
 
@@ -180,7 +180,7 @@ const GuildTab = memo(function GuildTab({
             display: "flex",
             gap: S.s6,
             paddingLeft: 28
-          }}><button className={"btn btn-gold btn-xs"} style={{
+          }}><button className={"btn btn-secondary btn-xs"} style={{
               flex: 1
             }} onClick={() => acceptShare(s)}>{"✓ Add to Mine"}</button><button className={"btn btn-ghost btn-xs"} style={{
               flex: 1

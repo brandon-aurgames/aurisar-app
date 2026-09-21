@@ -10,7 +10,7 @@ const S = {
       linear-gradient(180deg, oklch(0.10 0.008 60), oklch(0.06 0.005 60))
     `,
     color: 'oklch(0.82 0.015 75)',
-    fontFamily: "'Inter', system-ui, sans-serif",
+    fontFamily: "var(--font-family-ui)",
   },
   header: {
     display: 'flex',
@@ -24,7 +24,7 @@ const S = {
   },
   logo: { width: 32, height: 32, objectFit: 'contain', opacity: 0.85 },
   wordmark: {
-    fontFamily: "'Cinzel Decorative', serif",
+    fontFamily: "var(--font-family-ui)",
     fontSize: 14,
     letterSpacing: '0.18em',
     color: 'oklch(0.72 0.08 75)',
@@ -40,7 +40,7 @@ const S = {
     padding: '6px 14px',
     cursor: 'pointer',
     letterSpacing: '0.06em',
-    fontFamily: "'Inter', system-ui, sans-serif",
+    fontFamily: "var(--font-family-ui)",
   },
   body: {
     maxWidth: 860,
@@ -56,7 +56,7 @@ const S = {
     marginBottom: 12,
   },
   h1: {
-    fontFamily: "'Cinzel Decorative', serif",
+    fontFamily: "var(--font-family-ui)",
     fontSize: 'clamp(22px, 4vw, 34px)',
     fontWeight: 400,
     letterSpacing: '0.06em',

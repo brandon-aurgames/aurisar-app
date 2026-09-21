@@ -1,53 +1,51 @@
 {
   "schemaVersion": 1,
   "scope": {
-    "description": "Tracked runtime source under src/ and public/, plus root HTML entries; test files are excluded.",
+    "description": "Theme counts cover runtime source under src/ and public/, plus root HTML entries; prohibited font and legacy UI accent checks cover all repository text and paths.",
+    "repositoryFiles": 995,
     "sourceFiles": 406,
     "themePrimitiveFile": "src/styles/theme.css"
   },
   "summary": {
-    "rawColorOccurrences": 3999,
-    "hardCodedColorOccurrences": 3991,
-    "uniqueRawColorValues": 1083,
-    "cssVariableDefinitions": 174,
-    "cssVariableReferences": 551,
-    "inlineStyleObjects": 1936,
-    "fontDeclarations": 449,
-    "prohibitedFontReferences": 173,
-    "legacyAccentNameReferences": 236
+    "rawColorOccurrences": 3548,
+    "hardCodedColorOccurrences": 3540,
+    "uniqueRawColorValues": 936,
+    "cssVariableDefinitions": 177,
+    "cssVariableReferences": 1319,
+    "inlineStyleObjects": 1934,
+    "fontDeclarations": 448,
+    "prohibitedFontReferences": 0,
+    "prohibitedLegacyAccentColorReferences": 0,
+    "legacyAccentNameReferences": 108
   },
   "mostFrequentRawColors": [
     {
       "value": "#8a8478",
-      "occurrences": 554
+      "occurrences": 543
     },
     {
       "value": "#b4ac9e",
-      "occurrences": 248
+      "occurrences": 246
     },
     {
       "value": "#d4cec4",
-      "occurrences": 216
+      "occurrences": 208
     },
     {
       "value": "rgba(180,172,158,.06)",
-      "occurrences": 107
+      "occurrences": 103
     },
     {
       "value": "rgba(180,172,158,.08)",
-      "occurrences": 63
-    },
-    {
-      "value": "#c49428",
-      "occurrences": 56
+      "occurrences": 61
     },
     {
       "value": "rgba(180,172,158,.05)",
-      "occurrences": 56
+      "occurrences": 54
     },
     {
       "value": "rgba(45,42,36,.2)",
-      "occurrences": 52
+      "occurrences": 50
     },
     {
       "value": "rgba(45,42,36,.12)",
@@ -55,7 +53,7 @@
     },
     {
       "value": "rgba(180,172,158,.1)",
-      "occurrences": 43
+      "occurrences": 42
     },
     {
       "value": "#94a3b8",
@@ -67,14 +65,6 @@
     },
     {
       "value": "rgba(45,42,36,.15)",
-      "occurrences": 38
-    },
-    {
-      "value": "#f0d060",
-      "occurrences": 37
-    },
-    {
-      "value": "rgba(45,42,36,.3)",
       "occurrences": 37
     },
     {
@@ -82,87 +72,83 @@
       "occurrences": 36
     },
     {
-      "value": "#0c0c0a",
-      "occurrences": 35
-    },
-    {
-      "value": "rgba(180,172,158,.12)",
+      "value": "rgba(45,42,36,.3)",
       "occurrences": 33
     },
     {
-      "value": "#c4a044",
-      "occurrences": 32
+      "value": "rgba(180,172,158,.12)",
+      "occurrences": 31
     },
     {
-      "value": "#b0a898",
+      "value": "#0c0c0a",
       "occurrences": 29
     },
     {
       "value": "rgba(180,172,158,.07)",
-      "occurrences": 29
+      "occurrences": 28
     },
     {
-      "value": "rgba(180,172,158,.04)",
-      "occurrences": 25
+      "value": "#b0a898",
+      "occurrences": 27
     },
     {
       "value": "rgba(45,42,36,.22)",
       "occurrences": 25
     },
     {
-      "value": "rgba(180,172,158,.15)",
-      "occurrences": 22
+      "value": "rgba(180,172,158,.04)",
+      "occurrences": 24
     },
     {
       "value": "#116",
       "occurrences": 21
     },
     {
+      "value": "rgba(180,172,158,.15)",
+      "occurrences": 21
+    },
+    {
       "value": "rgba(45,42,36,.4)",
-      "occurrences": 20
+      "occurrences": 19
     },
     {
       "value": "rgba(45,42,36,.25)",
-      "occurrences": 19
+      "occurrences": 18
     },
     {
       "value": "rgba(45,42,36,.5)",
-      "occurrences": 19
-    },
-    {
-      "value": "#e74c3c",
       "occurrences": 18
     },
     {
       "value": "#fff",
-      "occurrences": 18
-    },
-    {
-      "value": "rgba(0,0,0,.5)",
-      "occurrences": 18
-    },
-    {
-      "value": "rgba(0,0,0,.4)",
       "occurrences": 17
     },
     {
-      "value": "#b0a090",
+      "value": "rgba(0,0,0,.5)",
+      "occurrences": 17
+    },
+    {
+      "value": "#e74c3c",
       "occurrences": 16
+    },
+    {
+      "value": "#b0a090",
+      "occurrences": 15
+    },
+    {
+      "value": "rgba(0,0,0,.4)",
+      "occurrences": 15
     },
     {
       "value": "rgba(0,0,0,.6)",
-      "occurrences": 16
-    },
-    {
-      "value": "#2ecc71",
-      "occurrences": 14
-    },
-    {
-      "value": "rgba(0,0,0,.3)",
-      "occurrences": 14
+      "occurrences": 15
     },
     {
       "value": "#e2e8f0",
+      "occurrences": 13
+    },
+    {
+      "value": "rgba(0,0,0,.3)",
       "occurrences": 13
     },
     {
@@ -174,18 +160,34 @@
       "occurrences": 13
     },
     {
+      "value": "rgba(180,172,158,.22)",
+      "occurrences": 12
+    },
+    {
       "value": "rgba(45,42,36,.35)",
-      "occurrences": 13
+      "occurrences": 12
+    },
+    {
+      "value": "#2980b9",
+      "occurrences": 11
+    },
+    {
+      "value": "#2ecc71",
+      "occurrences": 11
+    },
+    {
+      "value": "#cbd5e1",
+      "occurrences": 11
     }
   ],
   "filesWithMostHardCodedColors": [
     {
       "file": "src/styles/app.css",
-      "occurrences": 1733
+      "occurrences": 1505
     },
     {
       "file": "src/features/profile/ProfileTab.jsx",
-      "occurrences": 253
+      "occurrences": 246
     },
     {
       "file": "public/reference/ashwood.html",
@@ -193,63 +195,55 @@
     },
     {
       "file": "src/App.jsx",
-      "occurrences": 162
+      "occurrences": 150
     },
     {
       "file": "src/features/leaderboard/LeaderboardTab.jsx",
-      "occurrences": 82
+      "occurrences": 80
     },
     {
       "file": "src/features/workouts/WorkoutsTab.jsx",
-      "occurrences": 69
+      "occurrences": 62
     },
     {
       "file": "src/components/AdminPage.jsx",
-      "occurrences": 66
-    },
-    {
-      "file": "src/components/PlanWizard.jsx",
-      "occurrences": 59
-    },
-    {
-      "file": "src/data/constants.js",
       "occurrences": 57
     },
     {
-      "file": "src/features/world/WorldGame.jsx",
-      "occurrences": 55
+      "file": "src/components/PlanWizard.jsx",
+      "occurrences": 57
     },
     {
       "file": "src/components/PlansTabContainer.jsx",
       "occurrences": 49
     },
     {
-      "file": "src/features/workouts/workout-details.css",
-      "occurrences": 47
-    },
-    {
-      "file": "src/features/exercises/ExerciseDetailSheet.jsx",
+      "file": "src/features/world/WorldGame.jsx",
       "occurrences": 46
     },
     {
-      "file": "src/components/TrendsTab.jsx",
-      "occurrences": 45
+      "file": "src/data/constants.js",
+      "occurrences": 44
     },
     {
       "file": "src/features/avatar/AvatarCreator.jsx",
       "occurrences": 44
     },
     {
-      "file": "src/components/MapSVG.jsx",
-      "occurrences": 39
-    },
-    {
       "file": "src/features/exercises/MyWorkoutsSubTab.jsx",
       "occurrences": 38
     },
     {
-      "file": "src/utils/tokens.js",
-      "occurrences": 36
+      "file": "src/components/MapSVG.jsx",
+      "occurrences": 35
+    },
+    {
+      "file": "src/features/exercises/ExerciseDetailSheet.jsx",
+      "occurrences": 35
+    },
+    {
+      "file": "src/components/TrendsTab.jsx",
+      "occurrences": 34
     },
     {
       "file": "src/components/PrivacyPolicy.jsx",
@@ -260,11 +254,11 @@
       "occurrences": 31
     },
     {
-      "file": "src/features/world/WorldMap.jsx",
-      "occurrences": 31
+      "file": "src/features/character/MapOverlay.jsx",
+      "occurrences": 30
     },
     {
-      "file": "src/features/character/MapOverlay.jsx",
+      "file": "src/features/world/WorldMap.jsx",
       "occurrences": 30
     },
     {
@@ -276,28 +270,36 @@
       "occurrences": 29
     },
     {
-      "file": "src/data/exercises.js",
-      "occurrences": 26
-    },
-    {
       "file": "src/features/world/streaming/ashwoodPropMeshes.js",
       "occurrences": 25
     },
     {
-      "file": "src/features/exercises/ExerciseLibraryTab.jsx",
+      "file": "src/data/exercises.js",
       "occurrences": 24
-    },
-    {
-      "file": "src/features/world/GameMenu.jsx",
-      "occurrences": 23
-    },
-    {
-      "file": "src/features/world/TestingHud.jsx",
-      "occurrences": 23
     },
     {
       "file": "src/features/avatar/panels/HairPanel.jsx",
       "occurrences": 21
+    },
+    {
+      "file": "src/features/social/MessagesTab.jsx",
+      "occurrences": 21
+    },
+    {
+      "file": "src/features/world/TestingHud.jsx",
+      "occurrences": 21
+    },
+    {
+      "file": "src/features/character/CharacterTab.jsx",
+      "occurrences": 20
+    },
+    {
+      "file": "src/features/world/mapRender.js",
+      "occurrences": 20
+    },
+    {
+      "file": "src/features/world/systems/NpcSystem.js",
+      "occurrences": 20
     }
   ]
 }

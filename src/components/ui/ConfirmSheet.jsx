@@ -50,7 +50,7 @@ export default function ConfirmSheet({
           {cancelLabel}
         </button>
         <button
-          className={`btn ${danger ? 'btn-danger' : 'btn-gold-solid'} ui-confirm-btn`}
+          className={`btn ${danger ? 'btn-danger' : 'btn-primary'} ui-confirm-btn`}
           style={{ flex: 2 }}
           onClick={onConfirm}
         >

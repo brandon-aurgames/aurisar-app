@@ -74,7 +74,6 @@ const CompletionModal = memo(function CompletionModal({
       placement={"center"}
       maxWidth={380}
       title={"⚔ Complete Deed"}
-      titleFont={"cinzel"}
       ariaLabel={"Workout completion"}
       style={{ "--mg-color": accentColor }}
       headerLeft={completionModal.fromStats ? (
@@ -190,7 +189,7 @@ const CompletionModal = memo(function CompletionModal({
               }
             }}>{"✓ Confirm & Claim XP"}</button>
           ) : (
-            <button className={"btn btn-gold"} style={{ flex: 2 }} disabled={!scheduleWoDate} onClick={() => {
+            <button className={"btn btn-secondary"} style={{ flex: 2 }} disabled={!scheduleWoDate} onClick={() => {
               if (completionModal.soloExScheduleCallback) {
                 completionModal.soloExScheduleCallback(scheduleWoDate);
               } else {

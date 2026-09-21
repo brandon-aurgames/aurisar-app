@@ -45,7 +45,7 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
   const dUnit = distLabel(profile.units);
   const age = profile.age || 30;
   const title = exEditorMode === "edit" ? "✎ Edit Technique" : exEditorMode === "copy" ? "⎘ Copy Technique" : "⚔ Forge Technique";
-  return <Sheet open onClose={() => setExEditorOpen(false)} layer={"editor"} title={title} titleFont={"cinzel"} ariaLabel={title} className={"ex-editor-sheet"} style={{
+  return <Sheet open onClose={() => setExEditorOpen(false)} layer={"editor"} title={title} ariaLabel={title} className={"ex-editor-sheet"} style={{
         "--mg-color": getMuscleColor(ed.muscleGroup || "chest")
       }}><div className={"ex-editor-body"}><div className={"ex-editor-subtitle"}>{exEditorMode === "edit" ? "Sharpen your custom technique" : "Forge a new technique for your grimoire"}</div>{exEditorMode !== "edit" && <div className={"field"}><label>{"Start from existing exercise (optional)"}</label><select className={"inp"} style={{
                 appearance: "auto",
@@ -101,7 +101,7 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
             }<div className={"field"}><label>{"Category"}</label><div style={{
                 display: "flex",
                 gap: S.s6
-              }}>{["strength", "cardio", "flexibility", "endurance"].map(cat => <button key={cat} className={`btn btn-sm ${ed.category === cat ? "btn-gold" : "btn-ghost"}`} style={{
+              }}>{["strength", "cardio", "flexibility", "endurance"].map(cat => <button key={cat} className={`btn btn-sm ${ed.category === cat ? "btn-secondary" : "btn-ghost"}`} style={{
                   flex: 1,
                   textTransform: "capitalize",
                   fontSize: FS.fs58,
@@ -116,7 +116,7 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
                 display: "flex",
                 gap: S.s4,
                 flexWrap: "wrap"
-              }}>{MUSCLE_OPTS.map(mg => <button key={mg} className={`btn btn-sm ${ed.muscleGroup === mg ? "btn-gold" : "btn-ghost"}`} style={{
+              }}>{MUSCLE_OPTS.map(mg => <button key={mg} className={`btn btn-sm ${ed.muscleGroup === mg ? "btn-secondary" : "btn-ghost"}`} style={{
                   fontSize: FS.fs54,
                   padding: "4px 8px"
                 }} onClick={() => setEd({
@@ -223,7 +223,7 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
               })} placeholder={"How to perform this exercise, key cues…"} style={{
                 resize: "vertical",
                 minHeight: 70,
-                fontFamily: "'Inter',sans-serif",
+                fontFamily: "var(--font-family-ui)",
                 lineHeight: 1.5
               }} /></div>
 
@@ -246,7 +246,7 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
               gap: S.s8
             }}><button className={"btn btn-ghost btn-sm"} style={{
                 flex: 1
-              }} onClick={() => setExEditorOpen(false)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+              }} onClick={() => setExEditorOpen(false)}>{"Cancel"}</button><button className={"btn btn-secondary"} style={{
                 flex: 2
               }} onClick={saveExEditor}>{exEditorMode === "edit" ? "✦ Save Changes" : "⚔ Forge Technique"}</button></div>{exEditorMode === "edit" && <button className={"btn btn-ghost btn-sm"} style={{
               width: "100%",

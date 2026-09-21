@@ -3,8 +3,8 @@
   "short_name": "Aurisar",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#111111",
-  "theme_color": "#c49428",
+  "background_color": "#0c0e11",
+  "theme_color": "#0c0e11",
   "icons": [
     {
       "src": "/icon-192x192.png",

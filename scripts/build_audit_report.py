@@ -216,9 +216,9 @@ def main() -> None:
         ["#0c0c0a", "background-color", "Primary dark background", "src/index.css:10, app.css, landing.css"],
         ["#d4cec4", "color (text-primary)", "Main text", "src/styles/landing.css:16, src/index.css:11 (FIXED)"],
         ["#8a8478", "color (text-secondary)", "Muted/helper text", "src/styles/landing.css:17"],
-        ["#c49428", "gold accent", "Primary CTA", "src/styles/landing.css:8"],
-        ["#f0d060", "gold-light", "Hover state", "src/styles/landing.css:9"],
-        ["#8B6914", "gold-dark", "Pressed state", "src/styles/landing.css:10"],
+        ["#8fe3d2", "teal accent", "Primary CTA and focus", "src/styles/theme.css"],
+        ["#e4e7eb", "neutral-100", "Primary text", "src/styles/theme.css"],
+        ["#38414c", "neutral-700", "Borders and pressed states", "src/styles/theme.css"],
         ["#b0a898", "silver", "Secondary accent", "src/styles/landing.css:11"],
         ["#a07830", "bronze", "Tertiary accent", "src/styles/landing.css:13"],
         ["#8B5A2B", "MUSCLE_COLORS.chest, .tricep", "DUPLICATE — chest and tricep same color", "src/data/constants.js:1176-1177"],
@@ -227,7 +227,7 @@ def main() -> None:
         ["#3D343F", "shoulder, flexibility, yoga", "Steel plum", "src/data/constants.js:1175-1180"],
         ["#6B2A2A", "bicep, strength (NEW)", "Burgundy iron", "src/data/constants.js:1176, 1181 (FIXED)"],
         ["#5C5C2E", "legs", "Tactical olive", "src/data/constants.js:1177"],
-        ["#FFE87C", "UI_COLORS.warning", "Pace bonus highlight, accent emphasis (tokenised)", "src/data/constants.js"],
+        ["var(--color-status-warning)", "UI_COLORS.warning", "Warning text (tokenised)", "src/data/constants.js"],
         ["#2ecc71", "UI_COLORS.success", "Green: positive, beginner, cardio (tokenised)", "src/data/constants.js"],
         ["#e74c3c", "UI_COLORS.danger", "Red: destructive, advanced, strength (tokenised)", "src/data/constants.js"],
         ["(removed)", "—", "#e05555 consolidated into UI_COLORS.danger", "Was a near-duplicate of #e74c3c"],
@@ -238,14 +238,14 @@ def main() -> None:
 
     # ── Color Issues (after this PR) ─────────────────────────────────
     color_issues = [
-        ["FIXED", "TYPE_COLORS — Strength/Cardio/Flexibility/Yoga all #C4A044", "src/data/constants.js:1180", "Now Strength=#6B2A2A, Cardio=#2C4564, Flexibility/Yoga=#3D343F (sourced from MUSCLE_COLORS)"],
+        ["FIXED", "TYPE_COLORS previously reused one accent across categories", "src/data/constants.js", "Strength, Cardio, Flexibility and Yoga now source distinct identity colors from MUSCLE_COLORS"],
         ["FIXED", "Body text #333 on #0c0c0a (near-invisible)", "src/index.css:11", "Changed to #d4cec4 (matches landing.css --text-primary)"],
         ["P2", "Chest and Tricep both #8B5A2B", "src/data/constants.js:1176-1177", "Triceps should differ; flagged for design decision"],
         ["P2", "Full Body and Cardio both #2C4564", "src/data/constants.js:1178", "Same purpose? Possibly intentional"],
         ["P2", "6 different gray tokens with no hierarchy", "Various", "#d4cec4 #b4ac9e #b0a898 #8a8478 #5a5650 #6a645a — needs scale"],
-        ["FIXED", "Inline one-off colors (#FFE87C, #2ecc71, #e74c3c, #e05555, #2980b9, #f1c40f) tokenised", "src/data/constants.js UI_COLORS", "Migrated 75+ inline JSX style hex strings to UI_COLORS.{warning, success, danger, info, intermediate}; #e05555 consolidated into danger"],
+        ["FIXED", "Inline status colors tokenised", "src/data/constants.js UI_COLORS", "Inline JSX status styles now resolve through semantic CSS color roles"],
         ["FIXED", "Two fallback colors consolidated to #B0A898", "src/utils/xp.js:6,10", "Both getMuscleColor and getTypeColor now fallback to silver palette token"],
-        ["FIXED", "Masculine palette rollout — CAT_ICON_COLORS + filter accents", "src/data/constants.js:15-17 + src/App.js + src/components/PlanWizard.js", "CAT_ICON_COLORS now mirrors TYPE_COLORS masculine values; bright filter accents (#9b59b6, #3498db) migrated to UI_COLORS.accent (brand gold #c49428). Categorical chart colors and HR-zone palette intentionally preserved."],
+        ["FIXED", "Category icon colors and filter accents", "src/data/constants.js + src/App.jsx + src/components/PlanWizard.jsx", "Filters now use the shared teal action role; category identity colors remain limited to icons and data displays."],
     ]
     write_sheet(wb, "Color_Issues", ["Severity", "Issue", "Location", "Notes / Resolution"], color_issues)
 
@@ -254,7 +254,7 @@ def main() -> None:
         ["FIXED", "Token system introduced + full sweep", "src/utils/tokens.js", "FS scale extended to numeric (fs44–fs95) + semantic aliases (xxs–xxl). All 498 inline rem font-sizes across App.js + PlanWizard.js now reference tokens."],
         ["P2", "Letter-spacing variants (0.02–0.32em)", "Throughout", "No system documented"],
         ["P2", "Line-height variants (1, 1.1, 1.15, 1.6, 1.65, 1.7)", "Throughout", "No system documented"],
-        ["P2", "Font families: Cinzel, Cinzel Decorative, Inter, system-ui", "src/styles/*.css", "Mostly intentional but mixed by use case"],
+        ["FIXED", "UI font consolidated to Inter with system fallbacks", "index.html, src/styles/*.css", "One font-loading path and shared UI/monospace roles"],
     ]
     write_sheet(wb, "Typography", ["Severity", "Issue", "Locations", "Recommendation"], typo_rows)
 

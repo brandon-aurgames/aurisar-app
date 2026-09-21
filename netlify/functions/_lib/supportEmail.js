@@ -1,4 +1,4 @@
-import { renderEmail, escapeHtml } from "./emailTemplate.js";
+import { EMAIL_COLORS, renderEmail, escapeHtml } from "./emailTemplate.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -17,8 +17,8 @@ export async function sendSupportEmail({ type, message, cleanEmail, cleanAcct })
   const safeAcct  = escapeHtml(cleanAcct  || "N/A");
   const safeMsg   = escapeHtml(message);
   const subject = `[${label}] ${message.slice(0, 80)}`;
-  const badgeBg = type === "bug" ? "rgba(224,85,85,.15)" : type === "idea" ? "rgba(196,148,40,.15)" : "rgba(100,160,220,.15)";
-  const badgeFg = type === "bug" ? "#e05555" : type === "idea" ? "#c49428" : "#64a0dc";
+  const badgeBg = type === "bug" ? EMAIL_COLORS.dangerMuted : type === "idea" ? EMAIL_COLORS.accentMuted : EMAIL_COLORS.raised;
+  const badgeFg = type === "bug" ? EMAIL_COLORS.danger : type === "idea" ? EMAIL_COLORS.accent : EMAIL_COLORS.primary;
 
   const html = renderEmail({
     title: `Aurisar Support — ${label}`,
@@ -27,10 +27,10 @@ export async function sendSupportEmail({ type, message, cleanEmail, cleanAcct })
     footerNote: "Submitted via aurisargames.com",
     bodyHtml: `<div style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px;background:${badgeBg};color:${badgeFg}">${safeLabel}</div>
       <table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px">
-        <tr><td style="color:#8a8478;padding:4px 0;width:110px">From</td><td style="color:#d4cec4">${safeEmail}</td></tr>
-        <tr><td style="color:#8a8478;padding:4px 0">Account ID</td><td style="color:#d4cec4">${safeAcct}</td></tr>
+        <tr><td style="color:${EMAIL_COLORS.secondary};padding:4px 0;width:110px">From</td><td style="color:${EMAIL_COLORS.primary}">${safeEmail}</td></tr>
+        <tr><td style="color:${EMAIL_COLORS.secondary};padding:4px 0">Account ID</td><td style="color:${EMAIL_COLORS.primary}">${safeAcct}</td></tr>
       </table>
-      <div style="border-top:1px solid rgba(180,172,158,.08);padding-top:16px;font-size:.9rem;color:#d4cec4;line-height:1.6;white-space:pre-wrap">${safeMsg}</div>`,
+      <div style="border-top:1px solid ${EMAIL_COLORS.border};padding-top:16px;font-size:.9rem;color:${EMAIL_COLORS.primary};line-height:1.6;white-space:pre-wrap">${safeMsg}</div>`,
   });
 
   const res = await fetch("https://api.resend.com/emails", {

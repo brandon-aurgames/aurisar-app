@@ -159,7 +159,7 @@ const CharacterTab = memo(function CharacterTab({
               fontWeight: 600,
               padding: "10px 28px",
               cursor: "pointer",
-              fontFamily: "Inter, system-ui, sans-serif",
+              fontFamily: "var(--font-family-ui)",
               letterSpacing: ".02em",
             }}
           >

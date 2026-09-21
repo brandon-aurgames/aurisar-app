@@ -6,10 +6,15 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const baselinePath = path.join(repoRoot, 'docs', 'theme-token-baseline.json');
+const baselineRelativePath = path.relative(repoRoot, baselinePath).replaceAll(path.sep, '/');
 const args = new Set(process.argv.slice(2));
 
 const sourceExtensions = new Set([
   '.css', '.html', '.js', '.jsx', '.json', '.mjs', '.svg', '.ts', '.tsx',
+]);
+const repositoryTextExtensions = new Set([
+  ...sourceExtensions,
+  '.md', '.py', '.sh', '.toml', '.txt', '.yaml', '.yml',
 ]);
 
 function isThemeSource(file) {
@@ -35,6 +40,24 @@ const inlineStylePattern = /\bstyle\s*=\s*\{\{/g;
 const fontDeclarationPattern = /(?:font-family\s*:|fontFamily\s*:)/g;
 const prohibitedFontPattern = new RegExp(['cin', 'zel'].join(''), 'gi');
 const legacyAccentNamePattern = /\b(?:gold|golden|gilded)\b/gi;
+const legacyAccentHexes = [
+  ['c4', '94', '28'], ['c4', 'a0', '44'], ['e8', 'b4', '4a'],
+  ['f6', 'e3', 'b6'], ['f0', 'c8', '68'], ['f0', 'd0', '60'],
+  ['8a', '60', '10'], ['8b', '74', '25'], ['a8', '90', '30'],
+  ['ff', 'e8', '7c'], ['d9', 'b2', '5b'], ['d4', 'ac', '0d'],
+  ['7d', '66', '08'],
+].map(parts => parts.join(''));
+const legacyAccentRgbTriplets = [
+  [196, 148, 40], [196, 160, 68], [232, 180, 74], [240, 200, 104],
+  [240, 208, 96], [255, 232, 124], [140, 116, 37], [168, 132, 60],
+  [217, 178, 91],
+];
+const prohibitedLegacyAccentColorPattern = new RegExp(
+  `#(?:${legacyAccentHexes.join('|')})(?:[0-9a-f]{2})?\\b|rgba?\\(\\s*(?:${legacyAccentRgbTriplets
+    .map(([red, green, blue]) => `${red}\\s*,\\s*${green}\\s*,\\s*${blue}`)
+    .join('|')})(?:\\s*,[^)]*)?\\)`,
+  'gi',
+);
 
 const valueCounts = new Map();
 const fileColorCounts = [];
@@ -45,7 +68,22 @@ let cssVariableReferences = 0;
 let inlineStyleObjects = 0;
 let fontDeclarations = 0;
 let prohibitedFontReferences = 0;
+let prohibitedLegacyAccentColorReferences = 0;
 let legacyAccentNameReferences = 0;
+
+for (const file of repositoryFiles) {
+  prohibitedFontReferences += (file.match(prohibitedFontPattern) ?? []).length;
+  if (!repositoryTextExtensions.has(path.extname(file).toLowerCase())) continue;
+  try {
+    const source = fs.readFileSync(path.join(repoRoot, file), 'utf8');
+    prohibitedFontReferences += (source.match(prohibitedFontPattern) ?? []).length;
+    if (file !== baselineRelativePath) {
+      prohibitedLegacyAccentColorReferences += (source.match(prohibitedLegacyAccentColorPattern) ?? []).length;
+    }
+  } catch {
+    // Ignore files that disappear during a scan or cannot be decoded as text.
+  }
+}
 
 for (const file of sourceFiles) {
   const absolutePath = path.join(repoRoot, file);
@@ -68,7 +106,6 @@ for (const file of sourceFiles) {
   cssVariableReferences += (source.match(variableReferencePattern) ?? []).length;
   inlineStyleObjects += (source.match(inlineStylePattern) ?? []).length;
   fontDeclarations += (source.match(fontDeclarationPattern) ?? []).length;
-  prohibitedFontReferences += (source.match(prohibitedFontPattern) ?? []).length;
   legacyAccentNameReferences += (source.match(legacyAccentNamePattern) ?? []).length;
 
   if (colors.length > 0 && file !== themeFile) {
@@ -85,7 +122,8 @@ fileColorCounts.sort((a, b) => b.occurrences - a.occurrences || a.file.localeCom
 const baseline = {
   schemaVersion: 1,
   scope: {
-    description: 'Tracked runtime source under src/ and public/, plus root HTML entries; test files are excluded.',
+    description: 'Theme counts cover runtime source under src/ and public/, plus root HTML entries; prohibited font and legacy UI accent checks cover all repository text and paths.',
+    repositoryFiles: repositoryFiles.length,
     sourceFiles: sourceFiles.length,
     themePrimitiveFile: themeFile,
   },
@@ -98,6 +136,7 @@ const baseline = {
     inlineStyleObjects,
     fontDeclarations,
     prohibitedFontReferences,
+    prohibitedLegacyAccentColorReferences,
     legacyAccentNameReferences,
   },
   mostFrequentRawColors: sortedValues.slice(0, 40),
@@ -111,8 +150,20 @@ if (args.has('--write')) {
   console.log(`Updated ${path.relative(repoRoot, baselinePath)}`);
 } else if (args.has('--check')) {
   const current = fs.existsSync(baselinePath) ? fs.readFileSync(baselinePath, 'utf8') : '';
+  let failed = false;
   if (current !== serialized) {
     console.error('Theme token baseline is stale. Run `pnpm run theme:audit:update` and review the diff.');
+    failed = true;
+  }
+  if (prohibitedFontReferences > 0) {
+    console.error('A prohibited legacy display-font reference exists in a repository path or text file.');
+    failed = true;
+  }
+  if (prohibitedLegacyAccentColorReferences > 0) {
+    console.error('A prohibited legacy UI accent color exists in a repository text file.');
+    failed = true;
+  }
+  if (failed) {
     process.exitCode = 1;
   } else {
     console.log('Theme token baseline is current.');

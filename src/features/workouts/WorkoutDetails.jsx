@@ -133,7 +133,7 @@ export default function WorkoutDetails({ name, notes, intensity, onSave, session
       id={`${id}-dialog`} title="WORKOUT DETAILS" ariaLabel="Workout details" ariaDescribedBy={`${id}-subtitle`}
       className="wd-dialog" backdropClassName={`wd-backdrop wd-${phase}${paused ? ' wd-paused' : ''}`}
       atmosphere={<div className="wd-fire" aria-hidden="true" style={{ '--wd-origin': `${origin}px` }}><canvas ref={canvas} /><i className="wd-spark" /><i className="wd-spark" /><i className="wd-spark" /></div>}
-      footer={<div className="wd-actions"><button type="button" className="btn btn-ghost wd-secondary" onClick={close}>Cancel</button><button type="submit" form={`${id}-form`} className="btn btn-gold-solid wd-primary">SAVE DETAILS</button></div>}>
+      footer={<div className="wd-actions"><button type="button" className="btn btn-ghost wd-secondary" onClick={close}>Cancel</button><button type="submit" form={`${id}-form`} className="btn btn-primary wd-primary">SAVE DETAILS</button></div>}>
       <p id={`${id}-subtitle`} className="wd-subtitle">Configure this session</p>
       <form id={`${id}-form`} className="wd-form" onSubmit={e => { e.preventDefault(); save(); }}>
         <div className="wd-field"><label htmlFor={`${id}-name`}>Workout Name</label>

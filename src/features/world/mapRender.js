@@ -150,9 +150,9 @@ export function drawMapMarkers(ctx, mapData, worldToPx, opts = {}) {
     }
   }
 
-  // Ruins — small amber diamonds
+  // Ruins — small neutral diamonds
   if (sites?.ruins) {
-    ctx.fillStyle = 'rgba(214, 178, 92, 0.9)';
+    ctx.fillStyle = 'rgba(154, 165, 177, 0.9)';
     for (const ru of sites.ruins) {
       const p = worldToPx(ru.x, ru.z);
       if (!inView(p)) continue;
@@ -164,13 +164,13 @@ export function drawMapMarkers(ctx, mapData, worldToPx, opts = {}) {
     }
   }
 
-  // Chests — small subtle gold squares. Drawn from the LIVE unopened list the
+  // Chests — small subtle neutral squares. Drawn from the LIVE unopened list the
   // caller passes (opts.chests via scene.getUnopenedChests()), NOT the static
   // manifest, so a looted chest's marker drops off the map.
   const chests = opts.chests ?? [];
   if (chests.length) {
-    ctx.fillStyle = 'rgba(230, 190, 90, 0.55)';
-    ctx.strokeStyle = 'rgba(60, 45, 15, 0.7)';
+    ctx.fillStyle = 'rgba(154, 165, 177, 0.55)';
+    ctx.strokeStyle = 'rgba(12, 14, 17, 0.7)';
     ctx.lineWidth = 0.75;
     for (const c of chests) {
       const p = worldToPx(c.x, c.z);
@@ -216,7 +216,7 @@ export function drawMapMarkers(ctx, mapData, worldToPx, opts = {}) {
   }
 
   // Waypoints / POIs — cyan pins (+ labels in full mode). The Castle Ashwood
-  // gate (poi_castle_ashwood) gets a distinct gold keep glyph.
+  // gate (poi_castle_ashwood) gets a distinct teal keep glyph.
   if (waypoints) {
     for (const wp of waypoints) {
       const pos = wp?.pos;
@@ -227,7 +227,7 @@ export function drawMapMarkers(ctx, mapData, worldToPx, opts = {}) {
       ctx.strokeStyle = 'rgba(8, 24, 30, 0.9)';
       ctx.lineWidth = 1;
       if (isCastle) {
-        ctx.fillStyle = 'rgba(240, 210, 120, 0.98)';
+        ctx.fillStyle = 'rgba(143, 227, 210, 0.98)';
         ctx.fillRect(p.px - 3.5, p.py - 3.5, 7, 7);
         ctx.strokeRect(p.px - 3.5, p.py - 3.5, 7, 7);
       } else {

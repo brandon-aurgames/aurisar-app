@@ -43,7 +43,7 @@ const ClassRevealScreen = memo(function ClassRevealScreen({
       gap: S.s12,
       flexWrap: "wrap",
       justifyContent: "center"
-    }}><button className={"btn btn-gold"} onClick={() => confirmClass(detectedClass)}>{"Accept My Fate"}</button><button className={"btn btn-ghost"} onClick={() => setScreen("classPick")}>{"Choose Differently"}</button></div></div>;
+    }}><button className={"btn btn-secondary"} onClick={() => confirmClass(detectedClass)}>{"Accept My Fate"}</button><button className={"btn btn-ghost"} onClick={() => setScreen("classPick")}>{"Choose Differently"}</button></div></div>;
 });
 
 export default ClassRevealScreen;

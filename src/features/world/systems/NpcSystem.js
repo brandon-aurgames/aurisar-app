@@ -16,7 +16,7 @@
 import { NPCS } from '../content/index';
 import { CharacterAvatar } from '../game/CharacterAvatar.js';
 
-const MARKER_COLORS = { '!': '#f0d060', '?': '#f0d060' };
+const MARKER_COLORS = { '!': '#8fe3d2', '?': '#8fe3d2' };
 
 // Deterministic per-NPC appearance so hub characters look distinct without
 // authored configs. NPC_APPEARANCES below overrides this for the named hub
@@ -184,7 +184,7 @@ export class NpcSystem {
       const ctx = entry.markerTex.getContext();
       ctx.clearRect(0, 0, 64, 64);
       entry.markerTex.drawText(char, null, 52,
-        'bold 52px Inter, sans-serif', MARKER_COLORS[char] ?? '#f0d060', 'transparent', true);
+        'bold 52px Inter, sans-serif', MARKER_COLORS[char] ?? '#8fe3d2', 'transparent', true);
       entry.marker.setEnabled(true);
     }
   }

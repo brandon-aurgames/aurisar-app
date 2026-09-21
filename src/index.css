@@ -6,9 +6,9 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
-  background-color: #0c0c0a;
-  color: #d4cec4;
+  font-family: var(--font-family-ui);
+  background-color: var(--color-bg-canvas);
+  color: var(--color-text-primary);
 }
 
 #root {

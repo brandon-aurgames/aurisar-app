@@ -19,9 +19,9 @@ const S = {
   quest: {
     background: 'rgba(0,0,0,0.42)', borderRadius: 8, padding: '6px 9px',
     backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
-    borderLeft: '2px solid rgba(240,208,96,0.55)',
+    borderLeft: '2px solid color-mix(in srgb, var(--color-action-primary) 55%, transparent)',
   },
-  name: { fontSize: 11.5, fontWeight: 700, color: '#f0d060', marginBottom: 2 },
+  name: { fontSize: 11.5, fontWeight: 700, color: 'var(--color-action-primary)', marginBottom: 2 },
   ready: { fontSize: 11, color: '#86efac' },
   objective: { fontSize: 11, color: '#cbd5e1', lineHeight: 1.45 },
   objectiveDone: { fontSize: 11, color: '#86efac', lineHeight: 1.45 },

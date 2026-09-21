@@ -197,7 +197,7 @@ const S = {
     background:    '#0d1117',
     display:       'flex',
     flexDirection: 'column',
-    fontFamily:    'Inter, system-ui, sans-serif',
+    fontFamily:    'var(--font-family-ui)',
   },
   header: {
     display:        'flex',
@@ -220,7 +220,7 @@ const S = {
     padding:      '4px 8px',
     borderRadius: 6,
     lineHeight:   1,
-    fontFamily:   'Inter, system-ui, sans-serif',
+    fontFamily:   'var(--font-family-ui)',
   },
   body: {
     flex:     1,
@@ -252,7 +252,7 @@ const S = {
     fontWeight:   500,
     padding:      '6px 2px',
     cursor:       'pointer',
-    fontFamily:   'Inter, system-ui, sans-serif',
+    fontFamily:   'var(--font-family-ui)',
     textAlign:    'center',
   },
   tabActive: {
@@ -296,7 +296,7 @@ const S = {
     fontWeight:    500,
     padding:       '8px 10px',
     cursor:        'pointer',
-    fontFamily:    'Inter, system-ui, sans-serif',
+    fontFamily:    'var(--font-family-ui)',
     whiteSpace:    'nowrap',
   },
   btnCancel: {
@@ -307,7 +307,7 @@ const S = {
     fontSize:     13,
     padding:      '8px 12px',
     cursor:       'pointer',
-    fontFamily:   'Inter, system-ui, sans-serif',
+    fontFamily:   'var(--font-family-ui)',
   },
   btnSave: {
     background:   '#3b82f6',
@@ -318,7 +318,7 @@ const S = {
     fontWeight:   600,
     padding:      '8px 18px',
     cursor:       'pointer',
-    fontFamily:   'Inter, system-ui, sans-serif',
+    fontFamily:   'var(--font-family-ui)',
   },
   // ── Drag handle ──────────────────────────────────────────────────────────
   dragHandle: {

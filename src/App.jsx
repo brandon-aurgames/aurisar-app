@@ -4519,7 +4519,7 @@ function App() {
       streak: 31,
       state: "NY",
       country: "United States",
-      gym: "Gold's Gym",
+      gym: "Home Gym",
       exercise_pbs: {
         bench: {
           weight: 185
@@ -4764,7 +4764,7 @@ function App() {
     justifyContent: "center"
   }}><span style={{
       color: "#8a8478",
-      fontFamily: "serif",
+      fontFamily: "var(--font-family-ui)",
       fontStyle: "italic"
     }}>{"Loading your legend…"}</span></div>;
   if (mfaChallengeScreen) return <div style={{
@@ -4784,7 +4784,7 @@ function App() {
         fontSize: "2.4rem",
         marginBottom: S.s12
       }}>{"🛡️"}</div><div style={{
-        fontFamily: "'Cinzel Decorative',serif",
+        fontFamily: "var(--font-family-ui)",
         fontSize: "1rem",
         color: "#d4cec4",
         letterSpacing: ".08em",
@@ -4865,9 +4865,9 @@ function App() {
             padding: "11px",
             borderRadius: R.xl,
             border: "none",
-            background: mfaChallengeLoading || mfaChallengeCode.length < 6 ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, #c49428, #8a6010)",
+            background: mfaChallengeLoading || mfaChallengeCode.length < 6 ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, var(--color-action-primary-hover), var(--color-action-primary))",
             color: mfaChallengeLoading || mfaChallengeCode.length < 6 ? "#8a8478" : "#0c0c0a",
-            fontFamily: "'Cinzel',serif",
+            fontFamily: "var(--font-family-ui)",
             fontSize: FS.fs62,
             fontWeight: 700,
             letterSpacing: ".12em",
@@ -4885,7 +4885,7 @@ function App() {
             textAlign: "center",
             letterSpacing: ".12em",
             fontSize: FS.fs82,
-            fontFamily: "monospace"
+            fontFamily: "var(--font-family-mono)"
           }} onKeyDown={e => {
             if (e.key === "Enter") submitRecoveryCode();
           }} /><button style={{
@@ -4893,9 +4893,9 @@ function App() {
             padding: "11px",
             borderRadius: R.xl,
             border: "none",
-            background: mfaChallengeLoading || !mfaRecoveryInput.trim() ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, #c49428, #8a6010)",
+            background: mfaChallengeLoading || !mfaRecoveryInput.trim() ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, var(--color-action-primary-hover), var(--color-action-primary))",
             color: mfaChallengeLoading || !mfaRecoveryInput.trim() ? "#8a8478" : "#0c0c0a",
-            fontFamily: "'Cinzel',serif",
+            fontFamily: "var(--font-family-ui)",
             fontSize: FS.fs62,
             fontWeight: 700,
             letterSpacing: ".12em",
@@ -4991,7 +4991,7 @@ function App() {
 
     /* ══ INTRO ══════════════════════════════════ */}{screen === "intro" && <div className={"screen boot-screen"}><div className={"boot-title"}>{"AURISAR"}<span className={"boot-title-sub"}>{"FITNESS"}</span></div><div className={"boot-log"}><div className={"boot-bar-wrap"}><div className={"boot-bar"} style={{
             width: bootStep >= 4 ? "100%" : bootStep >= 3 ? "58%" : bootStep >= 2 ? "34%" : bootStep >= 1 ? "12%" : "2%"
-          }} /></div><div className={"boot-log-lines"}>{bootStep >= 1 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Loading combat modules..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 2 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Calibrating XP engine..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 3 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Assigning warrior class..."}{bootStep >= 4 ? <span className={"boot-check"}>{" ✓"}</span> : <span className={"boot-ellipsis"}>{" ..."}</span>}</div>}</div></div><button className={`btn btn-gold${bootStep >= 4 ? " boot-btn-ready" : ""}`} onClick={() => setScreen("onboard")}>{bootStep >= 4 ? "BEGIN" : "BOOT UP"}</button><button className={"btn btn-ghost boot-cancel-btn"} onClick={async () => {
+          }} /></div><div className={"boot-log-lines"}>{bootStep >= 1 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Loading combat modules..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 2 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Calibrating XP engine..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 3 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Assigning warrior class..."}{bootStep >= 4 ? <span className={"boot-check"}>{" ✓"}</span> : <span className={"boot-ellipsis"}>{" ..."}</span>}</div>}</div></div><button className={`btn btn-secondary${bootStep >= 4 ? " boot-btn-ready" : ""}`} onClick={() => setScreen("onboard")}>{bootStep >= 4 ? "BEGIN" : "BOOT UP"}</button><button className={"btn btn-ghost boot-cancel-btn"} onClick={async () => {
         await sb.auth.signOut();
         setAuthUser(null);
         setAuthIsNew(false);
@@ -5114,7 +5114,7 @@ function App() {
             justifyContent: "center",
             marginBottom: S.s8
           }}><ClassIcon classKey={key} size={32} color={c.glow} /></div><div style={{
-            fontFamily: "'Inter',sans-serif",
+            fontFamily: "var(--font-family-ui)",
             fontSize: FS.fs63,
             color: c.glow
           }}>{c.name}</div>{c.locked && <div style={{
@@ -5126,7 +5126,7 @@ function App() {
             color: "#8a8478",
             marginTop: S.s4,
             lineHeight: 1.4
-          }}>{c.description}</div>}</div>)}</div><button className={"btn btn-gold"} disabled={!profile.chosenClass} onClick={() => confirmClass(profile.chosenClass)}>{"Confirm Class"}</button></div>
+          }}>{c.description}</div>}</div>)}</div><button className={"btn btn-secondary"} disabled={!profile.chosenClass} onClick={() => confirmClass(profile.chosenClass)}>{"Confirm Class"}</button></div>
 
     /* ══ MAIN ═══════════════════════════════════ */}{screen === "main" && clsKey && <div className={"hud"} style={activeTab === "messages" && msgView === "chat" ? {
       height: "100dvh",
@@ -5134,7 +5134,7 @@ function App() {
       minHeight: 0,
       overflow: "hidden",
       paddingBottom: 0
-    } : {}}><div className={"hud-top"}><button className={"profile-pill"} onClick={() => guardAll(() => { if (activeTab === "profile") { setActiveTab(prevTab); } else { setPrevTab(activeTab); setActiveTab("profile"); } })}>{activeTab === "profile" ? <div className={"ava"} style={{width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.2rem",color:cls.glow}}>{"←"}</div> : <><div className={"ava"} style={{width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center"}}><ClassIcon classKey={profile.chosenClass} size={16} color={cls.glow} /></div><span style={{fontSize:"0.9rem"}}>{"🔥"}</span><span className={"profile-pill-streak"}>{profile.checkInStreak}</span></>}</button><div style={{flex:1}} /><button className={"btn nav-menu-btn btn-ghost"} style={{position:"relative"}} aria-label={"Alerts"} onClick={() => setNotifInboxOpen(true)}>{"🔔"}{notifUnread > 0 && <div style={{position:"absolute",top:1,right:2,width:8,height:8,borderRadius:"50%",background:"#d4af37",border:"1.5px solid #0c0c0a"}} />}</button><button className={"btn nav-menu-btn btn-ghost"} style={{position:"relative"}} onClick={() => setNavMenuOpen(v => !v)}>{"☰"}{msgUnreadTotal > 0 && <div style={{position:"absolute",top:1,right:2,width:8,height:8,borderRadius:"50%",background:UI_COLORS.danger,border:"1.5px solid #0c0c0a"}} />}</button></div>
+    } : {}}><div className={"hud-top"}><button className={"profile-pill"} onClick={() => guardAll(() => { if (activeTab === "profile") { setActiveTab(prevTab); } else { setPrevTab(activeTab); setActiveTab("profile"); } })}>{activeTab === "profile" ? <div className={"ava"} style={{width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.2rem",color:cls.glow}}>{"←"}</div> : <><div className={"ava"} style={{width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center"}}><ClassIcon classKey={profile.chosenClass} size={16} color={cls.glow} /></div><span style={{fontSize:"0.9rem"}}>{"🔥"}</span><span className={"profile-pill-streak"}>{profile.checkInStreak}</span></>}</button><div style={{flex:1}} /><button className={"btn nav-menu-btn btn-ghost"} style={{position:"relative"}} aria-label={"Alerts"} onClick={() => setNotifInboxOpen(true)}>{"🔔"}{notifUnread > 0 && <div style={{position:"absolute",top:1,right:2,width:8,height:8,borderRadius:"50%",background:UI_COLORS.accent,border:"1.5px solid var(--color-bg-canvas)"}} />}</button><button className={"btn nav-menu-btn btn-ghost"} style={{position:"relative"}} onClick={() => setNavMenuOpen(v => !v)}>{"☰"}{msgUnreadTotal > 0 && <div style={{position:"absolute",top:1,right:2,width:8,height:8,borderRadius:"50%",background:UI_COLORS.danger,border:"1.5px solid var(--color-bg-canvas)"}} />}</button></div>
 
       {
         /* ══ DROPDOWN MENU — rendered outside hud-top to escape backdrop-filter stacking context ══ */
@@ -5779,7 +5779,7 @@ function App() {
           }}>{[["new", "＋ New Plan"], ["existing", "Add to Existing"]].map(([m, lbl]) => <button key={m} style={{
               flex: 1,
               padding: "8px 4px",
-              fontFamily: "'Inter',sans-serif",
+              fontFamily: "var(--font-family-ui)",
               fontSize: FS.fs62,
               letterSpacing: ".03em",
               cursor: "pointer",
@@ -5822,7 +5822,7 @@ function App() {
                 flex: 1,
                 minWidth: 0
               }}><div style={{
-                  fontFamily: "'Inter',sans-serif",
+                  fontFamily: "var(--font-family-ui)",
                   fontSize: FS.lg,
                   color: "#d4cec4"
                 }}>{pl.name}</div><div style={{
@@ -5845,7 +5845,7 @@ function App() {
             gap: S.s8
           }}><button className={"btn btn-ghost btn-sm"} style={{
               flex: 1
-            }} onClick={() => setSavePlanWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+            }} onClick={() => setSavePlanWizard(null)}>{"Cancel"}</button><button className={"btn btn-secondary"} style={{
               flex: 2
             }} onClick={confirmSavePlanWizard}>{spwMode === "existing" ? "📋 Add to Plan" : "💾 Save New Plan"}{spwMode === "new" && spwDate ? " & Schedule" : ""}</button></div></div></div></div>, document.body)
 
@@ -5894,7 +5894,7 @@ function App() {
           gap: S.s8
         }}><button className={"btn btn-ghost btn-sm"} style={{
             flex: 1
-          }} onClick={() => setSchedulePicker(null)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+          }} onClick={() => setSchedulePicker(null)}>{"Cancel"}</button><button className={"btn btn-secondary"} style={{
             flex: 2
           }} onClick={confirmSchedule}>{"📅 Schedule"}</button></div></div></div>, document.body)
 
@@ -5934,7 +5934,7 @@ function App() {
             gap: S.s8
           }}><button className={"btn btn-ghost btn-sm"} style={{
               flex: 1
-            }} onClick={() => setSaveWorkoutWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+            }} onClick={() => setSaveWorkoutWizard(null)}>{"Cancel"}</button><button className={"btn btn-secondary"} style={{
               flex: 2
             }} onClick={confirmSaveWorkoutWizard}>{"💪 Save Workout"}</button></div></div></div></div>, document.body)}
 
@@ -5951,7 +5951,7 @@ function App() {
         }}><span style={{
             fontSize: "1.4rem"
           }}>{addToPlanPicker.workout.icon}</span><div><div style={{
-              fontFamily: "'Inter',sans-serif",
+              fontFamily: "var(--font-family-ui)",
               fontSize: FS.fs76,
               color: "#d4cec4"
             }}>{addToPlanPicker.workout.name}</div><div style={{
@@ -5965,7 +5965,7 @@ function App() {
             flex: 1,
             minWidth: 0
           }}><div style={{
-              fontFamily: "'Inter',sans-serif",
+              fontFamily: "var(--font-family-ui)",
               fontSize: FS.lg,
               color: "#d4cec4"
             }}>{pl.name}</div><div style={{
@@ -6008,7 +6008,7 @@ function App() {
           fontSize: FS.sm,
           color: "#8a8478"
         }}><div style={{
-            fontFamily: "'Inter',sans-serif",
+            fontFamily: "var(--font-family-ui)",
             letterSpacing: ".06em",
             marginBottom: S.s4
           }}>{"Recent Check-Ins"}</div><div style={{
@@ -6033,7 +6033,7 @@ function App() {
           gap: S.s8
         }}><button className={"btn btn-ghost btn-sm"} style={{
             flex: 1
-          }} onClick={() => setRetroCheckInModal(false)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+          }} onClick={() => setRetroCheckInModal(false)}>{"Cancel"}</button><button className={"btn btn-secondary"} style={{
             flex: 2
           }} disabled={!retroDate || (profile.checkInHistory || []).includes(retroDate)} onClick={doRetroCheckIn}>{"🔥 Log Check-In"}</button></div></div></div>, document.body)
 
@@ -6455,7 +6455,7 @@ function App() {
             justifyContent: "space-between",
             marginBottom: S.s14
           }}><div style={{
-              fontFamily: "'Inter',sans-serif",
+              fontFamily: "var(--font-family-ui)",
               fontSize: FS.fs92,
               color: "#d4cec4",
               fontWeight: 700
@@ -6484,7 +6484,7 @@ function App() {
             fontSize: FS.fs65,
             color: "#8a8478",
             marginBottom: S.s14
-          }}>{oneOffModal.exercises.length}{" exercises selected · XP will be calculated on completion"}</div><button className={"btn btn-gold"} style={{
+          }}>{oneOffModal.exercises.length}{" exercises selected · XP will be calculated on completion"}</div><button className={"btn btn-secondary"} style={{
             width: "100%"
           }} disabled={!oneOffModal.name.trim()} onClick={() => {
             const wo = {
@@ -6631,7 +6631,7 @@ function App() {
             justifyContent: "space-between",
             marginBottom: S.s14
           }}><div style={{
-              fontFamily: "'Inter',sans-serif",
+              fontFamily: "var(--font-family-ui)",
               fontSize: FS.fs88,
               color: "#d4cec4",
               fontWeight: 700
@@ -6735,9 +6735,9 @@ function App() {
               borderRadius: R.lg,
               fontSize: FS.lg,
               fontWeight: 600,
-              border: feedbackType === t ? "1.5px solid #c9a84c" : "1.5px solid #3a342c",
-              background: feedbackType === t ? "#2a2318" : "transparent",
-              color: feedbackType === t ? "#c9a84c" : "#8a8478",
+              border: feedbackType === t ? "1.5px solid var(--color-action-primary)" : "1.5px solid var(--color-border-default)",
+              background: feedbackType === t ? "var(--color-bg-selected)" : "transparent",
+              color: feedbackType === t ? "var(--color-action-primary)" : "var(--color-text-secondary)",
               cursor: "pointer",
               textTransform: "capitalize"
             }}>{t === "bug" ? "🐛 Bug" : t === "idea" ? "💡 Idea" : "🛟 Help"}</button>)}</div>}{feedbackSent ? helpConfirmShown ? <div style={{
@@ -6747,7 +6747,7 @@ function App() {
               fontSize: "2rem",
               marginBottom: S.s10
             }}>{"📬"}</div><div style={{
-              fontFamily: "'Inter',sans-serif",
+              fontFamily: "var(--font-family-ui)",
               fontSize: FS.fs88,
               color: "#b4ac9e",
               marginBottom: S.s6
@@ -6766,7 +6766,7 @@ function App() {
               fontSize: "2rem",
               marginBottom: S.s10
             }}>{"⚡"}</div><div style={{
-              fontFamily: "'Inter',sans-serif",
+              fontFamily: "var(--font-family-ui)",
               fontSize: FS.fs88,
               color: "#b4ac9e",
               marginBottom: S.s6
@@ -6791,7 +6791,7 @@ function App() {
               marginBottom: 12,
               display: "flex",
               justifyContent: "center"
-            }} />}<button className={"btn btn-gold"} style={{
+            }} />}<button className={"btn btn-secondary"} style={{
               width: "100%"
             }} disabled={!feedbackText.trim() || TURNSTILE_SITE_KEY && !turnstileToken} onClick={async () => {
               const msg = feedbackText.trim();

@@ -11,7 +11,7 @@
  */
 
 import { requireAdmin, denyOrigin, json } from "./_lib/adminAuth.js";
-import { renderEmail, cardBody, escapeHtml } from "./_lib/emailTemplate.js";
+import { EMAIL_COLORS, renderEmail, cardBody, escapeHtml } from "./_lib/emailTemplate.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -61,8 +61,8 @@ export default async (req) => {
     ctaUrl: inviteUrl,
     linkFallback: true,
     bodyHtml: cardBody("You've been summoned.", [
-      `An admin has invited you to join <strong style="color:#c49428">Aurisar Fitness</strong> — the RPG fitness tracker where your workouts become your legend.`,
-      `This invite link expires on <strong style="color:#d4cec4">${escapeHtml(expiresFormatted)}</strong>.`,
+      `An admin has invited you to join <strong style="color:${EMAIL_COLORS.accent}">Aurisar Fitness</strong> — the RPG fitness tracker where your workouts become your legend.`,
+      `This invite link expires on <strong style="color:${EMAIL_COLORS.primary}">${escapeHtml(expiresFormatted)}</strong>.`,
     ]),
   });
 

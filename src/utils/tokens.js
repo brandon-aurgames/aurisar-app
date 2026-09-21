@@ -1,7 +1,6 @@
 // ─── Design tokens ─────────────────────────────────────────────────────────────
-// Single source of truth for the values inline JSX styles repeat across the app.
-// CSS files (src/styles/*.css) keep their literal values — class-based styling
-// already gives them a single edit point. Tokens here are for inline `style={{}}`.
+// Shared values for inline JSX styles. Color aliases resolve to semantic custom
+// properties in theme.css so class styles and inline styles consume one palette.
 //
 // Audit history:
 //   #74 introduced this module with 8 FS, 6 R, 12 S tokens, and migrated the top
@@ -150,44 +149,42 @@ const M = {
 };
 
 // ── Color ────────────────────────────────────────────────────────────────────
-// The parchment/gold palette the app already uses everywhere as hex literals,
-// named once. Same philosophy as the other scales: for inline `style={{}}`;
-// CSS files keep their literals. Semantic status colors (success/danger/xp)
-// stay in UI_COLORS (src/data/constants.js) — no overlap.
+// Inline styles reference the semantic CSS theme instead of carrying a second
+// palette. These aliases keep the current call sites readable while the
+// component migration replaces broad utility objects with component APIs.
 const C = {
-  // Parchment ink ramp — text, brightest to faintest
-  inkBright: "#e8e0d0", // headline emphasis
-  ink:       "#d4cec4", // primary text
-  inkMid:    "#b4ac9e", // secondary text, active-filter accents
-  inkLabel:  "#b0a898", // form labels
-  inkDim:    "#8a8478", // muted text, placeholders
-  inkFaint:  "#5f5a52", // disabled, decorative
+  // Text
+  inkBright: "var(--color-text-primary)",
+  ink:       "var(--color-text-primary)",
+  inkMid:    "var(--color-text-secondary)",
+  inkLabel:  "var(--color-text-secondary)",
+  inkDim:    "var(--color-text-secondary)",
+  inkFaint:  "var(--color-text-disabled)",
 
-  // Gold accents
-  gold:     "#C4A044", // brand accent (matches UI_COLORS.accent usage)
-  goldDeep: "#c49428", // focus rings, gradients
+  // Action accent
+  accent: "var(--color-action-primary)",
 
   // Surfaces
-  bg:        "#0c0c0a", // app background
-  panel:     "#12120e", // raised panels
-  panelWarm: "#16140e", // warm-tinted sheets
+  bg:        "var(--color-bg-canvas)",
+  panel:     "var(--color-bg-surface)",
+  panelWarm: "var(--color-bg-raised)",
 
   // Hairlines and edges (rgba strings, ready for `border`)
-  line:       "rgba(180,172,158,.06)",
-  lineMid:    "rgba(180,172,158,.08)",
-  lineStrong: "rgba(180,172,158,.12)",
-  edge:       "rgba(45,42,36,.2)",
-  edgeStrong: "rgba(45,42,36,.3)",
+  line:       "var(--color-border-subtle)",
+  lineMid:    "var(--color-border-subtle)",
+  lineStrong: "var(--color-border-default)",
+  edge:       "var(--color-border-subtle)",
+  edgeStrong: "var(--color-border-default)",
 
   // Exercise difficulty (single home for the badge colors)
-  diffBeginner:     "#5A8A58",
-  diffIntermediate: "#A8843C",
-  diffAdvanced:     "#7A2838",
+  diffBeginner:     "var(--color-status-success)",
+  diffIntermediate: "var(--color-status-warning)",
+  diffAdvanced:     "var(--color-status-danger)",
 
   // Exercise difficulty badge backgrounds (deep tints behind the FG colors)
-  diffBgBeginner:     "#1a2e1a",
-  diffBgIntermediate: "#2e2010",
-  diffBgAdvanced:     "#2e1515",
+  diffBgBeginner:     "color-mix(in srgb, var(--color-status-success) 12%, transparent)",
+  diffBgIntermediate: "var(--color-bg-raised)",
+  diffBgAdvanced:     "color-mix(in srgb, var(--color-status-danger) 12%, transparent)",
 };
 
 // ── Z-index ──────────────────────────────────────────────────────────────────
@@ -217,28 +214,25 @@ const Z = {
 };
 
 // ── Forge Glass (redesign surface language) ──────────────────────────────────
-// Values lifted from the approved "Forge Glass" prototype. Gold means earned
-// (XP, PBs, level) and nothing else; teal is the action accent. Glass surfaces
-// need `solidBg` as the background when backdrop-filter is unavailable (the
-// coarse-pointer override in app.css disables blur on phones).
+// Forge Glass now consumes the same semantic palette as the rest of the app.
+// Glass surfaces need `solidBg` as the background when backdrop-filter is
+// unavailable (the coarse-pointer override in app.css disables blur on phones).
 const FG = {
-  gold:      "#E8B44A", // earned/XP accent
-  goldSoft:  "#F6E3B6", // text on gold surfaces
-  goldGlow:  "#F0C868", // numerals, XP pop
-  teal:      "#8FE3D2", // action accent
-  tealSoft:  "#CFF6EC", // text on teal surfaces
-  ink:       "#E4DED3", // Forge Glass primary text
-  inkTitle:  "#F4EFE6", // headings
-  inkBright: "#F8F4EC", // large numerals
-  glassBg:        "rgba(255,255,255,.05)",
-  glassBgSoft:    "rgba(255,255,255,.035)",
-  glassBorder:    "rgba(255,255,255,.09)",
-  glassBorderMid: "rgba(255,255,255,.12)",
-  solidBg:        "rgba(9,9,13,.62)",  // no-blur fallback / over-video card bg
-  scrim:          "rgba(4,4,6,.62)",
-  fontBody:  "'Barlow','Inter',system-ui,sans-serif",
-  fontCond:  "'Barlow Condensed','Barlow',sans-serif",
-  fontSerif: "'Cinzel',serif",
+  accent:       "var(--color-action-primary)",
+  accentText:   "var(--color-action-primary)",
+  accentStrong: "var(--color-action-primary-hover)",
+  teal:         "var(--color-action-primary)",
+  tealSoft:     "var(--color-action-primary-hover)",
+  ink:          "var(--color-text-primary)",
+  inkTitle:     "var(--color-text-primary)",
+  inkBright:    "var(--color-text-primary)",
+  glassBg:        "color-mix(in srgb, var(--color-text-primary) 5%, transparent)",
+  glassBgSoft:    "color-mix(in srgb, var(--color-text-primary) 3.5%, transparent)",
+  glassBorder:    "color-mix(in srgb, var(--color-text-primary) 9%, transparent)",
+  glassBorderMid: "color-mix(in srgb, var(--color-text-primary) 12%, transparent)",
+  solidBg:        "color-mix(in srgb, var(--color-bg-canvas) 62%, transparent)",
+  scrim:          "var(--color-bg-scrim)",
+  fontUi: "var(--font-family-ui)",
 };
 
 const TOKENS = { FS, R, S, M, C, Z, FG };

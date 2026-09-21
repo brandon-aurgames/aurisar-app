@@ -39,7 +39,7 @@ async function adminFetch(url, { method = "GET", token, body } = {}) {
 // ── Tiny reusable status pill ─────────────────────────────────────────────────
 function StatusPill({ user }) {
   if (user.is_admin) {
-    return <span style={pill("rgba(196,148,40,.2)", "#c49428")}>Admin</span>;
+    return <span style={pill("color-mix(in srgb, var(--color-action-primary) 20%, transparent)", "var(--color-action-primary)")}>Admin</span>;
   }
   if (user.disabled_at) {
     return <span style={pill("rgba(122,40,56,.25)", "#c47878")}>Disabled</span>;
@@ -88,7 +88,7 @@ function ConfirmModal({ title, body, confirmLabel, confirmDanger, onConfirm, onC
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
           <button style={ghostBtn()} onClick={onCancel}>Cancel</button>
           <button
-            style={confirmDanger ? dangerBtn() : goldBtn()}
+            style={confirmDanger ? dangerBtn() : primaryBtn()}
             onClick={onConfirm}
           >
             {confirmLabel}
@@ -158,12 +158,12 @@ function MfaMenu({ user, token, onDone, onError }) {
               style={{
                 display: "block", width: "100%", textAlign: "left",
                 padding: "10px 14px",
-                fontSize: ".78rem", color: factor === "all" ? "#c49428" : "#d4cec4",
+                fontSize: ".78rem", color: factor === "all" ? "var(--color-action-primary)" : "#d4cec4",
                 background: "transparent",
                 border: "none", borderBottom: "1px solid rgba(180,172,158,.06)",
                 cursor: "pointer",
               }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(196,148,40,.08)"}
+              onMouseEnter={e => e.currentTarget.style.background = "color-mix(in srgb, var(--color-action-primary) 8%, transparent)"}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
               onClick={() => reset(factor)}
             >
@@ -378,7 +378,7 @@ function InviteModal({ token, onClose, onToast }) {
         />
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
           <button style={ghostBtn()} onClick={onClose} disabled={busy}>Cancel</button>
-          <button style={goldBtn()} onClick={send} disabled={busy || !email.trim()}>
+          <button style={primaryBtn()} onClick={send} disabled={busy || !email.trim()}>
             {busy ? "Sending…" : "Send Invite"}
           </button>
         </div>
@@ -440,7 +440,7 @@ export default function AdminPage({ authUser, onBack }) {
       minHeight: "100vh",
       background: "radial-gradient(ellipse 70% 55% at 30% 20%, rgba(55,48,36,.22) 0%, transparent 65%), #0c0c0a",
       color: "#d4cec4",
-      fontFamily: "'Inter', sans-serif",
+      fontFamily: "var(--font-family-ui)",
     }}>
       {/* Header */}
       <div style={{
@@ -461,11 +461,11 @@ export default function AdminPage({ authUser, onBack }) {
           <div style={{ fontSize: ".62rem", letterSpacing: ".3em", color: "#8a8478", textTransform: "uppercase" }}>
             Aurisar
           </div>
-          <div style={{ fontSize: "1rem", fontWeight: 900, letterSpacing: ".12em", color: "#c49428" }}>
+          <div style={{ fontSize: "1rem", fontWeight: 700, letterSpacing: ".12em", color: "var(--color-action-primary)" }}>
             Admin Panel
           </div>
         </div>
-        <button style={goldBtn()} onClick={() => setShowInvite(true)}>
+        <button style={primaryBtn()} onClick={() => setShowInvite(true)}>
           + Invite User
         </button>
       </div>
@@ -493,7 +493,7 @@ export default function AdminPage({ authUser, onBack }) {
             { label: "Admins",         value: users.filter(u => u.is_admin).length },
           ].map(({ label, value }) => (
             <div key={label} style={statCard()}>
-              <div style={{ fontSize: "1.4rem", fontWeight: 900, color: "#c49428" }}>{value}</div>
+              <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--color-action-primary)" }}>{value}</div>
               <div style={{ fontSize: ".62rem", color: "#8a8478", letterSpacing: ".08em", textTransform: "uppercase" }}>{label}</div>
             </div>
           ))}
@@ -593,12 +593,12 @@ function statCard() {
   };
 }
 
-function goldBtn() {
+function primaryBtn() {
   return {
     padding: "8px 16px",
-    background: "rgba(196,148,40,.15)",
-    color: "#c49428",
-    border: "1px solid rgba(196,148,40,.25)",
+    background: "color-mix(in srgb, var(--color-action-primary) 15%, transparent)",
+    color: "var(--color-action-primary)",
+    border: "1px solid color-mix(in srgb, var(--color-action-primary) 25%, transparent)",
     borderRadius: 7,
     fontSize: ".75rem",
     fontWeight: 700,

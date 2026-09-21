@@ -53,9 +53,9 @@ export default function CookingPanel({ inv, sceneRef, onClose, onToast }) {
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '9px 12px', marginBottom: 12, borderRadius: 10,
-            background: 'rgba(120, 53, 15, 0.35)',
-            border: '1px solid rgba(240, 138, 60, 0.45)',
-            color: '#fbbf77', fontSize: 12, fontFamily: FONT,
+            background: 'var(--color-bg-raised)',
+            border: '1px solid var(--color-border-default)',
+            color: 'var(--color-status-warning)', fontSize: 12, fontFamily: FONT,
           }}
         >
           <span style={{ fontSize: 18 }}>🔥</span>
@@ -74,7 +74,7 @@ export default function CookingPanel({ inv, sceneRef, onClose, onToast }) {
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 12px', borderRadius: 10,
                 background: ok ? 'rgba(30, 41, 59, 0.95)' : 'rgba(20, 27, 41, 0.7)',
-                border: `1px solid ${ok ? 'rgba(240,208,96,0.35)' : 'rgba(148,163,184,0.18)'}`,
+                border: `1px solid ${ok ? 'color-mix(in srgb, var(--color-action-primary) 35%, transparent)' : 'rgba(148,163,184,0.18)'}`,
                 opacity: ok ? 1 : 0.65,
               }}
             >

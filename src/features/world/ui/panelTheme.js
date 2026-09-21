@@ -4,7 +4,7 @@
  * WorldOverlay so the new UI feels native to the 3D world.
  */
 
-export const FONT = 'Inter, system-ui, sans-serif';
+export const FONT = 'var(--font-family-ui)';
 
 export const overlayBackdrop = {
   position: 'absolute', inset: 0, zIndex: 90,
@@ -27,7 +27,7 @@ export const panel = {
 
 export const panelTitle = {
   margin: 0, fontSize: 17, fontWeight: 700, letterSpacing: '0.02em',
-  color: '#f0d060', fontFamily: 'Cinzel, Inter, serif',
+  color: 'var(--color-action-primary)', fontFamily: FONT,
 };
 
 export const closeBtn = {
@@ -41,7 +41,7 @@ export const closeBtn = {
 };
 
 export const primaryBtn = {
-  background: '#c49428', border: '1px solid #f0d060',
+  background: 'var(--color-action-primary)', border: '1px solid var(--color-action-primary)',
   borderRadius: 8, color: '#1a1407', fontSize: 13, fontWeight: 700,
   padding: '7px 14px', cursor: 'pointer', fontFamily: FONT,
   minHeight: 36, WebkitTapHighlightColor: 'transparent',

@@ -6,16 +6,16 @@
 <title>Profile Redesign — 5 Mockups</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --cls: #C49428;
-    --cls-mix16: color-mix(in srgb, #C49428 16%, rgba(180,172,158,.06));
-    --cls-mix42: color-mix(in srgb, #C49428 42%, transparent);
-    --cls-mix18: color-mix(in srgb, #C49428 18%, rgba(45,42,36,.4));
-    --cls-mix10: color-mix(in srgb, #C49428 10%, rgba(180,172,158,.05));
-    --cls-mix60: color-mix(in srgb, #C49428 60%, #d4cec4);
+    --cls: #8fe3d2;
+    --cls-mix16: color-mix(in srgb, #8fe3d2 16%, rgba(180,172,158,.06));
+    --cls-mix42: color-mix(in srgb, #8fe3d2 42%, transparent);
+    --cls-mix18: color-mix(in srgb, #8fe3d2 18%, rgba(45,42,36,.4));
+    --cls-mix10: color-mix(in srgb, #8fe3d2 10%, rgba(180,172,158,.05));
+    --cls-mix60: color-mix(in srgb, #8fe3d2 60%, #d4cec4);
     --text: #d4cec4;
     --text2: #b4ac9e;
     --muted: #8a8478;
@@ -49,7 +49,7 @@
   }
   .mockup-nav::-webkit-scrollbar { display: none; }
   .nav-lbl {
-    font-family: 'Cinzel', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: .52rem; color: var(--dim);
     letter-spacing: .18em; text-transform: uppercase;
     white-space: nowrap; flex-shrink: 0; margin-right: 2px;
@@ -61,7 +61,7 @@
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--muted);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 11px; font-weight: 600;
     cursor: pointer; transition: all .18s; white-space: nowrap;
   }
@@ -72,7 +72,7 @@
   .mockup-panel { display: none; padding: 14px; max-width: 480px; margin: 0 auto; }
   .mockup-panel.visible { display: block; }
   .mockup-label {
-    font-family: 'Cinzel', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: .52rem; color: var(--dim);
     letter-spacing: .18em; text-transform: uppercase;
     margin-bottom: 14px;
@@ -85,7 +85,7 @@
   .sec-line-l { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(180,172,158,.06)); }
   .sec-line-r { flex: 1; height: 1px; background: linear-gradient(270deg, transparent, rgba(180,172,158,.06)); }
   .sec-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: .6rem; color: var(--dim);
     letter-spacing: .2em; text-transform: uppercase;
     white-space: nowrap; flex-shrink: 0;
@@ -116,10 +116,10 @@
     width: 26px; height: 26px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     background: var(--cls-mix18);
-    border: 1px solid color-mix(in srgb, #C49428 18%, rgba(180,172,158,.07));
+    border: 1px solid color-mix(in srgb, #8fe3d2 18%, rgba(180,172,158,.07));
   }
   .sc-name {
-    font-family: 'Cinzel', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: .74rem; color: var(--text);
     flex: 1; min-width: 0;
     letter-spacing: .03em; font-weight: 600;
@@ -133,8 +133,8 @@
   /* ── Stat rows ── */
   .sr { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(45,42,36,.3); }
   .sr:last-child { border-bottom: none; }
-  .sr-lbl { font-family: 'Inter', sans-serif; font-size: .65rem; color: var(--muted); width: 76px; flex-shrink: 0; }
-  .sr-val { font-family: 'Inter', sans-serif; font-size: .7rem; color: var(--text2); }
+  .sr-lbl { font-family: 'Inter', system-ui, sans-serif; font-size: .65rem; color: var(--muted); width: 76px; flex-shrink: 0; }
+  .sr-val { font-family: 'Inter', system-ui, sans-serif; font-size: .7rem; color: var(--text2); }
 
   /* ── Data rows (matches .cal-event-row) ── */
   .dr {
@@ -146,11 +146,11 @@
   }
   .dr:last-child { margin-bottom: 0; }
   .dr-icon { font-size: 1rem; flex-shrink: 0; }
-  .dr-label { font-family: 'Inter', sans-serif; font-size: .65rem; color: var(--muted); }
-  .dr-name { font-family: 'Inter', sans-serif; font-size: .68rem; color: var(--text2); }
+  .dr-label { font-family: 'Inter', system-ui, sans-serif; font-size: .65rem; color: var(--muted); }
+  .dr-name { font-family: 'Inter', system-ui, sans-serif; font-size: .68rem; color: var(--text2); }
   .dr-val {
     margin-left: auto; flex-shrink: 0;
-    font-family: 'Cinzel', serif; font-size: .7rem; font-weight: 700;
+    font-family: 'Inter', system-ui, sans-serif; font-size: .7rem; font-weight: 700;
     color: var(--cls-mix60); letter-spacing: .03em;
   }
 
@@ -161,7 +161,7 @@
     width: 30px; height: 30px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; font-size: .9rem; transition: all .18s;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
   }
   .cal-nav-btn:hover { background: var(--surface2); border-color: var(--border2); color: var(--text2); }
 
@@ -174,16 +174,16 @@
     border: 1px solid var(--border); border-radius: 8px; gap: 2px;
   }
   .chip-val {
-    font-family: 'Cinzel', serif; font-size: 1.05rem;
+    font-family: 'Inter', system-ui, sans-serif; font-size: 1.05rem;
     font-weight: 700; color: var(--text);
   }
-  .chip-lbl { font-family: 'Inter', sans-serif; font-size: .55rem; color: var(--muted); letter-spacing: .06em; text-align: center; }
+  .chip-lbl { font-family: 'Inter', system-ui, sans-serif; font-size: .55rem; color: var(--muted); letter-spacing: .06em; text-align: center; }
 
   /* ── Badge ── */
   .badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 3px 8px; border-radius: 20px;
-    font-family: 'Inter', sans-serif; font-size: .6rem; font-weight: 600;
+    font-family: 'Inter', system-ui, sans-serif; font-size: .6rem; font-weight: 600;
     background: rgba(45,42,36,.2); border: 1px solid var(--border);
     color: var(--text2);
   }
@@ -199,7 +199,7 @@
   .tab-item {
     flex: 1; text-align: center;
     padding: 7px 4px;
-    font-family: 'Inter', sans-serif; font-size: .68rem; font-weight: 600;
+    font-family: 'Inter', system-ui, sans-serif; font-size: .68rem; font-weight: 600;
     color: var(--muted); cursor: pointer;
     border-right: 1px solid var(--border);
     transition: all .18s; white-space: nowrap;
@@ -221,7 +221,7 @@
     flex-shrink: 0; padding: 5px 13px; border-radius: 20px;
     border: 1px solid var(--border);
     background: transparent;
-    font-family: 'Inter', sans-serif; font-size: .68rem; font-weight: 600;
+    font-family: 'Inter', system-ui, sans-serif; font-size: .68rem; font-weight: 600;
     color: var(--muted); cursor: pointer; transition: all .18s;
     white-space: nowrap; user-select: none;
   }
@@ -235,8 +235,8 @@
     background: rgba(45,42,36,.18); border: 1px solid var(--border);
     border-radius: 7px; padding: 6px 10px; text-align: center; min-width: 60px;
   }
-  .qs-val { font-family: 'Cinzel', serif; font-size: .95rem; font-weight: 700; color: var(--text); display: block; }
-  .qs-lbl { font-family: 'Inter', sans-serif; font-size: .52rem; color: var(--muted); letter-spacing: .06em; display: block; margin-top: 1px; text-transform: uppercase; }
+  .qs-val { font-family: 'Inter', system-ui, sans-serif; font-size: .95rem; font-weight: 700; color: var(--text); display: block; }
+  .qs-lbl { font-family: 'Inter', system-ui, sans-serif; font-size: .52rem; color: var(--muted); letter-spacing: .06em; display: block; margin-top: 1px; text-transform: uppercase; }
 
   /* ── Hero band ── */
   .hero-band {
@@ -249,7 +249,7 @@
   .hero-avatar {
     width: 46px; height: 46px; border-radius: 50%;
     background: var(--cls-mix18);
-    border: 1px solid color-mix(in srgb, #C49428 30%, rgba(180,172,158,.1));
+    border: 1px solid color-mix(in srgb, #8fe3d2 30%, rgba(180,172,158,.1));
     display: flex; align-items: center; justify-content: center;
     font-size: 20px; flex-shrink: 0; position: relative;
   }
@@ -258,25 +258,25 @@
     width: 12px; height: 12px; border-radius: 50%;
     background: var(--cls); border: 2px solid #0a0908;
   }
-  .hero-name { font-family: 'Cinzel', serif; font-size: .92rem; font-weight: 700; color: var(--text); }
-  .hero-sub { font-family: 'Inter', sans-serif; font-size: .62rem; color: var(--muted); margin-top: 2px; }
+  .hero-name { font-family: 'Inter', system-ui, sans-serif; font-size: .92rem; font-weight: 700; color: var(--text); }
+  .hero-sub { font-family: 'Inter', system-ui, sans-serif; font-size: .62rem; color: var(--muted); margin-top: 2px; }
   .xp-bar-track { flex: 1; height: 3px; background: rgba(45,42,36,.4); border-radius: 2px; overflow: hidden; margin-top: 6px; }
-  .xp-bar-fill { height: 100%; background: linear-gradient(90deg, color-mix(in srgb,#C49428 50%,transparent), #C49428); border-radius: 2px; }
+  .xp-bar-fill { height: 100%; background: linear-gradient(90deg, color-mix(in srgb,#8fe3d2 50%,transparent), #8fe3d2); border-radius: 2px; }
 
   /* ── Buttons ── */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 5px;
     border-radius: 7px; border: 1px solid var(--border);
     background: var(--surface); color: var(--text2);
-    font-family: 'Inter', sans-serif; font-size: .65rem; font-weight: 600;
+    font-family: 'Inter', system-ui, sans-serif; font-size: .65rem; font-weight: 600;
     padding: 5px 11px; cursor: pointer; transition: all .18s; white-space: nowrap;
   }
   .btn:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
   .btn-sm { padding: 3px 8px; font-size: .6rem; }
-  .btn-gold {
-    background: rgba(196,148,40,.12); border-color: rgba(196,148,40,.35); color: #C49428;
+  .btn-secondary {
+    background: rgba(143,227,210,.12); border-color: rgba(143,227,210,.35); color: #8fe3d2;
   }
-  .btn-gold:hover { background: rgba(196,148,40,.2); }
+  .btn-secondary:hover { background: rgba(143,227,210,.2); }
 
   /* ── Day detail card (matches .cal-day-detail) ── */
   .detail-card {
@@ -285,7 +285,7 @@
     border-radius: 12px; padding: 12px 13px; margin-bottom: 10px;
   }
   .detail-hdr {
-    font-family: 'Inter', sans-serif; font-size: .76rem; color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif; font-size: .76rem; color: var(--text);
     margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
   }
 
@@ -298,7 +298,7 @@
   .wtab-bar::-webkit-scrollbar { display: none; }
   .wtab {
     flex-shrink: 0; padding: 8px 14px;
-    font-family: 'Inter', sans-serif; font-size: .68rem; font-weight: 600;
+    font-family: 'Inter', system-ui, sans-serif; font-size: .68rem; font-weight: 600;
     color: var(--muted); cursor: pointer;
     border-bottom: 2px solid transparent; transition: all .18s;
     white-space: nowrap; user-select: none;
@@ -316,9 +316,9 @@
   }
   .metric:last-child { margin-bottom: 0; }
   .metric-icon { font-size: 1.05rem; flex-shrink: 0; }
-  .metric-label { font-family: 'Inter', sans-serif; font-size: .62rem; color: var(--muted); flex: 1; }
-  .metric-value { font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 700; color: var(--cls-mix60); }
-  .metric-unit { font-family: 'Inter', sans-serif; font-size: .58rem; color: var(--muted); margin-left: 3px; }
+  .metric-label { font-family: 'Inter', system-ui, sans-serif; font-size: .62rem; color: var(--muted); flex: 1; }
+  .metric-value { font-family: 'Inter', system-ui, sans-serif; font-size: 1rem; font-weight: 700; color: var(--cls-mix60); }
+  .metric-unit { font-family: 'Inter', system-ui, sans-serif; font-size: .58rem; color: var(--muted); margin-left: 3px; }
 
   /* ── Action icon grid ── */
   .act-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 10px; }
@@ -329,7 +329,7 @@
   }
   .act-card:hover { background: var(--card-hdr); border-color: var(--cls-mix42); }
   .act-icon { font-size: 1.2rem; display: block; margin-bottom: 4px; }
-  .act-lbl { font-family: 'Cinzel', serif; font-size: .52rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+  .act-lbl { font-family: 'Inter', system-ui, sans-serif; font-size: .52rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
 </style>
 </head>
 <body>
@@ -353,10 +353,10 @@
   <!-- Streak strip -->
   <div class="detail-card" style="padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
     <span style="font-size:1.1rem">&#128293;</span>
-    <span style="font-family:'Cinzel',serif;font-size:.72rem;color:var(--text2)"><strong>14</strong> <span style="color:var(--muted);font-weight:400">day streak</span></span>
+    <span style="font-family:'Inter',system-ui,sans-serif;font-size:.72rem;color:var(--text2)"><strong>14</strong> <span style="color:var(--muted);font-weight:400">day streak</span></span>
     <div style="flex:1"></div>
     <button class="btn btn-sm">&#8634; Retro</button>
-    <button class="btn btn-gold btn-sm">Check In</button>
+    <button class="btn btn-secondary btn-sm">Check In</button>
   </div>
 
   <!-- Tab bar -->
@@ -398,7 +398,7 @@
           <div class="chip"><span class="chip-val" style="font-size:.9rem">14&#128293;</span><span class="chip-lbl">Streak</span></div>
           <div class="chip"><span class="chip-val">187</span><span class="chip-lbl">Sessions</span></div>
           <div class="chip"><span class="chip-val">8</span><span class="chip-lbl">Quests</span></div>
-          <div class="chip" style="border-color:rgba(196,148,40,.25)"><span class="chip-val" style="color:#C49428;font-size:.82rem">7:32/mi</span><span class="chip-lbl">&#127939; Run PB</span></div>
+          <div class="chip" style="border-color:rgba(143,227,210,.25)"><span class="chip-val" style="color:#8fe3d2;font-size:.82rem">7:32/mi</span><span class="chip-lbl">&#127939; Run PB</span></div>
         </div>
       </div>
     </div>
@@ -411,7 +411,7 @@
         <span class="sc-caret">&#9660;</span>
       </div>
       <div class="sc-body hidden">
-        <div style="font-family:'Cinzel',serif;font-size:.72rem;color:var(--text2);font-style:italic;text-align:center;margin-bottom:9px">"Train hard, recover harder."</div>
+        <div style="font-family:'Inter',system-ui,sans-serif;font-size:.72rem;color:var(--text2);font-style:italic;text-align:center;margin-bottom:9px">"Train hard, recover harder."</div>
         <div class="sr"><span class="sr-lbl">Training</span><span class="sr-val">Heavy Compounds</span></div>
         <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">
           <span class="badge">&#128170; Being Strong</span>
@@ -532,11 +532,11 @@
       <button class="btn btn-sm">&#9998; Edit</button>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-family:'Inter',sans-serif;font-size:.58rem;color:var(--muted);width:30px">Lv 24</span>
+      <span style="font-family:'Inter',system-ui,sans-serif;font-size:.58rem;color:var(--muted);width:30px">Lv 24</span>
       <div class="xp-bar-track" style="flex:1"><div class="xp-bar-fill" style="width:62%"></div></div>
-      <span style="font-family:'Inter',sans-serif;font-size:.58rem;color:var(--muted);width:30px;text-align:right">Lv 25</span>
+      <span style="font-family:'Inter',system-ui,sans-serif;font-size:.58rem;color:var(--muted);width:30px;text-align:right">Lv 25</span>
     </div>
-    <div style="text-align:center;font-family:'Inter',sans-serif;font-size:.55rem;color:var(--muted);margin-top:3px">12,400 / 20,000 XP</div>
+    <div style="text-align:center;font-family:'Inter',system-ui,sans-serif;font-size:.55rem;color:var(--muted);margin-top:3px">12,400 / 20,000 XP</div>
   </div>
 
   <!-- Action shortcut grid -->
@@ -550,8 +550,8 @@
   <div class="sc" style="border-radius:9px;margin-bottom:10px">
     <div class="sc-hdr" style="cursor:default">
       <span style="font-size:1.2rem">&#128293;</span>
-      <div style="flex:1"><div style="font-family:'Inter',sans-serif;font-size:.7rem;font-weight:600;color:var(--text2)">14-day streak</div><div style="font-family:'Inter',sans-serif;font-size:.6rem;color:var(--muted)">Keep it going &mdash; check in today</div></div>
-      <button class="btn btn-gold btn-sm">Check In</button>
+      <div style="flex:1"><div style="font-family:'Inter',system-ui,sans-serif;font-size:.7rem;font-weight:600;color:var(--text2)">14-day streak</div><div style="font-family:'Inter',system-ui,sans-serif;font-size:.6rem;color:var(--muted)">Keep it going &mdash; check in today</div></div>
+      <button class="btn btn-secondary btn-sm">Check In</button>
     </div>
   </div>
 
@@ -638,7 +638,7 @@
     <div class="sc">
       <div class="sc-hdr"><div class="sc-icon">&#127807;</div><div><div class="sc-name">About You</div><div class="sc-meta">Motto &middot; Priorities</div></div><div style="flex:1"></div><span class="sc-caret open">&#9660;</span></div>
       <div class="sc-body">
-        <div style="font-family:'Cinzel',serif;font-size:.72rem;color:var(--text2);font-style:italic;text-align:center;margin-bottom:9px">"Train hard, recover harder."</div>
+        <div style="font-family:'Inter',system-ui,sans-serif;font-size:.72rem;color:var(--text2);font-style:italic;text-align:center;margin-bottom:9px">"Train hard, recover harder."</div>
         <div class="sr"><span class="sr-lbl">Training</span><span class="sr-val">Heavy Compounds</span></div>
         <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">
           <span class="badge">&#128170; Being Strong</span>
@@ -658,7 +658,7 @@
         <div class="chip"><span class="chip-val" style="font-size:.9rem">14&#128293;</span><span class="chip-lbl">Streak</span></div>
         <div class="chip"><span class="chip-val">187</span><span class="chip-lbl">Sessions</span></div>
         <div class="chip"><span class="chip-val">8</span><span class="chip-lbl">Quests</span></div>
-        <div class="chip" style="border-color:rgba(196,148,40,.25)"><span class="chip-val" style="color:#C49428;font-size:.8rem">7:32/mi</span><span class="chip-lbl">Run PB</span></div>
+        <div class="chip" style="border-color:rgba(143,227,210,.25)"><span class="chip-val" style="color:#8fe3d2;font-size:.8rem">7:32/mi</span><span class="chip-lbl">Run PB</span></div>
       </div></div>
     </div>
   </div>
@@ -739,7 +739,7 @@
       <div class="hero-sub">Level 24 Warrior</div>
     </div>
     <button class="btn btn-sm">&#9998;</button>
-    <button class="btn btn-gold btn-sm">&#128293; Check In</button>
+    <button class="btn btn-secondary btn-sm">&#128293; Check In</button>
   </div>
 
   <!-- Quick stat scroll -->
@@ -749,7 +749,7 @@
     <div class="qs"><span class="qs-val" style="font-size:.8rem">14&#128293;</span><span class="qs-lbl">Streak</span></div>
     <div class="qs"><span class="qs-val">187</span><span class="qs-lbl">Sessions</span></div>
     <div class="qs"><span class="qs-val">8</span><span class="qs-lbl">Quests</span></div>
-    <div class="qs" style="border-color:rgba(196,148,40,.25)"><span class="qs-val" style="color:#C49428;font-size:.8rem">7:32</span><span class="qs-lbl">Run PB</span></div>
+    <div class="qs" style="border-color:rgba(143,227,210,.25)"><span class="qs-val" style="color:#8fe3d2;font-size:.8rem">7:32</span><span class="qs-lbl">Run PB</span></div>
   </div>
 
   <div class="sec-hdr"><div class="sec-line-l"></div><span class="sec-title">&#10022; Profile &#10022;</span><div class="sec-line-r"></div></div>
@@ -796,7 +796,7 @@
   <div class="sc">
     <div class="sc-hdr collapsed"><div class="sc-icon">&#127807;</div><div><div class="sc-name">About You</div><div class="sc-meta">Motto &middot; Training style &middot; Priorities</div></div><div style="flex:1"></div><span class="sc-caret">&#9660;</span></div>
     <div class="sc-body hidden">
-      <div style="font-family:'Cinzel',serif;font-size:.72rem;color:var(--text2);font-style:italic;text-align:center;margin-bottom:9px">"Train hard, recover harder."</div>
+      <div style="font-family:'Inter',system-ui,sans-serif;font-size:.72rem;color:var(--text2);font-style:italic;text-align:center;margin-bottom:9px">"Train hard, recover harder."</div>
       <div class="sr"><span class="sr-lbl">Training</span><span class="sr-val">Heavy Compounds</span></div>
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">
         <span class="badge">&#128170; Being Strong</span>
@@ -845,12 +845,12 @@
       <div class="hero-sub">Lv 24 Warrior &middot; #4821 &middot; &#128293; 14-day streak</div>
       <div style="display:flex;align-items:center;gap:7px;margin-top:6px">
         <div class="xp-bar-track" style="flex:1"><div class="xp-bar-fill" style="width:62%"></div></div>
-        <span style="font-family:'Inter',sans-serif;font-size:.55rem;color:var(--muted)">Lv 25 &#8594;</span>
+        <span style="font-family:'Inter',system-ui,sans-serif;font-size:.55rem;color:var(--muted)">Lv 25 &#8594;</span>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
       <button class="btn btn-sm">&#9998; Edit</button>
-      <button class="btn btn-gold btn-sm">Check In</button>
+      <button class="btn btn-secondary btn-sm">Check In</button>
     </div>
   </div>
 
@@ -876,7 +876,7 @@
     <div class="sc">
       <div class="sc-hdr"><div class="sc-icon">&#127807;</div><div><div class="sc-name">About You</div><div class="sc-meta">Motto &middot; Style &middot; Priorities</div></div><div style="flex:1"></div><span class="sc-caret open">&#9660;</span></div>
       <div class="sc-body">
-        <div style="font-family:'Cinzel',serif;font-size:.72rem;color:var(--text2);font-style:italic;text-align:center;margin-bottom:9px">"Train hard, recover harder."</div>
+        <div style="font-family:'Inter',system-ui,sans-serif;font-size:.72rem;color:var(--text2);font-style:italic;text-align:center;margin-bottom:9px">"Train hard, recover harder."</div>
         <div class="sr"><span class="sr-lbl">Training</span><span class="sr-val">Heavy Compounds</span></div>
         <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">
           <span class="badge">&#128170; Being Strong</span>
@@ -897,7 +897,7 @@
         <div class="chip"><span class="chip-val" style="font-size:.9rem">14&#128293;</span><span class="chip-lbl">Streak</span></div>
         <div class="chip"><span class="chip-val">187</span><span class="chip-lbl">Sessions</span></div>
         <div class="chip"><span class="chip-val">8</span><span class="chip-lbl">Quests</span></div>
-        <div class="chip" style="border-color:rgba(196,148,40,.25)"><span class="chip-val" style="color:#C49428;font-size:.8rem">7:32/mi</span><span class="chip-lbl">Run PB</span></div>
+        <div class="chip" style="border-color:rgba(143,227,210,.25)"><span class="chip-val" style="color:#8fe3d2;font-size:.8rem">7:32/mi</span><span class="chip-lbl">Run PB</span></div>
       </div></div>
     </div>
     <div class="sc">
@@ -978,7 +978,7 @@
     <div class="sc">
       <div class="sc-hdr"><div class="sc-icon">&#128231;</div><div><div class="sc-name">Email</div><div class="sc-meta">user@example.com</div></div><div style="flex:1"></div><span class="sc-caret open">&#9660;</span></div>
       <div class="sc-body">
-        <div style="font-family:'Inter',sans-serif;font-size:.65rem;color:var(--muted);margin-bottom:8px">Change your account email address.</div>
+        <div style="font-family:'Inter',system-ui,sans-serif;font-size:.65rem;color:var(--muted);margin-bottom:8px">Change your account email address.</div>
         <button class="btn" style="width:100%">Change Email</button>
       </div>
     </div>
