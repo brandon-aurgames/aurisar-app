@@ -1,0 +1,303 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "description": "Tracked runtime source under src/ and public/, plus root HTML entries; test files are excluded.",
+    "sourceFiles": 406,
+    "themePrimitiveFile": "src/styles/theme.css"
+  },
+  "summary": {
+    "rawColorOccurrences": 3999,
+    "hardCodedColorOccurrences": 3991,
+    "uniqueRawColorValues": 1083,
+    "cssVariableDefinitions": 174,
+    "cssVariableReferences": 551,
+    "inlineStyleObjects": 1936,
+    "fontDeclarations": 449,
+    "prohibitedFontReferences": 173,
+    "legacyAccentNameReferences": 236
+  },
+  "mostFrequentRawColors": [
+    {
+      "value": "#8a8478",
+      "occurrences": 554
+    },
+    {
+      "value": "#b4ac9e",
+      "occurrences": 248
+    },
+    {
+      "value": "#d4cec4",
+      "occurrences": 216
+    },
+    {
+      "value": "rgba(180,172,158,.06)",
+      "occurrences": 107
+    },
+    {
+      "value": "rgba(180,172,158,.08)",
+      "occurrences": 63
+    },
+    {
+      "value": "#c49428",
+      "occurrences": 56
+    },
+    {
+      "value": "rgba(180,172,158,.05)",
+      "occurrences": 56
+    },
+    {
+      "value": "rgba(45,42,36,.2)",
+      "occurrences": 52
+    },
+    {
+      "value": "rgba(45,42,36,.12)",
+      "occurrences": 48
+    },
+    {
+      "value": "rgba(180,172,158,.1)",
+      "occurrences": 43
+    },
+    {
+      "value": "#94a3b8",
+      "occurrences": 40
+    },
+    {
+      "value": "rgba(45,42,36,.18)",
+      "occurrences": 39
+    },
+    {
+      "value": "rgba(45,42,36,.15)",
+      "occurrences": 38
+    },
+    {
+      "value": "#f0d060",
+      "occurrences": 37
+    },
+    {
+      "value": "rgba(45,42,36,.3)",
+      "occurrences": 37
+    },
+    {
+      "value": "#000",
+      "occurrences": 36
+    },
+    {
+      "value": "#0c0c0a",
+      "occurrences": 35
+    },
+    {
+      "value": "rgba(180,172,158,.12)",
+      "occurrences": 33
+    },
+    {
+      "value": "#c4a044",
+      "occurrences": 32
+    },
+    {
+      "value": "#b0a898",
+      "occurrences": 29
+    },
+    {
+      "value": "rgba(180,172,158,.07)",
+      "occurrences": 29
+    },
+    {
+      "value": "rgba(180,172,158,.04)",
+      "occurrences": 25
+    },
+    {
+      "value": "rgba(45,42,36,.22)",
+      "occurrences": 25
+    },
+    {
+      "value": "rgba(180,172,158,.15)",
+      "occurrences": 22
+    },
+    {
+      "value": "#116",
+      "occurrences": 21
+    },
+    {
+      "value": "rgba(45,42,36,.4)",
+      "occurrences": 20
+    },
+    {
+      "value": "rgba(45,42,36,.25)",
+      "occurrences": 19
+    },
+    {
+      "value": "rgba(45,42,36,.5)",
+      "occurrences": 19
+    },
+    {
+      "value": "#e74c3c",
+      "occurrences": 18
+    },
+    {
+      "value": "#fff",
+      "occurrences": 18
+    },
+    {
+      "value": "rgba(0,0,0,.5)",
+      "occurrences": 18
+    },
+    {
+      "value": "rgba(0,0,0,.4)",
+      "occurrences": 17
+    },
+    {
+      "value": "#b0a090",
+      "occurrences": 16
+    },
+    {
+      "value": "rgba(0,0,0,.6)",
+      "occurrences": 16
+    },
+    {
+      "value": "#2ecc71",
+      "occurrences": 14
+    },
+    {
+      "value": "rgba(0,0,0,.3)",
+      "occurrences": 14
+    },
+    {
+      "value": "#e2e8f0",
+      "occurrences": 13
+    },
+    {
+      "value": "rgba(180,172,158,.3)",
+      "occurrences": 13
+    },
+    {
+      "value": "rgba(255,255,255,.04)",
+      "occurrences": 13
+    },
+    {
+      "value": "rgba(45,42,36,.35)",
+      "occurrences": 13
+    }
+  ],
+  "filesWithMostHardCodedColors": [
+    {
+      "file": "src/styles/app.css",
+      "occurrences": 1733
+    },
+    {
+      "file": "src/features/profile/ProfileTab.jsx",
+      "occurrences": 253
+    },
+    {
+      "file": "public/reference/ashwood.html",
+      "occurrences": 235
+    },
+    {
+      "file": "src/App.jsx",
+      "occurrences": 162
+    },
+    {
+      "file": "src/features/leaderboard/LeaderboardTab.jsx",
+      "occurrences": 82
+    },
+    {
+      "file": "src/features/workouts/WorkoutsTab.jsx",
+      "occurrences": 69
+    },
+    {
+      "file": "src/components/AdminPage.jsx",
+      "occurrences": 66
+    },
+    {
+      "file": "src/components/PlanWizard.jsx",
+      "occurrences": 59
+    },
+    {
+      "file": "src/data/constants.js",
+      "occurrences": 57
+    },
+    {
+      "file": "src/features/world/WorldGame.jsx",
+      "occurrences": 55
+    },
+    {
+      "file": "src/components/PlansTabContainer.jsx",
+      "occurrences": 49
+    },
+    {
+      "file": "src/features/workouts/workout-details.css",
+      "occurrences": 47
+    },
+    {
+      "file": "src/features/exercises/ExerciseDetailSheet.jsx",
+      "occurrences": 46
+    },
+    {
+      "file": "src/components/TrendsTab.jsx",
+      "occurrences": 45
+    },
+    {
+      "file": "src/features/avatar/AvatarCreator.jsx",
+      "occurrences": 44
+    },
+    {
+      "file": "src/components/MapSVG.jsx",
+      "occurrences": 39
+    },
+    {
+      "file": "src/features/exercises/MyWorkoutsSubTab.jsx",
+      "occurrences": 38
+    },
+    {
+      "file": "src/utils/tokens.js",
+      "occurrences": 36
+    },
+    {
+      "file": "src/components/PrivacyPolicy.jsx",
+      "occurrences": 31
+    },
+    {
+      "file": "src/features/history/HistoryTab.jsx",
+      "occurrences": 31
+    },
+    {
+      "file": "src/features/world/WorldMap.jsx",
+      "occurrences": 31
+    },
+    {
+      "file": "src/features/character/MapOverlay.jsx",
+      "occurrences": 30
+    },
+    {
+      "file": "src/features/onboarding/OnboardingScreen.jsx",
+      "occurrences": 29
+    },
+    {
+      "file": "src/features/social/GuildTab.jsx",
+      "occurrences": 29
+    },
+    {
+      "file": "src/data/exercises.js",
+      "occurrences": 26
+    },
+    {
+      "file": "src/features/world/streaming/ashwoodPropMeshes.js",
+      "occurrences": 25
+    },
+    {
+      "file": "src/features/exercises/ExerciseLibraryTab.jsx",
+      "occurrences": 24
+    },
+    {
+      "file": "src/features/world/GameMenu.jsx",
+      "occurrences": 23
+    },
+    {
+      "file": "src/features/world/TestingHud.jsx",
+      "occurrences": 23
+    },
+    {
+      "file": "src/features/avatar/panels/HairPanel.jsx",
+      "occurrences": 21
+    }
+  ]
+}
