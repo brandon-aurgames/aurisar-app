@@ -4,6 +4,7 @@ import { calcExXP } from '../../utils/xp';
 import { planQuickLogRows } from '../../utils/quickLogRows';
 import { isMetric, kgToLbs, lbsToKg, kmToMi, miToKm, weightLabel, distLabel, displayPace } from '../../utils/units';
 import { S, R, FS, FG } from '../../utils/tokens';
+import Button from '../../components/ui/Button';
 import Sheet from '../../components/ui/Sheet';
 import SetsEditor from '../../components/ui/SetsEditor';
 import WeightRuler from '../../components/ui/WeightRuler';
@@ -325,7 +326,7 @@ const QuickLogModal = memo(function QuickLogModal({
       title={`${ex.icon || ""} ${ex.name}`.trim()}
       ariaLabel={ex.name}
       headerLeft={fromDetail ? (
-        <button className={"btn btn-ghost btn-sm"} style={{ padding: "4px 8px", fontSize: FS.fs75, flexShrink: 0 }} onClick={backToDetail}>{"← Back"}</button>
+        <Button variant={"ghost"} size={"sm"} style={{ padding: "4px 8px", fontSize: FS.fs75, flexShrink: 0 }} onClick={backToDetail}>{"← Back"}</Button>
       ) : null}
     >
       <div>
@@ -475,19 +476,19 @@ const QuickLogModal = memo(function QuickLogModal({
               {/* Primary action row — Copy retired with Forge Glass; custom
                   exercises keep their ✎ Edit entry point. */}
               <div style={{ display: "flex", gap: S.s6, marginBottom: S.s8 }}>
-                <button className={"btn btn-accent"} style={{ flex: 2, fontSize: FS.sm, padding: "8px 10px" }} onClick={logExercise}>{"✓ Complete / Schedule"}</button>
+                <Button variant={"accent"} style={{ flex: 2, fontSize: FS.sm, padding: "8px 10px" }} onClick={logExercise}>{"✓ Complete / Schedule"}</Button>
                 {ex.id !== "rest_day" && ex.custom && (
-                  <button className={"btn btn-ghost btn-sm"} style={{ flex: 1, fontSize: FS.sm, padding: "8px 6px" }} onClick={() => {
+                  <Button variant={"ghost"} size={"sm"} style={{ flex: 1, fontSize: FS.sm, padding: "8px 6px" }} onClick={() => {
                     openExEditor("edit", ex);
                     dismiss();
-                  }}>{"✎ Edit"}</button>
+                  }}>{"✎ Edit"}</Button>
                 )}
               </div>
 
               {/* Secondary actions */}
               <div style={{ display: "flex", gap: S.s6 }}>
                 {ex.id !== "rest_day" && (
-                  <button className={"btn btn-ghost btn-sm"} style={{ flex: 1, fontSize: FS.fs58, padding: "6px 8px", borderColor: "rgba(45,42,36,.3)", color: "#8a8478" }} onClick={() => {
+                  <Button variant={"ghost"} size={"sm"} style={{ flex: 1, fontSize: FS.fs58, padding: "6px 8px", borderColor: "rgba(45,42,36,.3)", color: "#8a8478" }} onClick={() => {
                     // rowPlan is the same planner logExercise() writes from —
                     // reusing it here (instead of re-deriving sets/reps from
                     // raw state) is what carries a timed duration and any
@@ -511,13 +512,13 @@ const QuickLogModal = memo(function QuickLogModal({
                     };
                     setAddToWorkoutPicker({ exercises: [exEntry] });
                     dismiss();
-                  }}>{"➕ Add to Workout"}</button>
+                  }}>{"➕ Add to Workout"}</Button>
                 )}
-                <button className={"btn btn-ghost btn-sm"} style={{ flex: 1, fontSize: FS.fs58, padding: "6px 8px", borderColor: "rgba(45,42,36,.3)", color: "#8a8478" }} onClick={() => {
+                <Button variant={"ghost"} size={"sm"} style={{ flex: 1, fontSize: FS.fs58, padding: "6px 8px", borderColor: "rgba(45,42,36,.3)", color: "#8a8478" }} onClick={() => {
                   // Shared opener seeds spwSelected for every entry point.
                   openSavePlanWizard([planEntry(ex, profile.chosenClass, allExById)], ex.name, ex.name);
                   dismiss();
-                }}>{"📋 Add to Plan"}</button>
+                }}>{"📋 Add to Plan"}</Button>
               </div>
             </div>
       </div>

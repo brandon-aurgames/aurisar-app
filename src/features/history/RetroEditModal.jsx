@@ -1,9 +1,9 @@
 import React, { memo } from 'react';
 import { createPortal } from 'react-dom';
-import { uid } from '../../utils/helpers';
 import { calcExXP } from '../../utils/xp';
 import { applyStoredPerk } from '../../utils/gearPerks';
 import { S, FS, R } from '../../utils/tokens';
+import Button from '../../components/ui/Button';
 
 /**
  * Retro-edit modal — extracted from the inline IIFE in App.jsx as part of
@@ -37,7 +37,7 @@ const RetroEditModal = memo(function RetroEditModal({
             <div style={{ fontSize: FS.fs90, color: "#d4cec4", fontFamily: "var(--font-family-ui)", fontWeight: 600 }}>
               {"✎ Edit Completed "}{rem.sourceType === "plan" ? "Plan Session" : "Workout"}
             </div>
-            <button className={"btn btn-ghost btn-sm"} onClick={() => setRetroEditModal(null)}>{"✕"}</button>
+            <Button variant={"ghost"} size={"sm"} aria-label={"Close completed workout editor"} onClick={() => setRetroEditModal(null)}>{"✕"}</Button>
           </div>
 
           {/* Subtitle */}
@@ -55,9 +55,9 @@ const RetroEditModal = memo(function RetroEditModal({
                   <div style={{ display: "flex", alignItems: "center", gap: S.s8, marginBottom: S.s6 }}>
                     <span style={{ fontSize: "1rem" }}>{exData.icon}</span>
                     <span style={{ fontSize: FS.fs78, color: "#d4cec4", flex: 1, fontWeight: 600 }}>{exData.name}</span>
-                    <button className={"btn btn-danger btn-xs"} onClick={() => {
+                    <Button variant={"danger"} size={"xs"} aria-label={`Remove ${exData.name}`} onClick={() => {
                       setRetroEditModal(prev => ({ ...prev, entries: prev.entries.filter((_, j) => j !== i) }));
-                    }}>{"✕"}</button>
+                    }}>{"✕"}</Button>
                   </div>
                   <div style={{ display: "flex", gap: S.s6 }}>
                     <div style={{ flex: 1 }}>
@@ -91,9 +91,8 @@ const RetroEditModal = memo(function RetroEditModal({
 
           {/* Actions */}
           <div style={{ display: "flex", gap: S.s8 }}>
-            <button className={"btn btn-ghost btn-sm"} style={{ flex: 1 }} onClick={() => setRetroEditModal(null)}>{"Cancel"}</button>
-            <button className={"btn btn-secondary"} style={{ flex: 2 }} onClick={() => {
-              const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            <Button variant={"ghost"} size={"sm"} style={{ flex: 1 }} onClick={() => setRetroEditModal(null)}>{"Cancel"}</Button>
+            <Button style={{ flex: 2 }} onClick={() => {
               const newEntries = rem.entries.map((e, i) => {
                 const updated = retroEditModal.entries[i];
                 if (!updated) return null;
@@ -113,7 +112,7 @@ const RetroEditModal = memo(function RetroEditModal({
               setProfile(p => ({ ...p, log: updatedLog }));
               setRetroEditModal(null);
               showToast("✓ Workout log updated!");
-            }}>{"✓ Save Changes"}</button>
+            }}>{"✓ Save Changes"}</Button>
           </div>
 
         </div>
