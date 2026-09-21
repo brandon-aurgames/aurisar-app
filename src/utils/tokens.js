@@ -158,7 +158,7 @@ const C = {
   ink:       "var(--color-text-primary)",
   inkMid:    "var(--color-text-secondary)",
   inkLabel:  "var(--color-text-secondary)",
-  inkDim:    "var(--color-text-secondary)",
+  inkDim:    "var(--color-text-muted)",
   inkFaint:  "var(--color-text-disabled)",
 
   // Action accent
