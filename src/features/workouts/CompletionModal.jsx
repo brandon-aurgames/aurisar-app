@@ -3,6 +3,7 @@ import { todayStr } from '../../utils/helpers';
 import { calcWorkoutXP, getMuscleColor } from '../../utils/xp';
 import { formatXP } from '../../utils/format';
 import { S, FS } from '../../utils/tokens';
+import Button from '../../components/ui/Button';
 import Sheet from '../../components/ui/Sheet';
 
 // The selected-state checkmark circle each option row shows. One definition
@@ -77,13 +78,13 @@ const CompletionModal = memo(function CompletionModal({
       ariaLabel={"Workout completion"}
       style={{ "--mg-color": accentColor }}
       headerLeft={completionModal.fromStats ? (
-        <button className={"btn btn-ghost btn-sm"} style={{ padding: "4px 8px", fontSize: FS.fs75, flexShrink: 0 }} onClick={() => {
+        <Button variant={"ghost"} size={"sm"} style={{ padding: "4px 8px", fontSize: FS.fs75, flexShrink: 0 }} onClick={() => {
           const prev = completionModal.fromStats;
           setCompletionModal(null);
           setCompletionAction("today");
           setScheduleWoDate("");
           setStatsPromptModal(prev);
-        }}>{"← Back"}</button>
+        }}>{"← Back"}</Button>
       ) : null}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: S.s14 }}>
@@ -174,9 +175,9 @@ const CompletionModal = memo(function CompletionModal({
 
         {/* Actions */}
         <div style={{ display: "flex", gap: S.s8 }}>
-          <button className={"btn btn-ghost btn-sm"} style={{ flex: 1 }} onClick={dismiss}>{"Cancel"}</button>
+          <Button variant={"ghost"} size={"sm"} style={{ flex: 1 }} onClick={dismiss}>{"Cancel"}</Button>
           {!inScheduleMode ? (
-            <button className={"btn btn-cls"} style={{ flex: 2 }} disabled={inPickMode && !pickerValue} onClick={() => {
+            <Button variant={"class"} style={{ flex: 2 }} disabled={inPickMode && !pickerValue} onClick={() => {
               if (completionModal.soloExCallback) {
                 const dateStr = completionAction === "past" && completionDate && completionDate !== "pick" ? completionDate : todayStr();
                 completionModal.soloExCallback(dateStr);
@@ -187,15 +188,15 @@ const CompletionModal = memo(function CompletionModal({
               } else {
                 confirmWorkoutComplete();
               }
-            }}>{"✓ Confirm & Claim XP"}</button>
+            }}>{"✓ Confirm & Claim XP"}</Button>
           ) : (
-            <button className={"btn btn-secondary"} style={{ flex: 2 }} disabled={!scheduleWoDate} onClick={() => {
+            <Button style={{ flex: 2 }} disabled={!scheduleWoDate} onClick={() => {
               if (completionModal.soloExScheduleCallback) {
                 completionModal.soloExScheduleCallback(scheduleWoDate);
               } else {
                 scheduleWorkoutForDate();
               }
-            }}>{"📅 Schedule Workout"}</button>
+            }}>{"📅 Schedule Workout"}</Button>
           )}
         </div>
 

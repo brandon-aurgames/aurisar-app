@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import Button from './Button';
 import Sheet from './Sheet';
 
 /**
@@ -46,16 +47,17 @@ export default function ConfirmSheet({
       </div>
       {body && <div className={'ui-confirm-body'}>{body}</div>}
       <div className={'ui-confirm-actions'}>
-        <button ref={cancelRef} className={'btn btn-ghost ui-confirm-btn'} style={{ flex: 1 }} onClick={onCancel}>
+        <Button ref={cancelRef} variant={'ghost'} className={'ui-confirm-btn'} style={{ flex: 1 }} onClick={onCancel}>
           {cancelLabel}
-        </button>
-        <button
-          className={`btn ${danger ? 'btn-danger' : 'btn-primary'} ui-confirm-btn`}
+        </Button>
+        <Button
+          variant={danger ? 'danger' : 'primary'}
+          className={'ui-confirm-btn'}
           style={{ flex: 2 }}
           onClick={onConfirm}
         >
           {confirmLabel}
-        </button>
+        </Button>
       </div>
     </Sheet>
   );

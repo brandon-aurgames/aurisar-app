@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": {
     "description": "Theme counts cover runtime source under src/ and public/, plus root HTML entries; prohibited font and legacy UI accent checks cover all repository text and paths.",
-    "repositoryFiles": 995,
-    "sourceFiles": 406,
+    "repositoryFiles": 997,
+    "sourceFiles": 407,
     "themePrimitiveFile": "src/styles/theme.css"
   },
   "summary": {

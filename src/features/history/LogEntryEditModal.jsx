@@ -5,6 +5,7 @@ import { isMetric, lbsToKg, kgToLbs, miToKm, kmToMi, weightLabel, distLabel } fr
 import { calcExXP } from '../../utils/xp';
 import { applyStoredPerk } from '../../utils/gearPerks';
 import { HR_ZONES, UI_COLORS } from '../../data/constants';
+import Button from '../../components/ui/Button';
 
 /**
  * Log-entry edit modal — extracted from the inline IIFE in App.jsx as part of
@@ -73,7 +74,7 @@ const LogEntryEditModal = memo(function LogEntryEditModal({
               {d.icon}{" "}{d.exercise}
             </div>
           </div>
-          <button className={"btn btn-ghost btn-sm"} onClick={() => setLogEditModal(null)}>{"✕"}</button>
+          <Button variant={"ghost"} size={"sm"} aria-label={"Close log entry editor"} onClick={() => setLogEditModal(null)}>{"✕"}</Button>
         </div>
 
         {/* Source info */}
@@ -173,15 +174,15 @@ const LogEntryEditModal = memo(function LogEntryEditModal({
 
         {/* Actions */}
         <div style={{ display: "flex", gap: S.s8 }}>
-          <button className={"btn btn-danger btn-sm"} style={{ flex: 0, padding: "8px 12px" }}
+          <Button variant={"danger"} size={"sm"} aria-label={"Delete log entry"} style={{ flex: 0, padding: "8px 12px" }}
             onClick={() => {
               setLogEditModal(null);
               deleteLogEntryByIdx(logEditModal.idx);
-            }}>{"🗑"}</button>
-          <button className={"btn btn-ghost btn-sm"} style={{ flex: 1 }}
-            onClick={() => setLogEditModal(null)}>{"Cancel"}</button>
-          <button className={"btn btn-secondary"} style={{ flex: 2 }}
-            onClick={saveLogEdit}>{"✦ Save Changes"}</button>
+            }}>{"🗑"}</Button>
+          <Button variant={"ghost"} size={"sm"} style={{ flex: 1 }}
+            onClick={() => setLogEditModal(null)}>{"Cancel"}</Button>
+          <Button style={{ flex: 2 }}
+            onClick={saveLogEdit}>{"✦ Save Changes"}</Button>
         </div>
 
       </div>
