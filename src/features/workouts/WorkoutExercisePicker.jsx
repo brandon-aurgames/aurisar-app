@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { List } from 'react-window';
 import { UI_COLORS } from '../../data/constants';
 import { getMuscleColor, getTypeColor } from '../../utils/xp';
@@ -100,6 +100,26 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
   const toggleMuscle = useCallback(v => toggleFilter(setPickerMuscle, v), [setPickerMuscle]);
   const toggleType = useCallback(v => toggleFilter(setPickerTypeFilter, v), [setPickerTypeFilter]);
   const toggleEquip = useCallback(v => toggleFilter(setPickerEquipFilter, v), [setPickerEquipFilter]);
+  const listUnlisten = useRef(null);
+  const [listAtTop, setListAtTop] = useState(true);
+
+  // The virtualized list is the sheet's only scroller. Capture its scroll
+  // position so a pull from the top can dismiss the picker — without this,
+  // overscroll is contained and there is no way to "scroll up to exit".
+  const setListWrap = useCallback(el => {
+    if (listUnlisten.current) {
+      listUnlisten.current();
+      listUnlisten.current = null;
+    }
+    if (!el) return;
+    const onScroll = e => {
+      if (e.target && typeof e.target.scrollTop === 'number') {
+        setListAtTop(e.target.scrollTop <= 0);
+      }
+    };
+    el.addEventListener('scroll', onScroll, true);
+    listUnlisten.current = () => el.removeEventListener('scroll', onScroll, true);
+  }, []);
 
   // The input stays bound to pickerSearch (urgent) while the full-catalog
   // scans below run against the deferred value, so a keystroke no longer
@@ -180,15 +200,14 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
       open
       onClose={closePicker}
       layer={"picker"}
-      tall
+      glass
+      swipeDismiss
+      navOffset={false}
+      innerScrolledToTop={listAtTop}
       scroll={"none"}
-      // A DEFINITE height is what makes the virtualized list below actually
-      // virtualize: height:100% fills the already nav-padded backdrop (the
-      // `tall` class still caps it at 92dvh), so the flex chain down to the
-      // absolutely-inset List resolves to real pixels instead of collapsing
-      // to content height. Using 100% rather than a hardcoded 92dvh avoids
-      // overflowing short viewports where 92dvh + the nav offset exceed the
-      // screen. Also keeps the sheet stable when a search has zero matches.
+      className={"wb-picker-sheet"}
+      // height:100% plus .wb-picker-sheet stretching the backdrop gives the
+      // flex chain a definite box so the absolutely-inset List virtualizes.
       style={{ height: '100%' }}
       title={"Add to Workout"}
       ariaLabel={"Add exercises to workout"}
@@ -285,14 +304,15 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
             {/* The virtualized list is the sheet's ONLY scroller (the Sheet
                 body is scroll="none") — no more scroll-in-scroll. The List is
                 absolutely inset in a position:relative wrapper so it measures a
-                DEFINITE box: styling it height:100% resolved against this
-                content-sized flex chain as `auto`, so the List element
-                inflated to full content height (~92,000px), react-window
-                measured that as its viewport, and every one of ~1,500 rows
-                mounted on open and re-rendered on every keystroke.
-                Muscle headers and exercise rows share this one flat list, so a
-                collapsed section costs a single header row, not its members. */}
-            <div style={{ flex: "1 1 auto", minHeight: 120, position: "relative" }}>
+                DEFINITE box. Muscle headers and exercise rows share this one
+                flat list, so a collapsed section costs a single header row.
+                ＋ Add N is a shrink-wrapped glass chip over the list so the
+                last rows stay visible behind it. */}
+            <div
+              ref={setListWrap}
+              className={`wb-picker-list-wrap${pickerSelected.length > 0 ? " has-add-overlay" : ""}`}
+              style={{ flex: "1 1 auto", minHeight: 120, position: "relative" }}
+            >
               <List
                 rowCount={items.length}
                 rowHeight={rowHeight}
@@ -303,24 +323,23 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
                 style={{
                   position: "absolute",
                   inset: 0,
-                  bottom: pickerSelected.length > 0 ? 76 : 0,
                   width: "100%",
                   overscrollBehavior: "contain",
                 }}
               />
+              <div className={"wb-picker-add-overlay"} aria-hidden={pickerSelected.length === 0}>
+                {pickerSelected.length > 0 && (
+                  <button
+                    type="button"
+                    className={"wb-picker-add-btn"}
+                    onClick={commitPickerToWorkout}
+                  >
+                    {"＋ Add " + pickerSelected.length}
+                  </button>
+                )}
+              </div>
             </div>
           </>
-        )}
-        {pickerSelected.length > 0 && (
-          <div className={"wb-picker-add-dock"}>
-            <button
-              type="button"
-              className={"wb-picker-add-btn"}
-              onClick={commitPickerToWorkout}
-            >
-              {"Add " + pickerSelected.length + (pickerSelected.length === 1 ? " exercise" : " exercises")}
-            </button>
-          </div>
         )}
     </Sheet>
   );

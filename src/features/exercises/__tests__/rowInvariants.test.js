@@ -91,6 +91,8 @@ describe('picker dismissal runs the full teardown', () => {
     // the picker adopted it.)
     const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
     expect(picker, 'picker must dismiss via closePicker').toMatch(/onClose=\{closePicker\}/);
+    expect(picker, 'picker must support pull-to-exit').toMatch(/swipeDismiss/);
+    expect(picker, 'commit control must overlay the list').toMatch(/wb-picker-add-overlay/);
     expect(app.includes('useModalLifecycle(!!wbExPickerOpen'), 'stale App-level picker lifecycle should be gone').toBe(false);
   });
 
@@ -103,7 +105,7 @@ describe('picker dismissal runs the full teardown', () => {
     for (const setter of ['setPickerSearch', 'setPickerMuscle', 'setPickerTypeFilter', 'setPickerEquipFilter', 'setPickerSelected']) {
       expect(fn, `closePicker does not reset ${setter}`).toContain(setter);
     }
-    expect(fn, 'closePicker must not commit staged picks — that is the dock button').not.toContain('setWbExercises');
+    expect(fn, 'closePicker must not commit staged picks — that is the overlay button').not.toContain('setWbExercises');
   });
 });
 
@@ -111,7 +113,7 @@ describe('picker add-commit is a bottom overlay', () => {
   const picker = read('src/features/workouts/WorkoutExercisePicker.jsx');
 
   it('keeps the Add N control out of the header and off the filter row', () => {
-    expect(picker).toContain('wb-picker-add-dock');
+    expect(picker).toContain('wb-picker-add-overlay');
     expect(picker).toContain('commitPickerToWorkout');
     expect(picker).not.toContain('wo-label-chip');
     const headerBlock = picker.match(/headerRight=\{\s*<button[\s\S]*?<\/button>\s*\}/);
