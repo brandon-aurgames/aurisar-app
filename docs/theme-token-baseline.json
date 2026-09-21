@@ -7,11 +7,11 @@
     "themePrimitiveFile": "src/styles/theme.css"
   },
   "summary": {
-    "rawColorOccurrences": 3548,
-    "hardCodedColorOccurrences": 3540,
+    "rawColorOccurrences": 3153,
+    "hardCodedColorOccurrences": 3145,
     "uniqueRawColorValues": 936,
-    "cssVariableDefinitions": 177,
-    "cssVariableReferences": 1319,
+    "cssVariableDefinitions": 178,
+    "cssVariableReferences": 1716,
     "inlineStyleObjects": 1934,
     "fontDeclarations": 448,
     "prohibitedFontReferences": 0,
@@ -21,15 +21,15 @@
   "mostFrequentRawColors": [
     {
       "value": "#8a8478",
-      "occurrences": 543
+      "occurrences": 351
     },
     {
       "value": "#b4ac9e",
-      "occurrences": 246
+      "occurrences": 144
     },
     {
       "value": "#d4cec4",
-      "occurrences": 208
+      "occurrences": 107
     },
     {
       "value": "rgba(180,172,158,.06)",
@@ -183,7 +183,7 @@
   "filesWithMostHardCodedColors": [
     {
       "file": "src/styles/app.css",
-      "occurrences": 1505
+      "occurrences": 1110
     },
     {
       "file": "src/features/profile/ProfileTab.jsx",

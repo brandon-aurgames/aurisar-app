@@ -29,6 +29,7 @@
 
   --color-text-primary: var(--color-neutral-100);
   --color-text-secondary: var(--color-neutral-400);
+  --color-text-muted: color-mix(in srgb, var(--color-neutral-400) 86%, var(--color-neutral-950));
   --color-text-disabled: color-mix(in srgb, var(--color-neutral-400) 56%, transparent);
   --color-text-on-accent: var(--color-neutral-950);
 
