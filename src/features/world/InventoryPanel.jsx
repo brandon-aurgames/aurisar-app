@@ -66,7 +66,7 @@ export default function InventoryPanel({ inv, onClose, onToast }) {
       <div
         style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginBottom: 10, fontFamily: FONT, fontSize: 13, color: '#f0d060',
+          marginBottom: 10, fontFamily: FONT, fontSize: 13, color: 'var(--color-action-primary)',
         }}
       >
         <span>Copper</span>
@@ -87,7 +87,7 @@ export default function InventoryPanel({ inv, onClose, onToast }) {
                 style={{
                   ...equipSlotBtn,
                   border: item
-                    ? '1px solid rgba(240,208,96,0.45)'
+                    ? '1px solid color-mix(in srgb, var(--color-action-primary) 45%, transparent)'
                     : '1px dashed rgba(148,163,184,0.22)',
                   cursor: item ? 'pointer' : 'default',
                   opacity: item ? 1 : 0.75,
@@ -175,7 +175,7 @@ const filledSlot = {
 
 const countBadge = {
   position: 'absolute', bottom: 2, right: 4,
-  fontSize: 10, fontWeight: 700, color: '#f0d060',
+  fontSize: 10, fontWeight: 700, color: 'var(--color-action-primary)',
   textShadow: '0 1px 2px rgba(0,0,0,0.8)',
   fontFamily: FONT,
 };

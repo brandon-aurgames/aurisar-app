@@ -485,7 +485,7 @@ const HistoryTab = memo(function HistoryTab({
                   textTransform: "capitalize"
                 }}>{typeLabel}{xpNote}</span><span style={{
                   color: urgentColor
-                }}>{dl === 0 ? "Expires today" : dl === 1 ? "1 day left" : `${dl} days left`}</span></div></div><button className={"btn btn-gold btn-xs"} style={{
+                }}>{dl === 0 ? "Expires today" : dl === 1 ? "1 day left" : `${dl} days left`}</span></div></div><button className={"btn btn-secondary btn-xs"} style={{
               flexShrink: 0,
               fontSize: FS.fs65
             }} onClick={() => restoreItem(entry)}>{"↩ Restore"}</button><button className={"btn btn-ghost btn-xs"} style={{

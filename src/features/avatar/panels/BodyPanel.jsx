@@ -56,7 +56,7 @@ const GR = {
   row: { display: 'flex', gap: 6, marginBottom: 16 },
   btn: {
     flex: 1, padding: '8px 10px', borderRadius: 8,
-    fontSize: 12, fontFamily: 'Inter, system-ui, sans-serif',
+    fontSize: 12, fontFamily: 'var(--font-family-ui)',
     cursor: 'pointer',
   },
 };

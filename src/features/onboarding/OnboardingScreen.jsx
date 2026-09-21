@@ -235,7 +235,7 @@ return <div className={"screen"}><div style={{
           flex: 1
         }}><label>{"Country"}</label><select className={"inp"} value={obCountry} onChange={e => setObCountry(e.target.value)} style={{
             cursor: "pointer"
-          }}>{["United States", "Canada", "United Kingdom", "Australia", "Germany", "France", "Mexico", "Brazil", "India", "Japan", "South Korea", "Philippines", "Other"].map(c => <option key={c} value={c}>{c}</option>)}</select></div></div><button className={"btn btn-gold"} disabled={!obName.trim() || !obFirstName.trim() || !obLastName.trim() || !obState || !obCountry} onClick={() => setObStep(2)}>{"Continue →"}</button></div></div>}{obStep === 2 && <div><h1 className={"title"} style={{
+          }}>{["United States", "Canada", "United Kingdom", "Australia", "Germany", "France", "Mexico", "Brazil", "India", "Japan", "South Korea", "Philippines", "Other"].map(c => <option key={c} value={c}>{c}</option>)}</select></div></div><button className={"btn btn-secondary"} disabled={!obName.trim() || !obFirstName.trim() || !obLastName.trim() || !obState || !obCountry} onClick={() => setObStep(2)}>{"Continue →"}</button></div></div>}{obStep === 2 && <div><h1 className={"title"} style={{
       fontSize: "clamp(1.3rem,4vw,1.9rem)"
     }}>{"Athletic History"}</h1><p style={{
       color: "#8a8478",
@@ -246,7 +246,7 @@ return <div className={"screen"}><div style={{
     }}>{OB_SPORTS.map(s => <span key={s.val} style={chipSt(obSports.includes(s.val))} onClick={() => toggleSport(s.val)}>{s.label}</span>)}</div><div style={{
       display: "flex",
       gap: S.s8
-    }}><button className={"btn btn-ghost"} onClick={() => setObStep(1)}>{"← Back"}</button><button className={"btn btn-gold"} onClick={() => setObStep(3)}>{"Continue →"}</button></div></div>}{obStep === 3 && <div><h1 className={"title"} style={{
+    }}><button className={"btn btn-ghost"} onClick={() => setObStep(1)}>{"← Back"}</button><button className={"btn btn-secondary"} onClick={() => setObStep(3)}>{"Continue →"}</button></div></div>}{obStep === 3 && <div><h1 className={"title"} style={{
       fontSize: "clamp(1.3rem,4vw,1.9rem)"
     }}>{"Current Routine"}</h1><p style={{
       color: "#8a8478",
@@ -284,7 +284,7 @@ return <div className={"screen"}><div style={{
       display: "flex",
       gap: S.s8,
       marginTop: S.s6
-    }}><button className={"btn btn-ghost"} onClick={() => setObStep(2)}>{"← Back"}</button><button className={"btn btn-gold"} disabled={!obFreq} onClick={() => setObStep(4)}>{"Continue →"}</button></div></div>}{obStep === 4 && <div><h1 className={"title"} style={{
+    }}><button className={"btn btn-ghost"} onClick={() => setObStep(2)}>{"← Back"}</button><button className={"btn btn-secondary"} disabled={!obFreq} onClick={() => setObStep(4)}>{"Continue →"}</button></div></div>}{obStep === 4 && <div><h1 className={"title"} style={{
       fontSize: "clamp(1.3rem,4vw,1.9rem)"
     }}>{"Discipline Trait"}</h1><p style={{
       color: "#8a8478",
@@ -322,7 +322,7 @@ return <div className={"screen"}><div style={{
       display: "flex",
       gap: S.s8,
       marginTop: S.s6
-    }}><button className={"btn btn-ghost"} onClick={() => setObStep(3)}>{"← Back"}</button><button className={"btn btn-gold"} disabled={!obTiming} onClick={() => setObStep(5)}>{"Continue →"}</button></div></div>}{obStep === 5 && <div><h1 className={"title"} style={{
+    }}><button className={"btn btn-ghost"} onClick={() => setObStep(3)}>{"← Back"}</button><button className={"btn btn-secondary"} disabled={!obTiming} onClick={() => setObStep(5)}>{"Continue →"}</button></div></div>}{obStep === 5 && <div><h1 className={"title"} style={{
       fontSize: "clamp(1.3rem,4vw,1.9rem)"
     }}>{"Fitness Identity"}</h1><p style={{
       color: "#8a8478",
@@ -338,7 +338,7 @@ return <div className={"screen"}><div style={{
       }}>{`${obPriorities.length}/3 selected`}</div></div><div style={{
       display: "flex",
       gap: S.s8
-    }}><button className={"btn btn-ghost"} onClick={() => setObStep(4)}>{"← Back"}</button><button className={"btn btn-gold"} onClick={() => setObStep(6)}>{"Continue →"}</button></div></div>}{obStep === 6 && <div><h1 className={"title"} style={{
+    }}><button className={"btn btn-ghost"} onClick={() => setObStep(4)}>{"← Back"}</button><button className={"btn btn-secondary"} onClick={() => setObStep(6)}>{"Continue →"}</button></div></div>}{obStep === 6 && <div><h1 className={"title"} style={{
       fontSize: "clamp(1.3rem,4vw,1.9rem)"
     }}>{"Training Style"}</h1><p style={{
       color: "#8a8478",
@@ -384,7 +384,7 @@ return <div className={"screen"}><div style={{
       display: "flex",
       gap: S.s8,
       marginTop: S.s6
-    }}><button className={"btn btn-ghost"} onClick={() => setObStep(5)}>{"← Back"}</button><button className={"btn btn-gold"} disabled={!obStyle} onClick={handleOnboard}>{"Forge My Character →"}</button></div></div>}</div>;
+    }}><button className={"btn btn-ghost"} onClick={() => setObStep(5)}>{"← Back"}</button><button className={"btn btn-secondary"} disabled={!obStyle} onClick={handleOnboard}>{"Forge My Character →"}</button></div></div>}</div>;
 });
 
 export default OnboardingScreen;

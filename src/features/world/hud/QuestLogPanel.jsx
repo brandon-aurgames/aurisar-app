@@ -15,7 +15,7 @@ const S = {
     background: 'rgba(30, 41, 59, 0.7)', border: '1px solid rgba(148,163,184,0.22)',
     borderRadius: 10, padding: '10px 12px', marginBottom: 8, fontFamily: FONT,
   },
-  name: { fontWeight: 700, color: '#f0d060', fontSize: 13.5 },
+  name: { fontWeight: 700, color: 'var(--color-action-primary)', fontSize: 13.5 },
   meta: { fontSize: 11.5, color: '#94a3b8', margin: '2px 0 6px' },
   objective: { fontSize: 12.5, color: '#a7b6cc', margin: '2px 0' },
   objectiveDone: { fontSize: 12.5, color: '#86efac', margin: '2px 0' },

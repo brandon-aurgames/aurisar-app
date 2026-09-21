@@ -114,7 +114,7 @@ export default function LiveWorkoutBanner({
                   {`${total - doneCount} exercise${total - doneCount !== 1 ? 's' : ''} still unchecked — how would you like to finish?`}
                 </div>
                 <div className="lw-confirm-btns">
-                  <button className="btn btn-gold" onClick={() => {
+                  <button className="btn btn-secondary" onClick={() => {
                     onFinish(exercises.map(e => ({ ...e, done: true })));
                     closeSheet();
                   }}>
@@ -136,7 +136,7 @@ export default function LiveWorkoutBanner({
                 <button className="btn btn-ghost btn-sm" style={{ color: '#8a8478' }} onClick={() => setConfirmDiscard(true)}>
                   {"Discard"}
                 </button>
-                <button className="btn btn-gold" style={{ flex: 1 }} onClick={handleFinishPress}>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleFinishPress}>
                   {doneCount < total
                     ? `✓ Finish (${doneCount}/${total})`
                     : '✓ Finish Workout'}
@@ -314,7 +314,7 @@ export default function LiveWorkoutBanner({
                             </div>
                           );
                         })()}
-                        <button className="btn btn-gold btn-sm" style={{ width: '100%' }} onClick={confirmAddEx}>
+                        <button className="btn btn-secondary btn-sm" style={{ width: '100%' }} onClick={confirmAddEx}>
                           {"Add to Workout"}
                         </button>
                       </div>

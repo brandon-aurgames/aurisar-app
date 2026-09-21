@@ -41,10 +41,10 @@ export function createDetailsFire(canvas) {
         const smoke = Math.max(0, 1 - distance / .65) * Math.pow(n, 3) * .20;
         const edgeFade = Math.min(1, v * 14, (1 - v) * 14);
         const p = (y * w + x) * 4;
-        // Match the builder gold (#8B7425) through its warm highlight (#FFE87C).
-        pixels.data[p] = 139 + 116 * temperature;
-        pixels.data[p + 1] = 116 + 116 * temperature;
-        pixels.data[p + 2] = 37 + 87 * temperature;
+        // Move from the shared teal accent toward the primary text highlight.
+        pixels.data[p] = 143 + 85 * temperature;
+        pixels.data[p + 1] = 227 + 4 * temperature;
+        pixels.data[p + 2] = 210 + 25 * temperature;
         pixels.data[p + 3] = Math.min(220, (filament * 330 + smoke * 160) * edgeFade);
       }
     }

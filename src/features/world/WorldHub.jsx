@@ -32,7 +32,7 @@ import { C, FS, R, S } from '../../utils/tokens.js';
 // is exactly the weight the hub exists to let players avoid.
 const WorldOverlay = React.lazy(() => import('./WorldOverlay.jsx'));
 
-const FONT = 'Inter, system-ui, sans-serif';
+const FONT = 'var(--font-family-ui)';
 
 // Injected by vite `define`, true only on builds that also emit
 // realm-spike.html (dev + deploy previews, never production). The typeof
@@ -55,17 +55,17 @@ const S_ = {
     borderBottom: `1px solid ${C.line}`, flexShrink: 0,
   },
   title: {
-    fontFamily: "'Cinzel', serif", fontSize: '1.15rem', letterSpacing: '.08em',
-    color: C.gold, margin: 0,
+    fontFamily: "var(--font-family-ui)", fontSize: '1.15rem', letterSpacing: '.08em',
+    color: C.accent, margin: 0,
   },
   body: { flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: `${S.s20}px ${S.s16}px ${S.s32}px` },
   lede: { fontSize: FS.md, color: C.inkDim, lineHeight: 1.55, margin: `0 0 ${S.s20}px` },
   enterBtn: {
     width: '100%', minHeight: 56, marginBottom: S.s16,
     borderRadius: R.xxl, cursor: 'pointer',
-    border: `1px solid ${C.gold}`,
-    background: 'linear-gradient(135deg,#c49428,#8a6010)',
-    color: '#fff', fontFamily: "'Cinzel', serif",
+    border: `1px solid ${C.accent}`,
+    background: 'linear-gradient(135deg,var(--color-action-primary-hover),var(--color-action-primary))',
+    color: '#fff', fontFamily: "var(--font-family-ui)",
     fontSize: '1rem', fontWeight: 700, letterSpacing: '.08em',
     WebkitTapHighlightColor: 'transparent',
   },
@@ -88,9 +88,9 @@ const S_ = {
   },
   banner: {
     padding: `${S.s12}px ${S.s14}px`, borderRadius: R.xxl, marginBottom: S.s16,
-    border: '1px solid rgba(196,148,40,.35)', background: 'rgba(46,32,16,.55)',
+    border: '1px solid color-mix(in srgb, var(--color-action-primary) 35%, transparent)', background: 'rgba(46,32,16,.55)',
   },
-  bannerTitle: { fontSize: FS.lg, fontWeight: 700, color: C.gold, marginBottom: S.s6 },
+  bannerTitle: { fontSize: FS.lg, fontWeight: 700, color: C.accent, marginBottom: S.s6 },
   bannerBody: { fontSize: FS.base, color: C.inkMid, lineHeight: 1.5, marginBottom: S.s10 },
   bannerRow: { display: 'flex', gap: S.s8, flexWrap: 'wrap' },
   sectionBody: { flex: 1, width: '100%', minHeight: 0 },

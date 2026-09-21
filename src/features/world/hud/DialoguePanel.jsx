@@ -26,7 +26,7 @@ const S = {
     borderRadius: 10, color: '#e2e8f0', padding: '9px 12px', marginBottom: 6,
     cursor: 'pointer', fontFamily: FONT, fontSize: 13, WebkitTapHighlightColor: 'transparent',
   },
-  questName: { fontWeight: 700, color: '#f0d060' },
+  questName: { fontWeight: 700, color: 'var(--color-action-primary)' },
   questText: { fontSize: 13, color: '#cbd5e1', lineHeight: 1.6, margin: '10px 0' },
   objective: { fontSize: 12.5, color: '#a7b6cc', margin: '2px 0' },
   reward: { fontSize: 12.5, color: '#86efac', margin: '2px 0' },
@@ -36,12 +36,12 @@ const S = {
     borderBottom: '1px solid rgba(148,163,184,0.12)',
   },
   vendorName: { flex: 1, minWidth: 0 },
-  vendorPrice: { color: '#f0d060', whiteSpace: 'nowrap' },
+  vendorPrice: { color: 'var(--color-action-primary)', whiteSpace: 'nowrap' },
   wallet: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     padding: '8px 10px', marginBottom: 8, borderRadius: 8,
-    background: 'rgba(30, 41, 59, 0.6)', border: '1px solid rgba(240,208,96,0.25)',
-    fontSize: 12, fontFamily: FONT, color: '#f0d060',
+    background: 'rgba(30, 41, 59, 0.6)', border: '1px solid color-mix(in srgb, var(--color-action-primary) 25%, transparent)',
+    fontSize: 12, fontFamily: FONT, color: 'var(--color-action-primary)',
   },
   tradeBtn: {
     ...ghostBtn,
@@ -176,7 +176,7 @@ export default function DialoguePanel({
           <div style={S.section}>Ready to complete</div>
           {ready.map((q) => (
             <button key={q.id} style={S.questBtn} onClick={() => setDetailQuest({ quest: q, mode: 'turnIn' })}>
-              <span style={{ color: '#f0d060', fontWeight: 800 }}>? </span>
+              <span style={{ color: 'var(--color-action-primary)', fontWeight: 700 }}>? </span>
               <span style={S.questName}>{q.name}</span>
             </button>
           ))}
@@ -188,7 +188,7 @@ export default function DialoguePanel({
           <div style={S.section}>Quests</div>
           {available.map((q) => (
             <button key={q.id} style={S.questBtn} onClick={() => setDetailQuest({ quest: q, mode: 'accept' })}>
-              <span style={{ color: '#f0d060', fontWeight: 800 }}>! </span>
+              <span style={{ color: 'var(--color-action-primary)', fontWeight: 700 }}>! </span>
               <span style={S.questName}>{q.name}</span>
             </button>
           ))}

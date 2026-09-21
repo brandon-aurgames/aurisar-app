@@ -63,11 +63,11 @@ function drawPill(ctx, cx, cy, text) {
 // World Map marker legend (icon color → meaning), rendered as DOM under the map.
 const LEGEND = [
   { c: 'rgba(120,200,255,0.98)', t: 'You' },
-  { c: 'rgba(251,191,36,0.95)', t: 'Players' },
+  { c: 'rgba(228,231,235,0.95)', t: 'Players' },
   { c: 'rgba(120,220,130,0.95)', t: 'NPCs' },
   { c: 'rgba(130,210,240,0.95)', t: 'Places' },
-  { c: 'rgba(240,210,120,0.98)', t: 'Castle' },
-  { c: 'rgba(230,190,90,0.75)', t: 'Chests' },
+  { c: 'rgba(143,227,210,0.98)', t: 'Castle' },
+  { c: 'rgba(154,165,177,0.75)', t: 'Chests' },
   { c: 'rgba(168,120,255,0.95)', t: 'Dungeons' },
 ];
 
@@ -190,8 +190,8 @@ export default function WorldMap({ mapData, sceneRef, onClose }) {
         const e = clampToEdge(bp.px, bp.py, size, size);
         ctx.beginPath();
         ctx.arc(e.x, e.y, e.clamped ? 3 : 4, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.95)';
-        ctx.strokeStyle = 'rgba(40, 24, 4, 0.9)';
+        ctx.fillStyle = 'rgba(228, 231, 235, 0.95)';
+        ctx.strokeStyle = 'rgba(12, 14, 17, 0.9)';
         ctx.lineWidth = 1;
         ctx.fill();
         ctx.stroke();
@@ -202,7 +202,7 @@ export default function WorldMap({ mapData, sceneRef, onClose }) {
           ctx.lineWidth = 3;
           ctx.strokeStyle = 'rgba(0,0,0,0.7)';
           ctx.strokeText(rp.name, e.x, e.y - 8);
-          ctx.fillStyle = '#fcd34d';
+          ctx.fillStyle = '#8fe3d2';
           ctx.fillText(rp.name, e.x, e.y - 8);
         }
       }
@@ -338,7 +338,7 @@ export default function WorldMap({ mapData, sceneRef, onClose }) {
       >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
-        <span style={{ fontFamily: 'Cinzel, serif', fontSize: 20, fontWeight: 700, color: '#f0d060' }}>
+        <span style={{ fontFamily: 'var(--font-family-ui)', fontSize: 20, fontWeight: 700, color: 'var(--color-action-primary)' }}>
           World Map
         </span>
         <span style={{ color: '#94a3b8', fontSize: 13 }}>·</span>

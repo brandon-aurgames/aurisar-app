@@ -191,7 +191,7 @@ export default function LoginScreen({
               <div style={{ marginBottom: 20 }}>
                 <div className="au-eyebrow" style={{ marginBottom: 6 }}>Resume Your Saga</div>
                 <div style={{
-                  fontFamily: 'var(--au-font-display)',
+                  fontFamily: 'var(--font-family-ui)',
                   fontSize: 18, letterSpacing: '0.12em', textTransform: 'uppercase',
                 }}>
                   {cardTitle}
@@ -571,7 +571,7 @@ function ForgotUsernameForm({
           value={forgotPrivateId}
           onChange={e => { setForgotPrivateId(e.target.value); setForgotLookupResult(null); }}
           onKeyDown={e => { if (e.key === 'Enter') lookupByPrivateId(); }}
-          style={{ letterSpacing: '0.06em', fontFamily: 'monospace' }}
+          style={{ letterSpacing: '0.06em', fontFamily: 'var(--font-family-mono)' }}
         />
       </div>
 
@@ -588,7 +588,7 @@ function ForgotUsernameForm({
           {forgotLookupResult.found ? (
             <>
               <div style={{ color: 'oklch(0.72 0.16 145)', marginBottom: 6 }}>✓ Account found!</div>
-              <div style={{ fontFamily: 'monospace', color: 'var(--au-text)', fontWeight: 700, letterSpacing: '0.04em' }}>
+              <div style={{ fontFamily: 'var(--font-family-mono)', color: 'var(--au-text)', fontWeight: 700, letterSpacing: '0.04em' }}>
                 {forgotLookupResult.masked_email}
               </div>
               <div style={{ color: 'var(--au-text-faint)', fontSize: 11.5, marginTop: 6 }}>

@@ -89,7 +89,7 @@ export default function WhoopCallbackHandler() {
     height: '100dvh',
     background: '#0c0c0a',
     color: '#d4cec4',
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "var(--font-family-ui)",
     gap: 12,
   };
 
@@ -122,7 +122,7 @@ export default function WhoopCallbackHandler() {
               borderRadius: 8,
               maxWidth: 600,
               wordBreak: 'break-word',
-              fontFamily: 'monospace',
+              fontFamily: 'var(--font-family-mono)',
               textAlign: 'left',
               userSelect: 'text',
             }}>

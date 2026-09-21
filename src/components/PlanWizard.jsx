@@ -38,10 +38,10 @@ function debounce(fn, ms) { let id; return (...args) => { clearTimeout(id); id =
 // ── Virtualized picker row (item 4: react-window) ──────────────────────────
 // Module-level so the component identity is stable across PlanWizard renders;
 // react-window only re-renders rows when `rowProps` change.
-const PICKER_ROW_NAME_STYLE  = { fontFamily: "'Cinzel',serif", fontSize: FS.fs80, fontWeight: 600, color: "#d4cec4", marginBottom: S.s2, letterSpacing: ".01em" };
+const PICKER_ROW_NAME_STYLE  = { fontFamily: "var(--font-family-ui)", fontSize: FS.fs80, fontWeight: 600, color: "#d4cec4", marginBottom: S.s2, letterSpacing: ".01em" };
 const PICKER_ROW_META_STYLE  = { fontSize: FS.fs60, fontStyle: "italic" };
 const PICKER_ROW_RIGHT_COL   = { flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: S.s4 };
-const PICKER_ROW_XP_STYLE    = { fontFamily: "'Cinzel',serif", fontSize: FS.fs63, fontWeight: 700, color: "#d4cec4", letterSpacing: ".04em" };
+const PICKER_ROW_XP_STYLE    = { fontFamily: "var(--font-family-ui)", fontSize: FS.fs63, fontWeight: 700, color: "#d4cec4", letterSpacing: ".04em" };
 const PICKER_ROW_NAME_INNER  = { flex: 1, minWidth: 0 };
 
 const PickerRow = React.memo(function PickerRow({ ariaAttributes, index, style, exercises, selIds, onToggle }) {
@@ -500,7 +500,7 @@ function PlanWizard(props) {
 
   // PlanExCard reads only these four fields from `profile`. Memoizing a slim
   // object keeps the memo'd card stable across unrelated profile updates
-  // (gold, name, avatar, plans, etc.).
+  // (accent, name, avatar, plans, etc.).
   const planExCardProfile = useMemo(
     () => ({
       units: profile.units,
@@ -675,7 +675,7 @@ function PlanWizard(props) {
             <div><div className="xp-proj-label">Projected Total XP</div><div className="xp-proj-detail">{bDays.filter(d=>d.exercises.length>0).length}{" active days · "}{bDays.reduce((t,d)=>t+d.exercises.length,0)}{" exercises"}</div></div>
             <div className="xp-proj-value">{"⚡ "}{builderXP.toLocaleString()}</div>
           </div>
-          <button className="btn btn-gold btn-plan-action"
+          <button className="btn btn-secondary btn-plan-action"
             onClick={()=>{setPlanWizardOpen(true);setWizardWeekIdx(0);}}>
             {bEditId ? "✎ Edit Plan" : "⚔ Create Plan"}
           </button>
@@ -715,7 +715,7 @@ function PlanWizard(props) {
                 <span className="plan-wizard-hdr-icon">{bIcon}</span>
                 {" "}{bName||"Untitled Plan"}
               </div>
-              <button className="btn btn-gold btn-sm" onClick={()=>{saveBuiltPlan();setPlanWizardOpen(false);}}>{"💾 Save"}</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>{saveBuiltPlan();setPlanWizardOpen(false);}}>{"💾 Save"}</button>
             </div>
 
             {/* Week tabs (only for multi-week plans) */}
@@ -799,7 +799,7 @@ function PlanWizard(props) {
             <div className="wizard-day-editor">
               <div className="wizard-day-hdr">
                 <input key={"dlbl_"+bDayIdx} className="inp" defaultValue={_optionalChain([bDays, 'access', _4 => _4[bDayIdx], 'optionalAccess', _5 => _5.label])||""} onBlur={e=>updateDayLabel(bDayIdx,e.target.value)} placeholder={"Day label…"} style={{flex:1,padding:"8px 12px",fontSize:FS.fs82}} />
-                <span style={{fontSize:FS.fs72,color:"#b4ac9e",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>{"⚡ "}{wizardDayXPs[bDayIdx]||0}</span>
+                <span style={{fontSize:FS.fs72,color:"#b4ac9e",fontFamily:"var(--font-family-ui)",whiteSpace:"nowrap"}}>{"⚡ "}{wizardDayXPs[bDayIdx]||0}</span>
                 {bDays.length>1 && <button className="btn btn-danger btn-xs" style={{marginLeft:S.s6,padding:"4px 8px",fontSize:FS.fs60}} onClick={()=>removeDayFromBuilder(bDayIdx)}>{"🗑 Delete Day"}</button>}
               </div>
               {/* Optional day-level stats */}
@@ -898,7 +898,7 @@ function PlanWizard(props) {
                 });
                 return nodes;
               })()}
-              {bEditId && <button className="btn btn-glass-yellow" style={{width:"100%",marginTop:S.s8}}
+              {bEditId && <button className="btn btn-accent" style={{width:"100%",marginTop:S.s8}}
                 onClick={()=>{
                   const plan=(profile.plans||[]).find(p=>p.id===bEditId); if(!plan) return;
                   const currentDay=bDays[bDayIdx]; if(!currentDay) return;
@@ -911,7 +911,7 @@ function PlanWizard(props) {
                   }
                 }}>{"✓ Complete Day"}</button>}
               <div className="div" style={{margin:"3px 0"}} />
-              <button className="btn btn-gold" style={{width:"100%"}} onClick={saveBuiltPlan}>{"💾 Save Plan"}</button>
+              <button className="btn btn-secondary" style={{width:"100%"}} onClick={saveBuiltPlan}>{"💾 Save Plan"}</button>
             </div>{/* close wizard-day-editor */}
           </div>{/* close plan-wizard-inner */}
         </div>,
@@ -963,11 +963,11 @@ function PlanWizard(props) {
           <div className="ex-picker-sheet" onClick={e=>e.stopPropagation()} style={{maxHeight:"85vh"}}>
             {/* -- BROWSE VIEW -- */}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:S.s10}}>
-              <div style={{fontFamily:"'Inter',sans-serif",fontSize:FS.fs72,fontWeight:600,color:"#8a8478"}}>
+              <div style={{fontFamily:"var(--font-family-ui)",fontSize:FS.fs72,fontWeight:600,color:"#8a8478"}}>
                 {"Add to Plan"}{pickerSelected.length>0 && <span style={{color:"#b4ac9e",marginLeft:S.s6}}>{pickerSelected.length+" selected"}</span>}
               </div>
               <div style={{display:"flex",gap:S.s6}}>
-                {pickerSelected.length>0 && <button className="btn btn-gold btn-xs" onClick={commitPickerToPlan}>{"＋ Add "+pickerSelected.length}</button>}
+                {pickerSelected.length>0 && <button className="btn btn-secondary btn-xs" onClick={commitPickerToPlan}>{"＋ Add "+pickerSelected.length}</button>}
                 <button className="btn btn-ghost btn-xs" onClick={()=>{closePicker();if(onOpenExEditor)onOpenExEditor("create",null);}}>{"✦ New Custom"}</button>
                 <button className="btn btn-ghost btn-sm" onClick={closePicker}>{"✕"}</button>
               </div>
@@ -1012,7 +1012,7 @@ function PlanWizard(props) {
                       onToggle={v=>togglePickerFilter(setPickerTypeFilter,v)}
                       open={pickerOpenDrop==="pw-type"}
                       setOpen={setPickerOpenDrop}
-                      accent="#C4A044"
+                      accent="var(--color-action-primary)"
                       optionAccent={getTypeColor}
                       panelBorder="rgba(180,172,158,.07)"
                     />
@@ -1028,7 +1028,7 @@ function PlanWizard(props) {
                       open={pickerOpenDrop==="pw-equip"}
                       setOpen={setPickerOpenDrop}
                       accent={UI_COLORS.accent}
-                      panelBorder="rgba(196,148,40,0.25)"
+                      panelBorder="color-mix(in srgb, var(--color-action-primary) 25%, transparent)"
                     />
                   </div>
                 </div>

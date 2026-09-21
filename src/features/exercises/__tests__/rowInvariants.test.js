@@ -124,12 +124,12 @@ describe('picker add-commit is a bottom overlay', () => {
   });
 });
 
-describe('exercise-list XP is parchment, not gold', () => {
+describe('exercise-list XP uses primary text rather than the action accent', () => {
   const css = read('src/styles/app.css');
 
   it('paints .picker-ex-xp in the exercise-name color', () => {
-    expect(css).toMatch(/\.picker-ex-xp\{[^}]*color:#ece6da/);
-    expect(css).not.toMatch(/\.picker-ex-xp\{[^}]*(#e8c766|#E8B44A|#F0C868|#FCE29A|text-shadow)/);
+    expect(css).toMatch(/\.picker-ex-xp\{[^}]*color:var\(--color-text-primary\)/);
+    expect(css).not.toMatch(/\.picker-ex-xp\{[^}]*(var\(--color-action-primary\)|text-shadow)/);
   });
 });
 

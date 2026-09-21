@@ -30,7 +30,7 @@ function Toggle({ label, on, onClick }) {
       <span
         style={{
           width: 38, height: 22, borderRadius: 11, flexShrink: 0,
-          background: on ? '#c49428' : 'rgba(100,116,139,0.5)',
+          background: on ? 'var(--color-action-primary)' : 'rgba(100,116,139,0.5)',
           position: 'relative', transition: 'background 120ms',
         }}
       >
@@ -79,11 +79,11 @@ function TimeOfDayControl({ sceneRef }) {
         <input
           type="range" min={0} max={24} step={0.25} value={hours}
           onChange={(e) => set(parseFloat(e.target.value))}
-          style={{ flex: 1, accentColor: '#c49428' }}
+          style={{ flex: 1, accentColor: 'var(--color-action-primary)' }}
           aria-label="Time of day"
         />
         <span style={{
-          fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: frozen ? '#fbbf77' : '#7dd3fc',
+          fontFamily: 'var(--font-family-mono)', fontSize: 12, color: frozen ? 'var(--color-status-warning)' : 'var(--color-action-primary)',
           minWidth: 44, textAlign: 'right',
         }}>{label}</span>
       </div>
@@ -184,7 +184,7 @@ export default function GameMenu({ onClose, onOpenMap, onOpenInventory, onOpenCo
               justifySelf: 'start',
               background: 'rgba(2,6,14,0.6)', border: '1px solid rgba(148,163,184,0.25)',
               borderRadius: 6, padding: '2px 8px', fontSize: 11, color: '#7dd3fc',
-              fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap',
+              fontFamily: 'var(--font-family-mono)', whiteSpace: 'nowrap',
             }}>{h.keys}</kbd>
             <span style={{ fontSize: 12.5, color: '#cbd5e1', alignSelf: 'center', fontFamily: FONT }}>{h.action}</span>
           </React.Fragment>

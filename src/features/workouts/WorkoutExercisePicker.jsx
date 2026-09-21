@@ -263,7 +263,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
               onToggle={toggleType}
               open={pickerOpenDrop === "wb-type"}
               setOpen={setPickerOpenDrop}
-              accent="#C4A044"
+              accent="var(--color-action-primary)"
               optionAccent={getTypeColor}
               panelBorder="rgba(180,172,158,.07)"
             />
@@ -279,7 +279,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
               open={pickerOpenDrop === "wb-equip"}
               setOpen={setPickerOpenDrop}
               accent={UI_COLORS.accent}
-              panelBorder="rgba(196,148,40,0.25)"
+              panelBorder="color-mix(in srgb, var(--color-action-primary) 25%, transparent)"
             />
           </div>
         </div>

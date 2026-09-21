@@ -37,7 +37,7 @@ class ErrorBoundary extends React.Component {
     const wrap = {
       minHeight: '100vh', display: 'flex', alignItems: 'center',
       justifyContent: 'center', padding: 24, background: '#0c0c0a',
-      color: '#d4cec4', fontFamily: 'Inter, sans-serif',
+      color: '#d4cec4', fontFamily: 'var(--font-family-ui)',
     };
     const card = {
       maxWidth: 480, width: '100%', padding: 28, borderRadius: 14,
@@ -46,8 +46,8 @@ class ErrorBoundary extends React.Component {
       boxShadow: '0 8px 40px rgba(0,0,0,.6)',
     };
     const h = {
-      fontFamily: "'Cinzel', serif", fontSize: '1.4rem',
-      letterSpacing: '.08em', color: '#c49428', marginBottom: 10,
+      fontFamily: "var(--font-family-ui)", fontSize: '1.4rem',
+      letterSpacing: '.08em', color: 'var(--color-action-primary)', marginBottom: 10,
     };
     const p = { fontSize: '.85rem', color: '#b4ac9e', lineHeight: 1.55, marginBottom: 18 };
     const pre = {
@@ -63,7 +63,7 @@ class ErrorBoundary extends React.Component {
       background: 'linear-gradient(135deg,rgba(45,42,36,.5),rgba(45,42,36,.35))',
       color: '#d4cec4',
     };
-    const btnGold = { ...btn, background: 'linear-gradient(135deg,#c49428,#8a6010)', color: '#fff', borderColor: '#c49428' };
+    const primaryBtn = { ...btn, background: 'var(--button-primary-bg)', color: 'var(--button-primary-text)', borderColor: 'var(--button-primary-border)' };
 
     // Chunk-load failures usually mean the user's tab outlived a deploy and
     // the JS bundle hash is gone. lazyWithRetry will have already auto-
@@ -78,7 +78,7 @@ class ErrorBoundary extends React.Component {
               A new version is available. Tap reload to get the latest — your saved data is safe.
             </div>
             <div style={btnRow}>
-              <button type="button" style={btnGold} onClick={this.reload}>Reload</button>
+              <button type="button" style={primaryBtn} onClick={this.reload}>Reload</button>
             </div>
           </div>
         </div>
@@ -95,7 +95,7 @@ class ErrorBoundary extends React.Component {
           {error?.message && <pre style={pre}>{String(error.message)}</pre>}
           <div style={btnRow}>
             <button type="button" style={btn} onClick={this.reset}>Try again</button>
-            <button type="button" style={btnGold} onClick={this.reload}>Reload</button>
+            <button type="button" style={primaryBtn} onClick={this.reload}>Reload</button>
           </div>
         </div>
       </div>

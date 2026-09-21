@@ -198,7 +198,7 @@ function MapSVG({myPos,myRegion,friendPositions,mapTooltip,setMapTooltip,travelA
                 {/* Region name — 50% bigger: was 6.5 → now 9.5 */}
                 <text
                   x={pt.x} y={pt.y + 17} textAnchor="middle" fontSize="9.5"
-                  fill={cur ? "#f0d060" : vis ? "#d4cec4" : "#b4ac9e"}
+                  fill={cur ? "var(--color-action-primary)" : vis ? "#d4cec4" : "#b4ac9e"}
                   fontFamily="'Inter'"
                   fontWeight={cur ? "bold" : "normal"}
                 >{r.name}</text>
@@ -234,10 +234,10 @@ function MapSVG({myPos,myRegion,friendPositions,mapTooltip,setMapTooltip,travelA
           {/* Player */}
           <g>
             {/* "YOU" label — was 7 → now 10 */}
-            <text x={myPos.x} y={myPos.y - 22} textAnchor="middle" fontSize="10" fill="#f0d060" fontFamily="'Inter'" fontWeight="bold" letterSpacing="1">YOU</text>
-            <line x1={myPos.x} y1={myPos.y - 18} x2={myPos.x} y2={myPos.y - 14} stroke="#f0d060" strokeWidth="1" opacity=".6" />
+            <text x={myPos.x} y={myPos.y - 22} textAnchor="middle" fontSize="10" fill="var(--color-action-primary)" fontFamily="'Inter'" fontWeight="bold" letterSpacing="1">YOU</text>
+            <line x1={myPos.x} y1={myPos.y - 18} x2={myPos.x} y2={myPos.y - 14} stroke="var(--color-action-primary)" strokeWidth="1" opacity=".6" />
             <circle cx={myPos.x} cy={myPos.y} r={14} fill="rgba(45,42,36,.3)" stroke="#b4ac9e" strokeWidth="2" />
-            <circle cx={myPos.x} cy={myPos.y} r={8} fill="#b4ac9e" stroke="#f0d060" strokeWidth="1.5" />
+            <circle cx={myPos.x} cy={myPos.y} r={8} fill="#b4ac9e" stroke="var(--color-action-primary)" strokeWidth="1.5" />
             <text x={myPos.x} y={myPos.y + 4} textAnchor="middle" fontSize="9" fill="#0c0c0a">{(CLASSES[profile.chosenClass || "warrior"]?.icon) || "⚔"}</text>
             <circle cx={myPos.x} cy={myPos.y} r={17} fill="none" stroke="#b4ac9e" strokeWidth="1" opacity=".3" />
           </g>

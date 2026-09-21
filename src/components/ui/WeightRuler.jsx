@@ -116,7 +116,7 @@ function WeightRuler({ pct, onPctChange, onTapStep, stepLabel }) {
           fontSize: FS.fs58,
           color: '#8a8478',
           marginTop: 2,
-          fontFamily: FG.fontCond,
+          fontFamily: FG.fontUi,
           letterSpacing: '.06em',
         }}
       >
@@ -134,7 +134,7 @@ function WeightRuler({ pct, onPctChange, onTapStep, stepLabel }) {
             textTransform: 'uppercase',
             color: 'rgba(228,222,211,.32)',
             marginTop: 2,
-            fontFamily: FG.fontCond,
+            fontFamily: FG.fontUi,
           }}
         >
           {`spin to scale · tap sides to nudge ${stepLabel || '±2.5 lbs'}`}

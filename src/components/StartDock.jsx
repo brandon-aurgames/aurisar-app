@@ -119,10 +119,10 @@ function StartDock({ profile, allExById, liveWorkout, stagedCount, onStartWorkou
           width: 44,
           height: 44,
           borderRadius: "50%",
-          border: "1px solid rgba(232,180,74,.5)",
+          border: "1px solid color-mix(in srgb, var(--color-action-primary) 50%, transparent)",
           background: FG.solidBg,
-          boxShadow: "0 8px 22px rgba(0,0,0,.45), 0 0 12px rgba(232,180,74,.18)",
-          color: FG.goldSoft,
+          boxShadow: "0 8px 22px rgba(0,0,0,.45), 0 0 12px color-mix(in srgb, var(--color-action-primary) 18%, transparent)",
+          color: FG.accentText,
           fontSize: "1rem",
           cursor: "pointer",
           display: "flex",
@@ -148,14 +148,14 @@ function StartDock({ profile, allExById, liveWorkout, stagedCount, onStartWorkou
         zIndex: 700,
         borderRadius: 19,
         overflow: "hidden",
-        border: "1px solid rgba(232,180,74,.28)",
+        border: "1px solid color-mix(in srgb, var(--color-action-primary) 28%, transparent)",
         background: "rgba(14,14,18,.85)",
         backdropFilter: "blur(26px) saturate(170%)",
         WebkitBackdropFilter: "blur(26px) saturate(170%)",
         boxShadow: "0 14px 40px rgba(0,0,0,.55)",
       }}
     >
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(120deg,rgba(232,180,74,.1),transparent 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(120deg,color-mix(in srgb, var(--color-action-primary) 10%, transparent),transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 11, padding: "10px 10px 10px 12px" }}>
         <div
           style={{
@@ -167,19 +167,19 @@ function StartDock({ profile, allExById, liveWorkout, stagedCount, onStartWorkou
             alignItems: "center",
             justifyContent: "center",
             fontSize: "1.15rem",
-            background: "radial-gradient(circle at 34% 30%,rgba(232,180,74,.3),rgba(232,180,74,.08))",
-            border: "1px solid rgba(232,180,74,.25)",
+            background: "radial-gradient(circle at 34% 30%,color-mix(in srgb, var(--color-action-primary) 30%, transparent),color-mix(in srgb, var(--color-action-primary) 8%, transparent))",
+            border: "1px solid color-mix(in srgb, var(--color-action-primary) 25%, transparent)",
           }}
         >
           {primary.icon}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: FG.fontSerif, fontSize: ".44rem", letterSpacing: ".26em", textTransform: "uppercase", color: "rgba(232,180,74,.85)", marginBottom: 2 }}>
+          <div style={{ fontFamily: FG.fontUi, fontSize: ".44rem", letterSpacing: ".26em", textTransform: "uppercase", color: "color-mix(in srgb, var(--color-action-primary) 85%, transparent)", marginBottom: 2 }}>
             {"Today · Scheduled"}
           </div>
           <div
             style={{
-              fontFamily: FG.fontCond,
+              fontFamily: FG.fontUi,
               fontSize: ".88rem",
               fontWeight: 600,
               letterSpacing: ".04em",
@@ -205,7 +205,7 @@ function StartDock({ profile, allExById, liveWorkout, stagedCount, onStartWorkou
                   border: "none",
                   padding: 0,
                   cursor: "pointer",
-                  fontFamily: FG.fontCond,
+                  fontFamily: FG.fontUi,
                   fontSize: ".58rem",
                   letterSpacing: ".08em",
                   textTransform: "uppercase",
@@ -226,10 +226,10 @@ function StartDock({ profile, allExById, liveWorkout, stagedCount, onStartWorkou
             height: 40,
             borderRadius: 13,
             cursor: "pointer",
-            border: "1px solid rgba(232,180,74,.5)",
-            background: "linear-gradient(160deg,rgba(232,180,74,.36),rgba(232,180,74,.13))",
-            color: "#FAE6B8",
-            fontFamily: FG.fontCond,
+            border: "1px solid color-mix(in srgb, var(--color-action-primary) 50%, transparent)",
+            background: "linear-gradient(160deg,color-mix(in srgb, var(--color-action-primary) 36%, transparent),color-mix(in srgb, var(--color-action-primary) 13%, transparent))",
+            color: "var(--color-text-primary)",
+            fontFamily: FG.fontUi,
             fontSize: ".72rem",
             fontWeight: 600,
             letterSpacing: ".14em",

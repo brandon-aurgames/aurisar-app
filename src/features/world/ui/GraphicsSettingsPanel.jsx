@@ -2,7 +2,7 @@
  * GraphicsSettingsPanel — the graphics controls, rendered from SETTING_DEFS.
  *
  * Used from two places with two different skins:
- *   • the pre-world hub (app parchment/gold), where NO scene exists yet
+ *   • the pre-world hub (app slate/teal), where NO scene exists yet
  *   • the in-world game menu (slate/blur), where one does
  *
  * Both call the same store, so the options can never drift apart. The only

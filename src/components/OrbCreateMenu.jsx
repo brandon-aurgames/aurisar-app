@@ -200,7 +200,7 @@ function OrbCreateMenu({ open, onClose, log, allExercises, onPickExercise, onBui
       >
         <div
           style={{
-            fontFamily: FG.fontSerif,
+            fontFamily: FG.fontUi,
             fontSize: ".52rem",
             letterSpacing: ".3em",
             textTransform: "uppercase",
@@ -255,7 +255,7 @@ function OrbCreateMenu({ open, onClose, log, allExercises, onPickExercise, onBui
             {!query && pickList.length > 0 && (
               <div
                 style={{
-                  fontFamily: FG.fontCond,
+                  fontFamily: FG.fontUi,
                   fontSize: ".56rem",
                   letterSpacing: ".16em",
                   textTransform: "uppercase",
@@ -302,7 +302,7 @@ function OrbCreateMenu({ open, onClose, log, allExercises, onPickExercise, onBui
                         {(MUSCLE_META[mg] && MUSCLE_META[mg].label) || ex.muscleGroup}
                       </span>
                     </span>
-                    <span style={{ flex: "none", fontFamily: FG.fontCond, fontSize: ".8rem", color: FG.tealSoft, opacity: 0.7 }}>→</span>
+                    <span style={{ flex: "none", fontFamily: FG.fontUi, fontSize: ".8rem", color: FG.tealSoft, opacity: 0.7 }}>→</span>
                   </button>
                 );
               })}
@@ -370,7 +370,7 @@ function OrbCreateMenu({ open, onClose, log, allExercises, onPickExercise, onBui
                       {`${(wo.exercises || []).length} exercise${(wo.exercises || []).length !== 1 ? "s" : ""}`}
                     </span>
                   </span>
-                  <span style={{ flex: "none", fontFamily: FG.fontCond, fontSize: ".8rem", color: FG.tealSoft, opacity: 0.7 }}>→</span>
+                  <span style={{ flex: "none", fontFamily: FG.fontUi, fontSize: ".8rem", color: FG.tealSoft, opacity: 0.7 }}>→</span>
                 </button>
               ))}
             </div>

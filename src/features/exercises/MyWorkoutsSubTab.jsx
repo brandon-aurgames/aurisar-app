@@ -389,7 +389,7 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
                           cursor: "pointer",
                           padding: "4px 8px",
                           borderRadius: R.r5,
-                          fontFamily: "'Barlow',sans-serif"
+                          fontFamily: "var(--font-family-ui)"
                         }}
                       aria-label={`Edit ${ex.name}`}>{"✎ edit"}</button>
                       <button

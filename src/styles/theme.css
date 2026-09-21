@@ -38,6 +38,9 @@
 
   --color-action-primary: var(--color-teal-300);
   --color-action-primary-hover: color-mix(in srgb, var(--color-teal-300) 88%, var(--color-neutral-100));
+  --color-action-primary-muted: color-mix(in srgb, var(--color-teal-300) 12%, transparent);
+  --color-action-primary-border: color-mix(in srgb, var(--color-teal-300) 36%, transparent);
+  --color-action-primary-glow: color-mix(in srgb, var(--color-teal-300) 24%, transparent);
   --color-action-danger: var(--color-red-300);
   --color-focus: var(--color-teal-300);
   --color-status-success: var(--color-teal-300);
@@ -45,7 +48,7 @@
   --color-status-warning: var(--color-text-primary);
   --color-status-info: var(--color-text-secondary);
 
-  /* Typography. The legacy families migrate in the next bounded change. */
+  /* Typography. Inter is the single UI family. */
   --font-family-ui: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-family-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --font-weight-regular: 400;
@@ -113,11 +116,18 @@
 
   /* Component contracts. */
   --button-primary-bg: var(--color-action-primary);
+  --button-primary-bg-hover: var(--color-action-primary-hover);
   --button-primary-text: var(--color-text-on-accent);
+  --button-primary-border: var(--color-action-primary-border);
   --button-danger-bg: var(--color-action-danger);
   --button-danger-text: var(--color-text-on-accent);
   --button-secondary-bg: var(--color-bg-raised);
+  --button-secondary-bg-hover: var(--color-bg-hover);
   --button-secondary-text: var(--color-text-primary);
+  --button-secondary-border: var(--color-border-subtle);
+  --button-accent-bg: var(--color-action-primary-muted);
+  --button-accent-text: var(--color-action-primary);
+  --button-accent-border: var(--color-action-primary-border);
   --input-bg: var(--color-bg-surface);
   --input-text: var(--color-text-primary);
   --input-border: var(--color-border-control);

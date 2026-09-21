@@ -51,7 +51,7 @@ const MapOverlay = memo(function MapOverlay({
       {/* Header */}
       <div style={{ width: "100%", maxWidth: 420, display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: S.s10, flexShrink: 0 }}>
         <div>
-          <div style={{ fontFamily: "'Cinzel Decorative',serif,Arial", fontSize: FS.fs95, color: "#b4ac9e", letterSpacing: ".08em" }}>{"⚔️ Auranthel"}</div>
+          <div style={{ fontFamily: "var(--font-family-ui)", fontSize: FS.fs95, color: "#b4ac9e", letterSpacing: ".08em" }}>{"⚔️ Auranthel"}</div>
           <div style={{ fontSize: FS.fs65, color: "#8a8478", marginTop: S.s2, display: "flex", gap: S.s8, alignItems: "center", flexWrap: "wrap" }}>
             <span>{myRegion.icon}{" "}{myRegion.name}{" · Level "}{level}</span>
             <span style={{ color: "#b4ac9e" }}>{myRegion.boost.emoji}{" +7% "}{myRegion.boost.label}</span>
@@ -79,7 +79,7 @@ const MapOverlay = memo(function MapOverlay({
               <div style={{ fontSize: FS.fs68, color: "#8a8478", marginBottom: S.s8, lineHeight: 1.5 }}>
                 {"Travel to their location for "}<strong style={{ color: "#b4ac9e" }}>{"+10% XP boost"}</strong>{" on all workouts this week."}
               </div>
-              <button className={"btn btn-gold"} style={{ width: "100%", fontSize: FS.lg }} onClick={() => {
+              <button className={"btn btn-secondary"} style={{ width: "100%", fontSize: FS.lg }} onClick={() => {
                 const ws = (() => {
                   const d = new Date();
                   d.setHours(0, 0, 0, 0);

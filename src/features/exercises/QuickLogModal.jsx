@@ -335,19 +335,19 @@ const QuickLogModal = memo(function QuickLogModal({
                 <div style={{ textAlign: "center", padding: "18px 0", color: "#8a8478", fontSize: FS.fs78, fontStyle: "italic" }}>{"🛌 Rest day — no stats to track. Recover well!"}</div>
               )}
 
-              {/* Projected XP — the gold card. Same estimate + beat animation
-                  as the old Est. XP line, on the design's earned-gold chassis. */}
+              {/* Projected XP uses the shared accent while preserving the
+                  existing estimate and beat animation. */}
               {ex.id !== "rest_day" && (
                 <div className={"sf-xp-card"}>
                   <span className={"sf-xp-sweep"} aria-hidden={"true"} />
                   <div style={{ position: "relative", display: "flex", alignItems: "flex-end", gap: S.s10 }}>
                     <div>
-                      <div style={{ fontFamily: FG.fontSerif, fontSize: FS.fs44, letterSpacing: ".3em", textTransform: "uppercase", color: "rgba(240,200,104,.85)", marginBottom: 4 }}>{"Projected XP"}</div>
+                      <div style={{ fontFamily: FG.fontUi, fontSize: FS.fs44, letterSpacing: ".3em", textTransform: "uppercase", color: "color-mix(in srgb, var(--color-action-primary) 85%, transparent)", marginBottom: 4 }}>{"Projected XP"}</div>
                       <div
                         key={beat || "flat"}
                         className={beat ? "ql-xp-beat" : undefined}
                         onAnimationEnd={() => setBeat(null)}
-                        style={{ fontFamily: FG.fontSerif, fontSize: "1.55rem", fontWeight: 600, lineHeight: .9, color: "#F5D486", textShadow: "0 0 26px rgba(240,200,104,.35)" }}
+                        style={{ fontFamily: FG.fontUi, fontSize: "1.55rem", fontWeight: 600, lineHeight: .9, color: "var(--color-action-primary-hover)", textShadow: "0 0 26px var(--color-action-primary-glow)" }}
                       >{estXP}</div>
                     </div>
                     <div style={{ flex: 1, textAlign: "right", paddingBottom: 2, fontSize: FS.fs58 }}>
@@ -386,9 +386,9 @@ const QuickLogModal = memo(function QuickLogModal({
                   enabled here. Focus claims a row for the +weight chips. */}
               {ex.id !== "rest_day" && (
                 <div style={{ display: "flex", alignItems: "center", gap: S.s8, margin: `${S.s2}px 0 ${S.s6}px` }}>
-                  <span style={{ fontFamily: FG.fontCond, fontSize: FS.base, fontWeight: 600, letterSpacing: ".19em", textTransform: "uppercase", color: FG.ink }}>{"Set Forge"}</span>
+                  <span style={{ fontFamily: FG.fontUi, fontSize: FS.base, fontWeight: 600, letterSpacing: ".19em", textTransform: "uppercase", color: FG.ink }}>{"Set Forge"}</span>
                   <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg,rgba(255,255,255,.13),transparent)" }} />
-                  {effActiveRow > 0 && <span style={{ fontFamily: FG.fontCond, fontSize: FS.fs55, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(228,222,211,.45)" }}>{`Editing S${effActiveRow + 1}`}</span>}
+                  {effActiveRow > 0 && <span style={{ fontFamily: FG.fontUi, fontSize: FS.fs55, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(228,222,211,.45)" }}>{`Editing S${effActiveRow + 1}`}</span>}
                 </div>
               )}
               {ex.id !== "rest_day" && (
@@ -420,7 +420,7 @@ const QuickLogModal = memo(function QuickLogModal({
                       onClick={() => bumpWeight(step)}
                     >{`+${step} ${wUnit}`}</button>
                   ))}
-                  <span style={{ marginLeft: "auto", fontSize: FS.fs55, color: "rgba(228,222,211,.4)", fontFamily: FG.fontCond, letterSpacing: ".08em", textTransform: "uppercase" }}>
+                  <span style={{ marginLeft: "auto", fontSize: FS.fs55, color: "rgba(228,222,211,.4)", fontFamily: FG.fontUi, letterSpacing: ".08em", textTransform: "uppercase" }}>
                     {`→ S${effActiveRow + 1}`}
                   </span>
                 </div>
@@ -475,7 +475,7 @@ const QuickLogModal = memo(function QuickLogModal({
               {/* Primary action row — Copy retired with Forge Glass; custom
                   exercises keep their ✎ Edit entry point. */}
               <div style={{ display: "flex", gap: S.s6, marginBottom: S.s8 }}>
-                <button className={"btn btn-glass-yellow"} style={{ flex: 2, fontSize: FS.sm, padding: "8px 10px" }} onClick={logExercise}>{"✓ Complete / Schedule"}</button>
+                <button className={"btn btn-accent"} style={{ flex: 2, fontSize: FS.sm, padding: "8px 10px" }} onClick={logExercise}>{"✓ Complete / Schedule"}</button>
                 {ex.id !== "rest_day" && ex.custom && (
                   <button className={"btn btn-ghost btn-sm"} style={{ flex: 1, fontSize: FS.sm, padding: "8px 6px" }} onClick={() => {
                     openExEditor("edit", ex);

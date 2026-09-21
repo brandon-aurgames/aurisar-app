@@ -67,7 +67,7 @@ it('opens a glass swipe-dismiss picker and overlays a shrink-wrapped Add N contr
   const commit = screen.getByRole('button', { name: '＋ Add 1' });
   expect(commit.closest('.wb-picker-add-overlay')).toBeTruthy();
   expect(commit.className).toMatch(/wb-picker-add-btn/);
-  expect(commit.className).not.toMatch(/btn-gold/);
+  expect(commit.className).not.toMatch(/btn-secondary/);
   expect(dialog.querySelector('.wb-picker-list-wrap.has-add-overlay')).toBeTruthy();
   const btnRule = css.slice(css.indexOf('.wb-picker-add-btn{'), css.indexOf('.wb-picker-add-btn:hover'));
   expect(btnRule).toMatch(/width:\s*auto/);

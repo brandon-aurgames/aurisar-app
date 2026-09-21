@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Ashwood — Hunter of the Hollow</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=EB+Garamond:ital@0;1&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
   :root{
     --ink:#0a0c0a;
@@ -13,13 +13,13 @@
     --blood:#9c2b21;
     --blood-bright:#d8412f;
     --moss:#7d8b54;
-    --gold:#d9b25b;
+    --accent:#8fe3d2;
     --steel:#b9c2c9;
     --frame:#3a2f23;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{height:100%;overflow:hidden;background:#000;touch-action:none;overscroll-behavior:none;}
-  body{font-family:'EB Garamond',serif;color:var(--bone);cursor:default;}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--bone);cursor:default;}
   canvas{display:block;}
 
   #hud{position:fixed;inset:0;pointer-events:none;z-index:10;}
@@ -36,18 +36,18 @@
 
   /* Level + XP row */
   #lvlrow{display:flex;align-items:center;gap:6px;margin-top:2px;}
-  #lvlbadge{font-family:'Cinzel';font-size:10px;letter-spacing:1px;color:#cdbf9e;text-shadow:0 1px 2px #000;white-space:nowrap;}
-  #lvlbadge b{color:var(--gold);font-size:12px;}
+  #lvlbadge{font-family:'Inter';font-size:10px;letter-spacing:1px;color:#cdbf9e;text-shadow:0 1px 2px #000;white-space:nowrap;}
+  #lvlbadge b{color:var(--accent);font-size:12px;}
   .xp-wrap{position:relative;flex:1;height:13px;border:1px solid var(--frame);
     background:linear-gradient(#15110c,#0b0907);box-shadow:inset 0 0 6px #000;overflow:hidden;}
   #xpfill{position:absolute;inset:0;transform-origin:left;transition:width .25s ease-out;
-    background:linear-gradient(90deg,#7a5a18,var(--gold));box-shadow:0 0 8px rgba(217,178,91,.5) inset;}
+    background:linear-gradient(90deg,#7a5a18,var(--accent));box-shadow:0 0 8px rgba(143,227,210,.5) inset;}
   .xp-txt{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;
-    font-family:'Cinzel';font-size:8px;letter-spacing:1px;color:#f0e6cf;
+    font-family:'Inter';font-size:8px;letter-spacing:1px;color:#f0e6cf;
     text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;}
   #armorpips{font-size:10px;letter-spacing:-2px;filter:drop-shadow(0 1px 1px #000);}
   .bar-label{position:absolute;left:8px;top:50%;transform:translateY(-50%);
-    font-family:'Cinzel';font-size:10px;letter-spacing:2px;color:var(--bone);
+    font-family:'Inter';font-size:10px;letter-spacing:2px;color:var(--bone);
     text-shadow:0 1px 2px #000;mix-blend-mode:screen;}
 
   /* Inventory (compact, under vitals) */
@@ -59,7 +59,7 @@
     display:flex;align-items:center;justify-content:center;color:#c9bfa8;-webkit-tap-highlight-color:transparent;cursor:pointer;}
   #bagbtn .ic{font-size:22px;filter:drop-shadow(0 1px 1px #000);}
   #bagbtn.bump{animation:bagbump .45s ease;}
-  @keyframes bagbump{0%{transform:scale(1);}40%{transform:scale(1.16);border-color:var(--gold);}100%{transform:scale(1);}}
+  @keyframes bagbump{0%{transform:scale(1);}40%{transform:scale(1.16);border-color:var(--accent);}100%{transform:scale(1);}}
   #inv{display:grid;grid-template-columns:repeat(2,40px);gap:5px;}
   #inv.closed{display:none;}
   .slot{width:40px;height:42px;border:1px solid var(--frame);
@@ -67,7 +67,7 @@
     box-shadow:inset 0 0 10px #000,0 2px 5px rgba(0,0,0,.55);
     display:flex;flex-direction:column;align-items:center;justify-content:center;}
   .slot .ic{font-size:17px;line-height:1;filter:drop-shadow(0 1px 1px #000);}
-  .slot .ct{font-family:'Cinzel';font-weight:700;font-size:12px;color:var(--gold);text-shadow:0 1px 2px #000;}
+  .slot .ct{font-family:'Inter';font-weight:700;font-size:12px;color:var(--accent);text-shadow:0 1px 2px #000;}
   .slot .nm{display:none;}
 
   /* Crosshair */
@@ -79,11 +79,11 @@
 
   /* Interaction prompt */
   #prompt{position:absolute;left:50%;top:60%;transform:translateX(-50%);
-    font-family:'Cinzel';font-size:15px;letter-spacing:2px;
+    font-family:'Inter';font-size:15px;letter-spacing:2px;
     padding:8px 18px;border:1px solid var(--frame);
     background:rgba(8,8,6,.7);text-shadow:0 1px 2px #000;
     opacity:0;transition:opacity .15s;white-space:nowrap;}
-  #prompt b{color:var(--gold);}
+  #prompt b{color:var(--accent);}
   #prompt.show{opacity:1;}
 
   /* Toasts */
@@ -91,18 +91,18 @@
     display:flex;flex-direction:column;align-items:center;gap:6px;width:88vw;max-width:480px;}
   .toast{font-size:17px;font-style:italic;letter-spacing:.5px;
     text-shadow:0 2px 4px #000;opacity:0;animation:toast 2.8s forwards;color:var(--bone);}
-  .toast b{font-style:normal;color:var(--gold);}
+  .toast b{font-style:normal;color:var(--accent);}
   .toast.bad b{color:var(--blood-bright);}
   @keyframes toast{0%{opacity:0;transform:translateY(8px);}12%{opacity:1;transform:translateY(0);}80%{opacity:1;}100%{opacity:0;transform:translateY(-14px);}}
 
   /* Floating damage numbers */
   #dmgnums{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
   .dmgnum{position:absolute;transform:translate(-50%,-50%);
-    font-family:'Cinzel';font-weight:700;font-size:21px;color:#f3ecd9;
+    font-family:'Inter';font-weight:700;font-size:21px;color:#f3ecd9;
     text-shadow:0 2px 4px #000,0 0 7px rgba(0,0,0,.85);
     animation:dmgfloat .85s ease-out forwards;will-change:transform,opacity;}
-  .dmgnum.crit{font-size:30px;color:var(--gold);
-    text-shadow:0 2px 5px #000,0 0 12px rgba(217,178,91,.75);}
+  .dmgnum.crit{font-size:30px;color:var(--accent);
+    text-shadow:0 2px 5px #000,0 0 12px rgba(143,227,210,.75);}
   @keyframes dmgfloat{
     0%{opacity:0;transform:translate(-50%,-50%) scale(.5);}
     18%{opacity:1;transform:translate(-50%,-95%) scale(1.12);}
@@ -115,7 +115,7 @@
   /* Compass hidden — direction now shown on the minimap */
   #compass{display:none;}
   #clock{position:absolute;top:calc(env(safe-area-inset-top,0px) + 152px);right:14px;width:136px;text-align:center;
-    font-family:'Cinzel';letter-spacing:2px;font-size:13px;color:#cdbf9e;
+    font-family:'Inter';letter-spacing:2px;font-size:13px;color:#cdbf9e;
     text-shadow:0 1px 3px #000;white-space:nowrap;}
 
   /* Overlay (start / pause / death) */
@@ -126,7 +126,7 @@
   #overlay::before{content:"";position:absolute;inset:0;
     background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
     mix-blend-mode:overlay;pointer-events:none;}
-  #overlay h1{font-family:'Cinzel';font-weight:900;font-size:clamp(38px,7vw,76px);
+  #overlay h1{font-family:'Inter';font-weight:700;font-size:clamp(38px,7vw,76px);
     letter-spacing:6px;color:var(--bone);line-height:1;
     text-shadow:0 0 30px rgba(156,43,33,.4),0 4px 0 #000;}
   #overlay h1 .sub{display:block;font-size:clamp(13px,1.6vw,18px);letter-spacing:10px;
@@ -134,13 +134,13 @@
   #overlay p.tag{font-style:italic;font-size:18px;color:#a89e88;margin:26px 0 6px;max-width:520px;}
   #keys{margin:22px 0 30px;display:grid;grid-template-columns:repeat(2,auto);
     gap:6px 34px;font-size:15px;color:#c9bfa8;}
-  #keys span{font-family:'Cinzel';font-size:12px;letter-spacing:1px;
+  #keys span{font-family:'Inter';font-size:12px;letter-spacing:1px;
     color:var(--ink);background:var(--bone);padding:2px 8px;border-radius:3px;
     box-shadow:0 2px 0 #6b6356;display:inline-block;min-width:26px;}
   #keys .row{display:contents;}
   #keys .k{justify-self:end;}
   #keys .d{justify-self:start;font-style:italic;color:#a89e88;}
-  #playbtn, .menubtn{pointer-events:auto;cursor:pointer;font-family:'Cinzel';font-weight:700;
+  #playbtn, .menubtn{pointer-events:auto;cursor:pointer;font-family:'Inter';font-weight:700;
     letter-spacing:4px;font-size:18px;color:var(--bone);
     padding:14px 46px;border:2px solid var(--blood);
     background:linear-gradient(#1a0f0c,#2a1411);
@@ -150,14 +150,14 @@
     box-shadow:0 0 36px rgba(216,65,47,.5),inset 0 0 18px rgba(0,0,0,.6);transform:translateY(-2px);}
   .menubtn{margin-top:12px;}
   .menubtn.small{font-size:13px;letter-spacing:3px;padding:9px 30px;border-color:#5a4a2a;}
-  .menubtn.small:hover{border-color:var(--gold);box-shadow:0 0 22px rgba(217,178,91,.35),inset 0 0 18px rgba(0,0,0,.6);}
-  .menubtn.alt{border-color:var(--gold);color:#f0e6cf;}
-  .menubtn.alt:hover{border-color:#f0d68a;box-shadow:0 0 30px rgba(217,178,91,.45),inset 0 0 18px rgba(0,0,0,.6);}
+  .menubtn.small:hover{border-color:var(--accent);box-shadow:0 0 22px rgba(143,227,210,.35),inset 0 0 18px rgba(0,0,0,.6);}
+  .menubtn.alt{border-color:var(--accent);color:#f0e6cf;}
+  .menubtn.alt:hover{border-color:#e4e7eb;box-shadow:0 0 30px rgba(143,227,210,.45),inset 0 0 18px rgba(0,0,0,.6);}
   #overlay .hint{margin-top:20px;font-size:13px;color:#6e6656;letter-spacing:1px;}
   #overlay.hidden{display:none;}
   #ovTitle.death{color:var(--blood-bright);}
   #loading{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;
-    background:#060605;color:#8a8068;font-family:'Cinzel';letter-spacing:4px;font-size:14px;}
+    background:#060605;color:#8a8068;font-family:'Inter';letter-spacing:4px;font-size:14px;}
 
   /* ----- touch / universal controls ----- */
   #controls{position:fixed;inset:0;z-index:25;pointer-events:none;}
@@ -177,13 +177,13 @@
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     border:2px solid #3a2f23;background:linear-gradient(#1a130c,#0b0806);
     box-shadow:inset 0 0 14px #000,0 2px 6px rgba(0,0,0,.6);
-    font-family:'Cinzel';color:#c9bfa8;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
+    font-family:'Inter';color:#c9bfa8;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
   .abtn .ic{font-size:21px;line-height:1;filter:drop-shadow(0 1px 1px #000);}
   .abtn .lb{font-size:7px;letter-spacing:1px;margin-top:1px;color:#8a8068;}
   .abtn.on{border-color:var(--blood-bright);box-shadow:0 0 16px rgba(216,65,47,.55),inset 0 0 14px #000;transform:scale(.92);}
   #b-attack{border-color:#6b3b22;}
   #b-hud{pointer-events:auto;touch-action:none;min-width:58px;height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--frame);
-    background:rgba(8,8,6,.72);color:#c9bfa8;font-size:11px;font-family:'Cinzel';letter-spacing:2px;
+    background:rgba(8,8,6,.72);color:#c9bfa8;font-size:11px;font-family:'Inter';letter-spacing:2px;
     display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;}
 
   #pausebtn{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);left:50%;transform:translateX(-50%);
@@ -195,7 +195,7 @@
   #minimap{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;width:136px;height:136px;z-index:24;pointer-events:none;}
   #mmcanvas{width:136px;height:136px;display:block;border-radius:50%;
     box-shadow:0 0 0 2px var(--frame),0 2px 10px rgba(0,0,0,.6);}
-  #mm-n{position:absolute;top:3px;left:50%;transform:translateX(-50%);font-family:'Cinzel';font-size:10px;
+  #mm-n{position:absolute;top:3px;left:50%;transform:translateX(-50%);font-family:'Inter';font-size:10px;
     letter-spacing:1px;color:#e8e0cf;text-shadow:0 1px 2px #000;}
   #mm-toggle{position:absolute;top:-2px;right:-2px;pointer-events:auto;touch-action:none;width:26px;height:26px;border-radius:7px;
     border:1px solid var(--frame);background:rgba(8,8,6,.78);color:#c9bfa8;font-size:13px;
@@ -204,30 +204,30 @@
   #minimap.collapsed #mmcanvas,#minimap.collapsed #mm-n{display:none;}
   #minimap.collapsed #mm-area{display:none;}
   #mm-area{position:absolute;top:-15px;left:50%;transform:translateX(-50%);white-space:nowrap;pointer-events:none;
-    font-family:'Cinzel';font-size:11px;letter-spacing:1px;color:#f0e6cf;
+    font-family:'Inter';font-size:11px;letter-spacing:1px;color:#f0e6cf;
     background:rgba(10,12,9,0.72);border:1px solid var(--frame);padding:2px 9px;border-radius:9px;
     text-shadow:0 1px 2px #000;}
 
   #mob-info{position:fixed;padding:9px 13px;background:rgba(6,7,5,0.90);border:1px solid var(--frame);
     border-radius:8px;pointer-events:none;display:none;z-index:25;min-width:150px;
     box-shadow:0 4px 18px rgba(0,0,0,0.6);}
-  #mi-name{font-family:'Cinzel';font-size:13px;font-weight:700;color:var(--gold);margin-bottom:5px;white-space:nowrap;}
+  #mi-name{font-family:'Inter';font-size:13px;font-weight:700;color:var(--accent);margin-bottom:5px;white-space:nowrap;}
   #mi-row{display:flex;justify-content:space-between;gap:12px;margin-bottom:6px;
-    font-family:'Cinzel';font-size:11px;color:#cdbf9e;letter-spacing:0.5px;}
+    font-family:'Inter';font-size:11px;color:#cdbf9e;letter-spacing:0.5px;}
   #mi-lv{font-weight:700;}
   #mi-bar{height:7px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden;}
   #mi-fill{height:100%;background:#3ac452;border-radius:4px;transition:width 0.12s;}
   #mapview{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
     background:rgba(6,7,5,0.82);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);}
   #mapinner{display:flex;flex-direction:column;align-items:center;gap:6px;max-width:94vw;}
-  #maptitle{font-family:'Cinzel';font-weight:700;letter-spacing:5px;font-size:20px;color:var(--gold);text-transform:uppercase;text-shadow:0 2px 6px #000;}
-  #mapsub{font-family:'Cinzel';font-size:12px;letter-spacing:1px;color:#cdbf9e;margin-top:-2px;}
+  #maptitle{font-family:'Inter';font-weight:700;letter-spacing:5px;font-size:20px;color:var(--accent);text-transform:uppercase;text-shadow:0 2px 6px #000;}
+  #mapsub{font-family:'Inter';font-size:12px;letter-spacing:1px;color:#cdbf9e;margin-top:-2px;}
   #mapcanvas{width:min(74vmin,560px);height:min(74vmin,560px);border-radius:50%;
     border:3px solid var(--frame);box-shadow:0 0 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5);background:#0b0d09;}
   #maplegend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:74vmin;}
-  #maplegend .lgi{display:flex;align-items:center;gap:5px;font-family:'Cinzel';font-size:11px;color:#e8e0cd;}
+  #maplegend .lgi{display:flex;align-items:center;gap:5px;font-family:'Inter';font-size:11px;color:#e8e0cd;}
   #maplegend .lgi i{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.5);display:inline-block;}
-  #maphint{font-family:'Cinzel';font-size:11px;letter-spacing:1px;color:#9a927f;}
+  #maphint{font-family:'Inter';font-size:11px;letter-spacing:1px;color:#9a927f;}
 
   #errpanel{position:fixed;left:8px;top:8px;z-index:60;display:none;max-width:92vw;max-height:50vh;overflow:auto;
     background:rgba(60,10,8,.94);color:#ffd9d2;font:12px/1.45 monospace;padding:9px 11px;
@@ -2626,7 +2626,7 @@ function buildPlayer(){
     leather:new THREE.MeshStandardMaterial({color:0x5a3b22, roughness:0.9}),
     metal:new THREE.MeshStandardMaterial({color:0xcdd4dc, map:TEX.metal, roughness:0.34, metalness:0.8}),
     dark:new THREE.MeshStandardMaterial({color:0x4a525c, map:TEX.metal, roughness:0.5, metalness:0.6}),
-    gold:new THREE.MeshStandardMaterial({color:0xcaa050, roughness:0.35, metalness:0.8, emissive:0x3a2a08, emissiveIntensity:0.25}),
+    accent:new THREE.MeshStandardMaterial({color:0x8fe3d2, roughness:0.35, metalness:0.8, emissive:0x183d38, emissiveIntensity:0.25}),
     cape:new THREE.MeshStandardMaterial({color:0x7c2434, roughness:0.85, side:THREE.DoubleSide}),
     hair:new THREE.MeshStandardMaterial({color:0x2c1d12, roughness:1}),
   };
@@ -2650,11 +2650,11 @@ function buildPlayer(){
   const pelvis=new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.28,0.34,10), M.leather); pelvis.position.y=1.05; pelvis.scale.z=0.78; upper.add(pelvis);
   const chest=new THREE.Mesh(new THREE.CylinderGeometry(0.33,0.26,0.62,12), M.tunic); chest.position.y=1.52; chest.scale.z=0.72; upper.add(chest);
   const cuirass=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,0.5,12), M.dark); cuirass.position.y=1.5; cuirass.scale.z=0.62; upper.add(cuirass);
-  // gold trim on cuirass
-  const trim1=new THREE.Mesh(new THREE.TorusGeometry(0.345,0.022,8,20), M.gold); trim1.position.y=1.72; trim1.rotation.x=Math.PI/2; trim1.scale.z=0.62; upper.add(trim1);
-  const trim2=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.5,0.02), M.gold); trim2.position.set(0,1.5,0.225); upper.add(trim2);
+  // accent trim on cuirass
+  const trim1=new THREE.Mesh(new THREE.TorusGeometry(0.345,0.022,8,20), M.accent); trim1.position.y=1.72; trim1.rotation.x=Math.PI/2; trim1.scale.z=0.62; upper.add(trim1);
+  const trim2=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.5,0.02), M.accent); trim2.position.set(0,1.5,0.225); upper.add(trim2);
   const belt=new THREE.Mesh(new THREE.TorusGeometry(0.27,0.05,8,18), M.leather); belt.position.y=1.24; belt.rotation.x=Math.PI/2; belt.scale.z=0.78; upper.add(belt);
-  const buckle=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.05), M.gold); buckle.position.set(0,1.24,0.23); upper.add(buckle);
+  const buckle=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.05), M.accent); buckle.position.set(0,1.24,0.23); upper.add(buckle);
   const skirtMat=M.tunic.clone(); skirtMat.side=THREE.DoubleSide;
   const skirt=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.46,0.45,12,1,true), skirtMat); skirt.position.y=1.0; skirt.scale.z=0.85; upper.add(skirt);
 
@@ -2687,9 +2687,9 @@ function buildPlayer(){
   const sword=new THREE.Group();
   const blade=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.06,1.1,4), M.metal); blade.position.y=0.72; blade.rotation.y=Math.PI/4;
   const tip=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.16,4), M.metal); tip.position.y=1.3; tip.rotation.y=Math.PI/4;
-  const guard=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.06,0.09), M.gold); guard.position.y=0.16;
+  const guard=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.06,0.09), M.accent); guard.position.y=0.16;
   const grip=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.24,8), M.leather); grip.position.y=0.02;
-  const pommel=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,6), M.gold); pommel.position.y=-0.12;
+  const pommel=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,6), M.accent); pommel.position.y=-0.12;
   sword.add(blade,tip,guard,grip,pommel); sword.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   sword.position.y=-0.46; R.el.add(sword);
 
@@ -2697,9 +2697,9 @@ function buildPlayer(){
   const shield=new THREE.Group();
   const face=new THREE.Mesh(new THREE.CylinderGeometry(0.33,0.33,0.07,20), M.leather); face.rotation.x=Math.PI/2;
   const rim=new THREE.Mesh(new THREE.TorusGeometry(0.33,0.035,8,24), M.metal);
-  const boss=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,8), M.gold); boss.position.z=0.06;
-  const cr1=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.46,0.02), M.gold); cr1.position.z=0.05;
-  const cr2=new THREE.Mesh(new THREE.BoxGeometry(0.46,0.06,0.02), M.gold); cr2.position.z=0.05;
+  const boss=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,8), M.accent); boss.position.z=0.06;
+  const cr1=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.46,0.02), M.accent); cr1.position.z=0.05;
+  const cr2=new THREE.Mesh(new THREE.BoxGeometry(0.46,0.06,0.02), M.accent); cr2.position.z=0.05;
   shield.add(face,rim,boss,cr1,cr2); shield.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
   shield.position.set(0,-0.42,0.2); shield.rotation.x=-0.1; L.el.add(shield);
 
@@ -2708,13 +2708,13 @@ function buildPlayer(){
   const sheathBody=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.04,0.95,8), M.leather); sheathBody.position.y=-0.15; sheathBody.castShadow=true; scab.add(sheathBody);
   const stowed=new THREE.Group(); scab.add(stowed);
   const sgrip=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.2,8), M.leather); sgrip.position.y=0.46; stowed.add(sgrip);
-  const sguard=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.05,0.07), M.gold); sguard.position.y=0.36; stowed.add(sguard);
-  const spommel=new THREE.Mesh(new THREE.SphereGeometry(0.045,8,6), M.gold); spommel.position.y=0.57; stowed.add(spommel);
+  const sguard=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.05,0.07), M.accent); sguard.position.y=0.36; stowed.add(sguard);
+  const spommel=new THREE.Mesh(new THREE.SphereGeometry(0.045,8,6), M.accent); spommel.position.y=0.57; stowed.add(spommel);
   stowed.traverse(o=>{if(o.isMesh)o.castShadow=true;});
 
-  // cape + gold clasp
+  // cape + accent clasp
   const cape=[]; const capeRoot=new THREE.Group(); capeRoot.position.set(0,1.78,-0.17); upper.add(capeRoot);
-  const clasp=new THREE.Mesh(new THREE.SphereGeometry(0.05,10,8), M.gold); clasp.position.set(0,1.82,-0.05); upper.add(clasp);
+  const clasp=new THREE.Mesh(new THREE.SphereGeometry(0.05,10,8), M.accent); clasp.position.set(0,1.82,-0.05); upper.add(clasp);
   let segP=capeRoot;
   for(let i=0;i<4;i++){
     const s=new THREE.Group(); s.position.y=(i===0?0:-0.34); segP.add(s);
@@ -3515,7 +3515,7 @@ function playerDeath(){
   player.obj.rotation.x=1.25; player.obj.position.y=groundHeight(player.obj.position.x,player.obj.position.z)+0.2;
   const ov=document.getElementById('overlay'); ov.classList.remove('hidden');
   const t=document.getElementById('ovTitle'); t.innerHTML='YOU DIED'; t.classList.add('death');
-  document.getElementById('ovTag').innerHTML='The Hollow claims another hunter. You gathered <b style="color:#d9b25b">'+player.inv.gold+' gold</b> before the end.';
+  document.getElementById('ovTag').innerHTML='The Hollow claims another hunter. You gathered <b style="color:#8fe3d2">'+player.inv.gold+' gold</b> before the end.';
   document.getElementById('playbtn').textContent='Rise Again';
   const sb=document.getElementById('savebtn'); if(sb) sb.style.display='none';
   const cb=document.getElementById('continuebtn'); if(cb) cb.style.display='none';
@@ -3985,7 +3985,7 @@ function drawMinimap(){
   ctx.beginPath(); ctx.arc(cx,cy,rad*0.5,0,6.283); ctx.stroke();
   // world trails
   if(!inDungeon && trailCurves.length){
-    ctx.strokeStyle='rgba(196,160,96,0.95)'; ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.strokeStyle='rgba(143,227,210,0.95)'; ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round';
     for(const cu of trailCurves){ ctx.beginPath(); let on=false;
       for(const p of cu){ const dx=(p[0]-px)*sc, dy=(p[1]-pz)*sc; if(dx*dx+dy*dy>rad*rad){ on=false; continue; }
         const X=cx+dx,Y=cy+dy; if(!on){ctx.moveTo(X,Y);on=true;} else ctx.lineTo(X,Y); }
@@ -4013,12 +4013,12 @@ function drawMinimap(){
     for(const r of ruinSites){ if(Math.hypot(px-r.x,pz-r.z)>=R) continue; const [x,y]=plotRaw(r.x,r.z); ctx.fillStyle='#9a948a'; ctx.fillRect(x-3,y-3,6,6); }
     for(const c of caveSites){ if(Math.hypot(px-c.x,pz-c.z)>=R) continue; const [x,y]=plotRaw(c.x,c.z);
       ctx.strokeStyle='#3ec8b4'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.arc(x,y,4,0,6.283); ctx.stroke();
-      ctx.font='7px Cinzel, serif'; ctx.fillStyle='#3ec8b4'; ctx.textAlign='left'; ctx.fillText('Hollow Deep',x+6,y+1);
+      ctx.font='7px Inter, sans-serif'; ctx.fillStyle='#3ec8b4'; ctx.textAlign='left'; ctx.fillText('Hollow Deep',x+6,y+1);
     }
     for(const mc of mountainCaves){ if(Math.hypot(px-mc.x,pz-mc.z)>=R) continue; const [xm,ym]=plotRaw(mc.x,mc.z);
       ctx.fillStyle='#8fd6ff'; ctx.strokeStyle='#1a2a44'; ctx.lineWidth=1.2;
       ctx.beginPath(); ctx.moveTo(xm,ym-4); ctx.lineTo(xm+4,ym+3); ctx.lineTo(xm-4,ym+3); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.font='7px Cinzel, serif'; ctx.fillStyle='#8fd6ff'; ctx.textAlign='left'; ctx.fillText('Frostspire',xm+6,ym+1);
+      ctx.font='7px Inter, sans-serif'; ctx.fillStyle='#8fd6ff'; ctx.textAlign='left'; ctx.fillText('Frostspire',xm+6,ym+1);
     }
     for(const pd of ponds){ if(Math.hypot(px-pd.x,pz-pd.z)>=R) continue; const [x,y]=plotRaw(pd.x,pd.z); ctx.fillStyle='rgba(60,150,190,0.7)'; ctx.beginPath(); ctx.arc(x,y,3.5,0,6.283); ctx.fill(); }
   }
@@ -4107,7 +4107,7 @@ function drawFullMap(){
   for(const cu of trailCurves){ ctx.beginPath(); for(let i=0;i<cu.length;i++){ const [x,y]=w2m(cu[i][0],cu[i][1]); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); }
   ctx.restore();
   for(const pd of ponds){ const [x,y]=w2m(pd.x,pd.z); ctx.fillStyle='rgba(70,150,200,0.92)'; ctx.beginPath(); ctx.arc(x,y,Math.max(3,pd.R*scale*0.6),0,6.283); ctx.fill();
-    if(pd.name){ ctx.font='bold 11px Cinzel, serif'; ctx.textAlign='center'; ctx.textBaseline='top';
+    if(pd.name){ ctx.font='bold 11px Inter, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top';
       ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.strokeText(pd.name,x,y+Math.max(3,pd.R*scale*0.6)+3);
       ctx.fillStyle='#8fd2ef'; ctx.fillText(pd.name,x,y+Math.max(3,pd.R*scale*0.6)+3); } }
   for(const r of ruinSites){ const [x,y]=w2m(r.x,r.z); ctx.fillStyle='#d7d0c2'; ctx.strokeStyle='#3a3228'; ctx.lineWidth=1.5; ctx.fillRect(x-4,y-4,8,8); ctx.strokeRect(x-4,y-4,8,8); }
@@ -4115,7 +4115,7 @@ function drawFullMap(){
   for(const cv2 of caveSites){
     const [x,y]=w2m(cv2.x,cv2.z);
     ctx.strokeStyle='#3ec8b4'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(x,y,5,0,6.283); ctx.stroke();
-    ctx.font='bold 10px Cinzel, serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.font='bold 10px Inter, sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
     ctx.lineWidth=2.5; ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.strokeText('Hollow Deep',x+8,y);
     ctx.fillStyle='#3ec8b4'; ctx.fillText('Hollow Deep',x+8,y);
   }
@@ -4124,7 +4124,7 @@ function drawFullMap(){
     const [x,y]=w2m(mc.x,mc.z);
     ctx.fillStyle='#8fd6ff'; ctx.strokeStyle='#1a2a44'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(x,y-7); ctx.lineTo(x+7,y+5); ctx.lineTo(x-7,y+5); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.font='bold 10px Cinzel, serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.font='bold 10px Inter, sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
     ctx.lineWidth=2.5; ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.strokeText('Frostspire Halls',x+10,y);
     ctx.fillStyle='#8fd6ff'; ctx.fillText('Frostspire Halls',x+10,y);
   }
@@ -4134,15 +4134,15 @@ function drawFullMap(){
   // forest region: little tree marks + label
   ctx.fillStyle='#2f5a2c'; ctx.strokeStyle='#163016'; ctx.lineWidth=0.8;
   for(const fm of forestMarks){ const [x,y]=w2m(fm.x,fm.z); ctx.beginPath(); ctx.moveTo(x,y-4); ctx.lineTo(x+3,y+3); ctx.lineTo(x-3,y+3); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-  { const [x,y]=w2m(FX,FZ); ctx.font="bold 15px Cinzel, serif"; ctx.textAlign='center'; ctx.textBaseline='middle';
+  { const [x,y]=w2m(FX,FZ); ctx.font="bold 15px Inter, sans-serif"; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.lineWidth=3.5; ctx.strokeStyle='rgba(8,7,5,0.85)'; ctx.strokeText('The Wildwood',x,y);
     ctx.fillStyle='#bfe6a8'; ctx.fillText('The Wildwood',x,y); }
   // biome name labels at each region seed
-  ctx.font="bold 15px Cinzel, serif"; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font="bold 15px Inter, sans-serif"; ctx.textAlign='center'; ctx.textBaseline='middle';
   for(const s of biomeSeeds){ const [x,y]=w2m(s.x,s.z); const nm=BIOMES[s.b].name;
     ctx.lineWidth=3.5; ctx.strokeStyle='rgba(8,7,5,0.85)'; ctx.strokeText(nm,x,y);
     ctx.fillStyle='#f5efdd'; ctx.fillText(nm,x,y);
-    if(s.b===4){ ctx.font='bold 11px Cinzel, serif'; ctx.fillStyle='#ff6666'; ctx.fillText('⚠ Lv10',x,y+16); } }
+    if(s.b===4){ ctx.font='bold 11px Inter, sans-serif'; ctx.fillStyle='#ff6666'; ctx.fillText('⚠ Lv10',x,y+16); } }
   { const [mxp,myp]=w2m(MX,MZ); ctx.lineWidth=3.5; ctx.strokeStyle='rgba(8,7,5,0.85)'; ctx.strokeText('Mountains',mxp,myp-22);
     ctx.fillStyle='#eaf2fb'; ctx.fillText('Mountains',mxp,myp-22); }
   ctx.strokeStyle='rgba(58,47,35,0.95)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(c,c,c-12,0,6.283); ctx.stroke();

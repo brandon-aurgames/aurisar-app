@@ -87,21 +87,21 @@ const S = {
     position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
     background: '#1e293b', color: '#94a3b8', fontSize: 12,
     padding: '4px 14px', borderRadius: 20, zIndex: 10,
-    fontFamily: 'Inter, system-ui, sans-serif', border: '1px solid #334155',
+    fontFamily: 'var(--font-family-ui)', border: '1px solid #334155',
     pointerEvents: 'none',
   },
   gfxNotice: {
     position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-    background: 'rgba(46,32,16,.92)', color: '#f0d060', fontSize: 12,
+    background: 'rgba(46,32,16,.92)', color: 'var(--color-action-primary)', fontSize: 12,
     padding: '6px 16px', borderRadius: 20, zIndex: 11, maxWidth: '80vw',
-    fontFamily: 'Inter, system-ui, sans-serif', border: '1px solid rgba(196,148,40,.5)',
+    fontFamily: 'var(--font-family-ui)', border: '1px solid color-mix(in srgb, var(--color-action-primary) 50%, transparent)',
     pointerEvents: 'none', textAlign: 'center',
   },
   onlineCount: {
     // Cleared left of the circular minimap (top-right, ~168px wide incl. offset).
     position: 'absolute', top: 12, right: 178,
     color: '#4ade80', fontSize: 11,
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'var(--font-family-ui)',
     textShadow: '0 0 6px #4ade8088', pointerEvents: 'none',
   },
   // Bottom-right toolbar: chat (bubble or expanded input) + action buttons,
@@ -119,7 +119,7 @@ const S = {
   chatLogWrap: {
     position: 'absolute', bottom: 74, right: 12,
     width: IS_TOUCH ? 240 : 340, zIndex: 10,
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'var(--font-family-ui)',
   },
   chatLog: {
     background: 'rgba(0,0,0,0.5)', borderRadius: 8,
@@ -130,7 +130,7 @@ const S = {
   },
   chatRow: { marginBottom: 2 },
   chatSender: { color: '#7dd3fc', fontWeight: 600 },
-  chatGlobalTag: { color: '#fbbf24', fontWeight: 600, marginRight: 4, fontSize: 10 },
+  chatGlobalTag: { color: 'var(--color-action-primary)', fontWeight: 600, marginRight: 4, fontSize: 10 },
   chatUnseenDot: {
     position: 'absolute', top: 4, right: 6, width: 8, height: 8,
     borderRadius: '50%', background: '#ef4444', border: '1.5px solid rgba(0,0,0,0.6)',
@@ -141,29 +141,29 @@ const S = {
     border: '1px solid #334155', borderRadius: 8,
     color: '#e2e8f0', fontSize: 12,
     padding: '5px 10px', outline: 'none',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'var(--font-family-ui)',
   },
   sendBtn: {
     background: '#3b82f6', border: 'none', borderRadius: 8,
     color: '#fff', fontSize: 12, padding: '5px 12px',
-    cursor: 'pointer', fontFamily: 'Inter, system-ui, sans-serif',
+    cursor: 'pointer', fontFamily: 'var(--font-family-ui)',
   },
   cancelBtn: {
     background: 'rgba(30,41,59,0.9)', border: '1px solid #334155', borderRadius: 8,
     color: '#94a3b8', fontSize: 12, padding: '5px 10px',
-    cursor: 'pointer', fontFamily: 'Inter, system-ui, sans-serif',
+    cursor: 'pointer', fontFamily: 'var(--font-family-ui)',
   },
   hint: {
     position: 'absolute', bottom: 74, right: 12,
     color: '#475569', fontSize: 10,
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'var(--font-family-ui)',
     textAlign: 'right', lineHeight: '1.6', pointerEvents: 'none',
   },
   // Slice 5c: player HP bar — top-left, opposite the online counter.
   hpBarWrap: {
     position: 'absolute', top: 12, left: 14, zIndex: 10,
     display: 'flex', alignItems: 'center', gap: 8,
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'var(--font-family-ui)',
     pointerEvents: 'none',
   },
   hpBarBg: {
@@ -188,7 +188,7 @@ const S = {
     display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: 'center',
     zIndex: 100, pointerEvents: 'none',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'var(--font-family-ui)',
     color: '#fca5a5',
   },
   deathTitle: {
@@ -866,9 +866,9 @@ export default function WorldGame({ playerInfo, onExit, onEquipPerksChange }) {
           style={{
             position: 'absolute', bottom: 120, left: '50%', transform: 'translateX(-50%)',
             zIndex: 20, display: 'flex', alignItems: 'center', gap: 8,
-            background: 'rgba(15,23,42,0.88)', border: '1px solid rgba(240,208,96,0.5)',
-            borderRadius: 22, padding: '9px 18px', color: '#f0d060',
-            fontSize: 13.5, fontWeight: 600, fontFamily: 'Inter, system-ui, sans-serif',
+            background: 'rgba(15,23,42,0.88)', border: '1px solid color-mix(in srgb, var(--color-action-primary) 50%, transparent)',
+            borderRadius: 22, padding: '9px 18px', color: 'var(--color-action-primary)',
+            fontSize: 13.5, fontWeight: 600, fontFamily: 'var(--font-family-ui)',
             cursor: (nearbyDoor.id === 'castle_gate' && worldLevel < CASTLE_MIN_LEVEL) ? 'not-allowed' : 'pointer',
             opacity: (nearbyDoor.id === 'castle_gate' && worldLevel < CASTLE_MIN_LEVEL) ? 0.65 : 1,
             boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
@@ -892,9 +892,9 @@ export default function WorldGame({ playerInfo, onExit, onEquipPerksChange }) {
           style={{
             position: 'absolute', bottom: 120, left: '50%', transform: 'translateX(-50%)',
             zIndex: 20, display: 'flex', alignItems: 'center', gap: 8,
-            background: 'rgba(15,23,42,0.88)', border: '1px solid rgba(240,208,96,0.5)',
-            borderRadius: 22, padding: '9px 18px', color: '#f0d060',
-            fontSize: 13.5, fontWeight: 600, fontFamily: 'Inter, system-ui, sans-serif',
+            background: 'rgba(15,23,42,0.88)', border: '1px solid color-mix(in srgb, var(--color-action-primary) 50%, transparent)',
+            borderRadius: 22, padding: '9px 18px', color: 'var(--color-action-primary)',
+            fontSize: 13.5, fontWeight: 600, fontFamily: 'var(--font-family-ui)',
             cursor: 'pointer', boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
             WebkitTapHighlightColor: 'transparent',
           }}
@@ -926,9 +926,9 @@ export default function WorldGame({ playerInfo, onExit, onEquipPerksChange }) {
           style={{
             position: 'absolute', bottom: 70, left: '50%', transform: 'translateX(-50%)',
             zIndex: 80, maxWidth: '80%',
-            background: 'rgba(15,23,42,0.92)', border: '1px solid rgba(240,208,96,0.4)',
-            borderRadius: 20, padding: '8px 16px', color: '#f0d060', fontSize: 13,
-            fontFamily: 'Inter, system-ui, sans-serif', textAlign: 'center',
+            background: 'rgba(15,23,42,0.92)', border: '1px solid color-mix(in srgb, var(--color-action-primary) 40%, transparent)',
+            borderRadius: 20, padding: '8px 16px', color: 'var(--color-action-primary)', fontSize: 13,
+            fontFamily: 'var(--font-family-ui)', textAlign: 'center',
             boxShadow: '0 6px 20px rgba(0,0,0,0.5)', pointerEvents: 'none',
           }}
         >

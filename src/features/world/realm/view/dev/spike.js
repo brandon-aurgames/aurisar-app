@@ -291,9 +291,9 @@ async function boot() {
   adt.idealWidth = 1280;
   adt.renderAtIdealSize = true;
   const title = new GUI.TextBlock('spikeTitle', 'AURISAR');
-  title.color = '#E8C572';
+  title.color = '#8fe3d2';
   title.fontSize = 40;
-  title.fontFamily = 'Georgia, serif';
+  title.fontFamily = 'Inter, sans-serif';
   title.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
   title.top = '28px';
   adt.addControl(title);

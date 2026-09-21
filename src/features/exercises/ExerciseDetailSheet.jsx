@@ -156,28 +156,28 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
     >{label}</button>
   );
 
-  const statChip = (label, value, gold) => (
+  const statChip = (label, value, accented) => (
     <div style={{
       flex: 1,
       padding: "8px 10px",
       borderRadius: R.xxl,
-      background: gold ? "rgba(232,180,74,.08)" : FG.glassBgSoft,
-      border: `1px solid ${gold ? "rgba(232,180,74,.22)" : FG.glassBorder}`,
+      background: accented ? "color-mix(in srgb, var(--color-action-primary) 8%, transparent)" : FG.glassBgSoft,
+      border: `1px solid ${accented ? "color-mix(in srgb, var(--color-action-primary) 22%, transparent)" : FG.glassBorder}`,
     }}>
       <div style={{
-        fontFamily: FG.fontSerif,
+        fontFamily: FG.fontUi,
         fontSize: FS.fs44,
         letterSpacing: ".24em",
         textTransform: "uppercase",
-        color: gold ? "rgba(232,180,74,.75)" : "rgba(228,222,211,.4)",
+        color: accented ? "color-mix(in srgb, var(--color-action-primary) 75%, transparent)" : "rgba(228,222,211,.4)",
         marginBottom: 3,
       }}>{label}</div>
       <div style={{
-        fontFamily: gold ? FG.fontSerif : FG.fontCond,
+        fontFamily: FG.fontUi,
         fontSize: FS.xxl,
         fontWeight: 600,
         lineHeight: 1,
-        color: gold ? FG.goldGlow : FG.ink,
+        color: accented ? FG.accentStrong : FG.ink,
       }}>{value}</div>
     </div>
   );
@@ -198,7 +198,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           border: `1px solid ${on ? `color-mix(in srgb,${mgColor} 55%,rgba(255,255,255,.2))` : "transparent"}`,
           background: on ? `color-mix(in srgb,${mgColor} 22%,transparent)` : "transparent",
           color: on ? FG.inkTitle : "rgba(228,222,211,.5)",
-          fontFamily: FG.fontCond,
+          fontFamily: FG.fontUi,
           fontSize: FS.base,
           fontWeight: 600,
           letterSpacing: ".13em",
@@ -272,7 +272,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           <div style={{ position: "relative", paddingRight: 72 }}>
             <div style={{ display: "flex", alignItems: "center", gap: S.s6, flexWrap: "wrap", marginBottom: 4 }}>
               <span style={{
-                fontFamily: FG.fontCond,
+                fontFamily: FG.fontUi,
                 fontSize: "1.16rem",
                 fontWeight: 600,
                 letterSpacing: ".02em",
@@ -281,9 +281,9 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
                 color: FG.inkBright,
               }}>{ex.name}</span>
               {hasPB && <span style={{
-                background: "rgba(232,180,74,.14)",
-                border: "1px solid rgba(232,180,74,.3)",
-                color: FG.goldSoft,
+                background: "color-mix(in srgb, var(--color-action-primary) 14%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--color-action-primary) 30%, transparent)",
+                color: FG.accentText,
                 fontSize: FS.sm,
                 padding: "2px 8px",
                 borderRadius: R.r4,
@@ -292,7 +292,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
             </div>
             <div style={{ display: "flex", gap: S.s8, flexWrap: "wrap", alignItems: "baseline" }}>
               <span style={{
-                fontFamily: FG.fontCond,
+                fontFamily: FG.fontUi,
                 fontSize: FS.sm,
                 letterSpacing: ".12em",
                 textTransform: "uppercase",
@@ -351,7 +351,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
             <span style={{ color: "#b4ac9e", fontWeight: "700" }}>{"PB: "}</span>{ex.pbType}
             {ex.pbTier === "Leaderboard" && <span style={{
               marginLeft: S.s8,
-              color: FG.goldSoft,
+              color: FG.accentText,
               fontSize: FS.fs65
             }}>{"🏆 Leaderboard"}</span>}
           </div>}
@@ -375,7 +375,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontFamily: FG.fontCond,
+              fontFamily: FG.fontUi,
               fontSize: FS.sm,
               fontWeight: 600,
               color: "#0A0A0C",
@@ -419,28 +419,28 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
                 const day = h.dateKey ? new Date(h.dateKey + "T12:00:00").toLocaleDateString(undefined, { weekday: "narrow" }) : "·";
                 return (
                   <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, justifyContent: "flex-end", height: "100%" }}>
-                    <span style={{ fontFamily: FG.fontCond, fontSize: FS.fs48, color: isLast ? FG.goldGlow : "rgba(228,222,211,.4)" }}>{v}</span>
+                    <span style={{ fontFamily: FG.fontUi, fontSize: FS.fs48, color: isLast ? FG.accentStrong : "rgba(228,222,211,.4)" }}>{v}</span>
                     <span style={{
                       width: "100%",
                       borderRadius: "3px 3px 1px 1px",
                       height: barH(v),
-                      background: isLast ? "rgba(232,180,74,.85)" : `color-mix(in srgb,${mgColor} 65%,transparent)`,
+                      background: isLast ? "color-mix(in srgb, var(--color-action-primary) 85%, transparent)" : `color-mix(in srgb,${mgColor} 65%,transparent)`,
                     }} />
-                    <span style={{ fontFamily: FG.fontCond, fontSize: FS.fs44, letterSpacing: ".06em", color: "rgba(228,222,211,.3)" }}>{day}</span>
+                    <span style={{ fontFamily: FG.fontUi, fontSize: FS.fs44, letterSpacing: ".06em", color: "rgba(228,222,211,.3)" }}>{day}</span>
                   </div>
                 );
               })}
             </div>
             <div style={{ display: "flex", gap: S.s8, marginTop: S.s8 }}>
               <div style={{ flex: 1, padding: "8px 10px", borderRadius: R.xxl, background: FG.glassBgSoft, border: `1px solid ${FG.glassBorder}` }}>
-                <div style={{ fontFamily: FG.fontSerif, fontSize: FS.fs44, letterSpacing: ".24em", textTransform: "uppercase", color: "rgba(228,222,211,.4)", marginBottom: 3 }}>{"Last session"}</div>
-                <div style={{ fontFamily: FG.fontCond, fontSize: FS.xl, fontWeight: 600, color: FG.ink, lineHeight: 1 }}>
+                <div style={{ fontFamily: FG.fontUi, fontSize: FS.fs44, letterSpacing: ".24em", textTransform: "uppercase", color: "rgba(228,222,211,.4)", marginBottom: 3 }}>{"Last session"}</div>
+                <div style={{ fontFamily: FG.fontUi, fontSize: FS.xl, fontWeight: 600, color: FG.ink, lineHeight: 1 }}>
                   {lastRow ? `${lastRow.sets}×${lastRow.reps}${lastRow.weightLbs != null ? " · " + (displayWt(lastRow.weightLbs, profile.units) || "") : ""}` : "—"}
                 </div>
               </div>
               <div style={{ flex: 1, padding: "8px 10px", borderRadius: R.xxl, background: "rgba(143,227,210,.07)", border: "1px solid rgba(143,227,210,.2)" }}>
-                <div style={{ fontFamily: FG.fontSerif, fontSize: FS.fs44, letterSpacing: ".24em", textTransform: "uppercase", color: "rgba(143,227,210,.7)", marginBottom: 3 }}>{"Trend"}</div>
-                <div style={{ fontFamily: FG.fontCond, fontSize: FS.xl, fontWeight: 600, color: FG.teal, lineHeight: 1 }}>
+                <div style={{ fontFamily: FG.fontUi, fontSize: FS.fs44, letterSpacing: ".24em", textTransform: "uppercase", color: "rgba(143,227,210,.7)", marginBottom: 3 }}>{"Trend"}</div>
+                <div style={{ fontFamily: FG.fontUi, fontSize: FS.xl, fontWeight: 600, color: FG.teal, lineHeight: 1 }}>
                   {trendDelta == null ? "—" : trendDelta === 0 ? "Holding steady" : `${trendDelta > 0 ? "▲ +" : "▼ "}${displayWt(Math.abs(trendDelta), profile.units)}`}
                 </div>
               </div>
@@ -455,9 +455,9 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
             : [...(p.favoriteExercises || []), ex.id]
         }))} style={{
           ...GLASS_BTN,
-          background: isFav ? "rgba(232,180,74,.12)" : FG.glassBgSoft,
-          border: `1px solid ${isFav ? "rgba(232,180,74,.35)" : FG.glassBorder}`,
-          color: isFav ? FG.goldSoft : "#b4ac9e",
+          background: isFav ? "color-mix(in srgb, var(--color-action-primary) 12%, transparent)" : FG.glassBgSoft,
+          border: `1px solid ${isFav ? "color-mix(in srgb, var(--color-action-primary) 35%, transparent)" : FG.glassBorder}`,
+          color: isFav ? FG.accentText : "#b4ac9e",
         }}>{isFav ? "⭐ Saved to Favorites" : "☆ Save to Favorites"}</button>
 
         {/* Staging was reachable only from a list in select mode, so the sheet
@@ -471,9 +471,9 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
             style={{
               ...GLASS_BTN,
               marginTop: S.s8,
-              background: staged ? "rgba(196,148,40,.16)" : FG.glassBgSoft,
-              border: `1px solid ${staged ? "rgba(196,148,40,.42)" : FG.glassBorder}`,
-              color: staged ? "#e8d08a" : "#b4ac9e",
+              background: staged ? "color-mix(in srgb, var(--color-action-primary) 16%, transparent)" : FG.glassBgSoft,
+              border: `1px solid ${staged ? "color-mix(in srgb, var(--color-action-primary) 42%, transparent)" : FG.glassBorder}`,
+              color: staged ? "var(--color-action-primary)" : "#b4ac9e",
             }}
           >{staged ? "⊟ Staged — tap to remove" : "⊞ Stage for later"}</button>
         )}
@@ -546,7 +546,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           color: "#D6F7EF",
           padding: "12px",
           borderRadius: R.xxl,
-          fontFamily: FG.fontCond,
+          fontFamily: FG.fontUi,
           fontWeight: "600",
           fontSize: FS.xxl,
           letterSpacing: ".12em",

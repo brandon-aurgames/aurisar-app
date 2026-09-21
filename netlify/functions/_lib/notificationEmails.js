@@ -5,7 +5,7 @@
 // Keep the copy in the same voice as src/features/notifications/
 // notificationTypes.js (the in-app renderings of the same events).
 
-import { renderEmail, cardBody, escapeHtml } from "./emailTemplate.js";
+import { EMAIL_COLORS, renderEmail, cardBody, escapeHtml } from "./emailTemplate.js";
 
 const APP_URL = "https://aurisargames.com";
 const FOOTER = "You can turn these emails off in Profile → Notification Preferences.";
@@ -57,7 +57,7 @@ const RENDERERS = {
         bodyHtml: cardBody(
           `⬆️ ${name} leveled up!`,
           [
-            `<strong style="color:#c49428">${name}</strong> just reached <strong style="color:#d4cec4">Level ${lvl}</strong>. The realm takes notice.`,
+            `<strong style="color:${EMAIL_COLORS.accent}">${name}</strong> just reached <strong style="color:${EMAIL_COLORS.primary}">Level ${lvl}</strong>. The realm takes notice.`,
             `Think you can keep pace? Log a workout and close the gap.`,
           ]
         ),
@@ -75,7 +75,7 @@ const RENDERERS = {
       html: renderEmail({
         title: "New friend request",
         bodyHtml: cardBody(`🤝 A challenger approaches`, [
-          `<strong style="color:#c49428">${name}</strong> wants to join forces with you on Aurisar.`,
+          `<strong style="color:${EMAIL_COLORS.accent}">${name}</strong> wants to join forces with you on Aurisar.`,
           `Accept the request to share workouts, compare PBs and keep each other honest.`,
         ]),
         ctaText: "View Request",
@@ -92,7 +92,7 @@ const RENDERERS = {
       html: renderEmail({
         title: "Friend request accepted",
         bodyHtml: cardBody(`✅ Alliance forged`, [
-          `<strong style="color:#c49428">${name}</strong> accepted your friend request. Your fellowship grows.`,
+          `<strong style="color:${EMAIL_COLORS.accent}">${name}</strong> accepted your friend request. Your fellowship grows.`,
         ]),
         ctaText: "Enter the Realm",
         ctaUrl: APP_URL,
@@ -109,7 +109,7 @@ const RENDERERS = {
       html: renderEmail({
         title: "Workout shared",
         bodyHtml: cardBody(`📋 A scroll arrives`, [
-          `<strong style="color:#c49428">${name}</strong> shared <strong style="color:#d4cec4">“${workout}”</strong> with you.`,
+          `<strong style="color:${EMAIL_COLORS.accent}">${name}</strong> shared <strong style="color:${EMAIL_COLORS.primary}">“${workout}”</strong> with you.`,
           `Open Aurisar to review it and add it to your plans.`,
         ]),
         ctaText: "View Workout",
@@ -126,7 +126,7 @@ const RENDERERS = {
       html: renderEmail({
         title: "New message",
         bodyHtml: cardBody(`💬 A raven has arrived`, [
-          `You have a new message from <strong style="color:#c49428">${name}</strong>.`,
+          `You have a new message from <strong style="color:${EMAIL_COLORS.accent}">${name}</strong>.`,
           `Message contents stay in the app — open Aurisar to read and reply.`,
         ]),
         ctaText: "Read Message",
@@ -146,7 +146,7 @@ const RENDERERS = {
         title: "Streak at risk",
         bodyHtml: cardBody(`🔥 The flame flickers`, [
           streak
-            ? `Your <strong style="color:#d4cec4">${streak}-day</strong> check-in streak ends at midnight. One check-in keeps it alive.`
+            ? `Your <strong style="color:${EMAIL_COLORS.primary}">${streak}-day</strong> check-in streak ends at midnight. One check-in keeps it alive.`
             : `Your check-in streak ends at midnight. One check-in keeps it alive.`,
         ]),
         ctaText: "Check In Now",

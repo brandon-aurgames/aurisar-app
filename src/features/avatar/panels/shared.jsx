@@ -82,6 +82,6 @@ const MG = {
     borderRadius: 8, padding: '10px 6px', cursor: 'pointer',
     display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: 'center',
-    minHeight: 56, fontFamily: 'Inter, system-ui, sans-serif',
+    minHeight: 56, fontFamily: 'var(--font-family-ui)',
   },
 };

@@ -78,7 +78,7 @@ const CARD_TITLE = {
   fontSize: ".82rem",
   fontWeight: 700,
   color: "#b4ac9e",
-  fontFamily: "'Cinzel', serif",
+  fontFamily: "var(--font-family-ui)",
   letterSpacing: ".03em",
   flex: 1,
 };
@@ -435,7 +435,7 @@ function TrendsTab({ log, allExById, clsColor, units, chartOrder: savedOrder, on
               {dowData.map((entry, i) => (
                 <Cell
                   key={i}
-                  fill={entry.dow === bestDow.dow && bestDow[heatMetric] > 0 ? "#f0d060" : "#c49428"}
+                  fill={entry.dow === bestDow.dow && bestDow[heatMetric] > 0 ? "var(--color-action-primary-hover)" : "var(--color-action-primary)"}
                   fillOpacity={Math.max(0.3, entry[heatMetric] / dowMax)}
                 />
               ))}
@@ -444,7 +444,7 @@ function TrendsTab({ log, allExById, clsColor, units, chartOrder: savedOrder, on
         </ResponsiveContainer>
         {bestDow[heatMetric] > 0 && (
           <div style={INSIGHT_STYLE}>
-            Your strongest day is <strong style={{ color: "#f0d060" }}>{bestDow.day}</strong> with{" "}
+            Your strongest day is <strong style={{ color: "var(--color-action-primary)" }}>{bestDow.day}</strong> with{" "}
             {bestDow[heatMetric].toLocaleString()} {metricLabel(heatMetric)}
           </div>
         )}
@@ -462,7 +462,7 @@ function TrendsTab({ log, allExById, clsColor, units, chartOrder: savedOrder, on
               <XAxis dataKey="label" tick={{ fill: "#8a8478", fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#8a8478", fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={TOOLTIP_STYLE} />
-              <Bar dataKey="avgSets" name="Avg Sets/Session" fill="#c49428" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="avgSets" name="Avg Sets/Session" fill="var(--color-action-primary)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
@@ -489,7 +489,7 @@ function TrendsTab({ log, allExById, clsColor, units, chartOrder: savedOrder, on
               <Tooltip contentStyle={TOOLTIP_STYLE} />
               <Bar dataKey="avgPerWeek" name="Avg/Week" radius={[0, 4, 4, 0]}>
                 {muscleFreqData.map((entry, i) => (
-                  <Cell key={i} fill={MUSCLE_COLORS[entry.muscleGroup] || "#c49428"} />
+                  <Cell key={i} fill={MUSCLE_COLORS[entry.muscleGroup] || "var(--color-action-primary)"} />
                 ))}
               </Bar>
             </BarChart>
@@ -501,7 +501,7 @@ function TrendsTab({ log, allExById, clsColor, units, chartOrder: savedOrder, on
         )}
         {topMuscle && (
           <div style={INSIGHT_STYLE}>
-            <strong style={{ color: MUSCLE_COLORS[topMuscle.muscleGroup] || "#f0d060" }}>{topMuscle.name}</strong>
+            <strong style={{ color: MUSCLE_COLORS[topMuscle.muscleGroup] || "var(--color-action-primary)" }}>{topMuscle.name}</strong>
             {" is your most trained muscle at "}{topMuscle.avgPerWeek}{" times/week"}
           </div>
         )}
@@ -539,7 +539,7 @@ function TrendsTab({ log, allExById, clsColor, units, chartOrder: savedOrder, on
                   dataKey={mk}
                   name={mk === "volume" ? "Volume" : capFirst(mk.replace("_", " "))}
                   stackId={volMuscleFilter === "_all" ? "vol" : undefined}
-                  fill={mk === "volume" ? (MUSCLE_COLORS[volMuscleFilter] || clsColor || "#c49428") : (MUSCLE_COLORS[mk] || "#c49428")}
+                  fill={mk === "volume" ? (MUSCLE_COLORS[volMuscleFilter] || clsColor || "var(--color-action-primary)") : (MUSCLE_COLORS[mk] || "var(--color-action-primary)")}
                   radius={volMuscleFilter !== "_all" ? [4, 4, 0, 0] : undefined}
                 />
               ))}
@@ -569,7 +569,7 @@ function TrendsTab({ log, allExById, clsColor, units, chartOrder: savedOrder, on
             <Tooltip contentStyle={TOOLTIP_STYLE} />
             <Area
               type="monotone" dataKey="sessions" name="Sessions"
-              stroke={clsColor || "#c49428"} fill={clsColor || "#c49428"}
+              stroke={clsColor || "var(--color-action-primary)"} fill={clsColor || "var(--color-action-primary)"}
               fillOpacity={0.15} strokeWidth={2}
             />
           </AreaChart>
@@ -585,7 +585,7 @@ function TrendsTab({ log, allExById, clsColor, units, chartOrder: savedOrder, on
     return (
       <ChartCard key="topEx" title="Most Trained Exercises" icon="🏆" idx={idx}>
         {topExData.map((ex, i) => {
-          const catColor = CAT_ICON_COLORS[ex.cat] || "#c49428";
+          const catColor = CAT_ICON_COLORS[ex.cat] || "var(--color-action-primary)";
           return (
             <div
               key={i}

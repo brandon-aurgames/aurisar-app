@@ -406,8 +406,8 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
       })}
       open={!!woLabelDropOpen}
       setOpen={v => setWoLabelDropOpen(v === "wo-labels")}
-      accent={"#C4A044"}
-      panelBorder={"rgba(196,148,40,0.25)"}
+      accent={"var(--color-action-primary)"}
+      panelBorder={"color-mix(in srgb, var(--color-action-primary) 25%, transparent)"}
       footer={<div className={"wo-label-new-row"}><input className={"wo-label-new-inp"} value={newLabelInput} onChange={e => setNewLabelInput(e.target.value)} onClick={e => e.stopPropagation()} onKeyDown={e => {
         e.stopPropagation();
         if (e.key === "Enter" && newLabelInput.trim()) {
@@ -443,7 +443,7 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
       display: "flex",
       gap: S.s8,
       marginBottom: S.s14
-    }}><button className={"btn btn-gold btn-sm"} onClick={() => initWorkoutBuilder(null)}>{"＋ New Workout"}</button><button className={"btn btn-ghost btn-sm"} onClick={() => setWorkoutView("recipes")}>{"📋 Recipes"}</button></div>{(() => {
+    }}><button className={"btn btn-secondary btn-sm"} onClick={() => initWorkoutBuilder(null)}>{"＋ New Workout"}</button><button className={"btn btn-ghost btn-sm"} onClick={() => setWorkoutView("recipes")}>{"📋 Recipes"}</button></div>{(() => {
       const reusableWo = allW.filter(w => !w.oneOff);
       const filtered = reusableWo.filter(w => woLabelFilters.size === 0 || (w.labels || []).some(l => woLabelFilters.has(l)));
       if (reusableWo.length === 0) return <div className={"empty"}>{"No reusable workouts yet."}<br />{"Create your first custom workout or start from a template."}</div>;
@@ -493,7 +493,7 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
         return (wo && wo.labels || []).some(l => woLabelFilters.has(l));
       }).sort((a, b) => a.date.localeCompare(b.date));
       const hasSoloExs = (profile.scheduledWorkouts || []).some(sw => !sw.sourceWorkoutId && sw.exId && sw.scheduledDate >= today);
-      if (scheduled.length === 0 && !hasSoloExs && woLabelFilters.size === 0) return <div className={"empty"} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: S.s12 }}><div>{"No upcoming one-off workouts."}<br />{"Stage exercises from the Library, or build one now."}</div><button className={"btn btn-gold-solid btn-sm"} onClick={() => { initWorkoutBuilder(null); setWbIsOneOff(true); }}>{"＋ Build One-Off"}</button></div>;
+      if (scheduled.length === 0 && !hasSoloExs && woLabelFilters.size === 0) return <div className={"empty"} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: S.s12 }}><div>{"No upcoming one-off workouts."}<br />{"Stage exercises from the Library, or build one now."}</div><button className={"btn btn-primary btn-sm"} onClick={() => { initWorkoutBuilder(null); setWbIsOneOff(true); }}>{"＋ Build One-Off"}</button></div>;
       if (scheduled.length === 0 && !hasSoloExs && woLabelFilters.size > 0) return <div className={"empty"}>{"No one-off workouts match the selected labels."}</div>;
       if (scheduled.length === 0) return null;
       return scheduled.map(g => {
@@ -565,7 +565,7 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
               showToast(`\uD83D\uDCAA "${wo.name}" added to Re-Usable Workouts!`);
             }}>{"💪 Make Reusable"}</button><div style={{
               flex: 1
-            }} /><button className={"btn btn-gold btn-sm"} onClick={() => {
+            }} /><button className={"btn btn-secondary btn-sm"} onClick={() => {
 openCompletionFlow({ ...wo, oneOff: true });
             }}>{"✓ Complete"}</button></div></div>;
       });
@@ -628,7 +628,7 @@ openCompletionFlow({ ...wo, oneOff: true });
               marginTop: S.s6,
               paddingTop: 6,
               borderTop: "1px solid rgba(180,172,158,.04)"
-            }}><button className={"btn btn-gold btn-sm"} style={{
+            }}><button className={"btn btn-secondary btn-sm"} style={{
                 flex: 1
               }} onClick={() => quickLogSoloEx(sw)}>{"⚡ Quick Log"}</button><button className={"btn btn-ghost btn-sm"} style={{
                 flex: 1,
@@ -705,9 +705,9 @@ if (workoutView === "recipes") {
           })}
           open={!!recipeCatDrop}
           setOpen={v => setRecipeCatDrop(v === "recipe-cat")}
-          accent={"#C4A044"}
-          optionAccent={c => RECIPE_CAT_COLORS[c] || "#C4A044"}
-          panelBorder={"rgba(196,148,40,0.25)"}
+          accent={"var(--color-action-primary)"}
+          optionAccent={c => RECIPE_CAT_COLORS[c] || "var(--color-action-primary)"}
+          panelBorder={"color-mix(in srgb, var(--color-action-primary) 25%, transparent)"}
         />{recipeFilter.size > 0 && <button className={"btn btn-ghost btn-xs"} style={{
           fontSize: FS.sm,
           color: "#8a8478",
@@ -780,13 +780,13 @@ if (workoutView === "recipes") {
                 if (gid) {
                   const letter = groupLetter(list, gid);
                   nodes.push(<div key={gid} className={"recipe-ss-group"} style={{
-                    borderLeft: "2px solid #C4A044",
+                    borderLeft: "2px solid var(--color-action-primary)",
                     paddingLeft: 8,
                     marginBottom: S.s6,
                     marginTop: start > 0 ? 6 : 0
                   }}><div style={{
                       fontSize: FS.fs58,
-                      color: "#C4A044",
+                      color: "var(--color-action-primary)",
                       fontWeight: 600,
                       marginBottom: S.s4,
                       textTransform: "uppercase",
@@ -822,7 +822,7 @@ if (workoutView === "recipes") {
             })()}</div>}</div><div style={{
           display: "flex",
           gap: S.s8
-        }}><button className={"btn btn-gold btn-sm"} style={{
+        }}><button className={"btn btn-secondary btn-sm"} style={{
             flex: 1
           }} onClick={() => {
             const wo = buildWorkoutObject({
@@ -868,7 +868,7 @@ if (workoutView === "detail" && activeWorkout) {
         setWorkoutView("list");
         setActiveWorkout(null);
       }}>{"← Back"}</button><div style={{
-        fontFamily: "'Cinzel',serif",
+        fontFamily: "var(--font-family-ui)",
         fontSize: ".78rem",
         fontWeight: 600,
         color: "#d4cec4",
@@ -924,12 +924,12 @@ if (workoutView === "detail" && activeWorkout) {
       display: "flex",
       gap: S.s8,
       flexWrap: "wrap"
-    }}><button className={"btn btn-glass-yellow"} style={{
+    }}><button className={"btn btn-accent"} style={{
         flex: 2,
         fontSize: FS.sm
       }} onClick={() => {
 openCompletionFlow(wo);
-      }}>{"✓ Mark Complete or Schedule"}</button><button className={"btn btn-gold btn-sm"} style={{
+      }}>{"✓ Mark Complete or Schedule"}</button><button className={"btn btn-secondary btn-sm"} style={{
         flex: 1
       }} onClick={() => setAddToPlanPicker({
         workout: wo
@@ -984,7 +984,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
         marginLeft: S.s8,
         fontSize: FS.fs65,
         color: "#b4ac9e",
-        fontFamily: "'Inter',sans-serif"
+        fontFamily: "var(--font-family-ui)"
       }}>{"⚡ "}{formatXP(wbTotalXP)}{" total"}</span>}</label><div style={{
       display: "flex",
       gap: S.s6
@@ -1032,7 +1032,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
     return nodes;
   })()}</div><div className={"wb-footer"}>{wbIsOneOff ? wbEditId ?
   // Editing an existing scheduled one-off — save changes in place
-  <button className={"btn btn-gold"} style={{
+  <button className={"btn btn-secondary"} style={{
     flex: 1
   }} onClick={() => {
     if (!wbName.trim()) {
@@ -1072,7 +1072,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
     showToast(`⚡ "${updated.name}" updated!`);
   }}>{"💾 Save Changes"}</button> :
   // New one-off — proceed through stats prompt then to log/schedule
-  <button className={"btn btn-gold"} style={{
+  <button className={"btn btn-secondary"} style={{
     flex: 1
   }} onClick={() => {
     if (!wbName.trim()) {
@@ -1099,11 +1099,11 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
     openCompletionFlow(wo);
     setWorkoutView("list");
   }}>{"Next: Log or Schedule →"}</button> : wbEditId ? <>
-  <button className={"btn btn-gold-solid"} style={{ flex: 1 }} onClick={saveBuiltWorkout}>{"💾 Update Workout"}</button>
+  <button className={"btn btn-primary"} style={{ flex: 1 }} onClick={saveBuiltWorkout}>{"💾 Update Workout"}</button>
   <button className={"btn btn-ghost"} style={{ flex: 1 }} onClick={saveAsNewWorkout}>{"📋 Save As New"}</button>
   </> : <>
-  <button className={"btn btn-gold-solid"} style={{ flex: 1 }} onClick={saveBuiltWorkout}>{"💾 Save Workout"}</button>
-  <button className={"btn btn-glass-yellow"} style={{
+  <button className={"btn btn-primary"} style={{ flex: 1 }} onClick={saveBuiltWorkout}>{"💾 Save Workout"}</button>
+  <button className={"btn btn-accent"} style={{
     flex: 1
   }} onClick={() => {
     if (!wbName.trim()) {

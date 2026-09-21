@@ -50,7 +50,6 @@ export default function Sheet({
   placement = 'bottom',       // "bottom" | "center" | "left" | "fullscreen"
   title,
   icon,
-  titleFont,                  // "cinzel" opts into the serif display face
   headerLeft,                 // slot before the title (e.g. a Back button)
   headerRight,                // slot between title and the close X
   showClose = true,
@@ -170,7 +169,7 @@ export default function Sheet({
         {(title || headerLeft || headerRight || showClose) && (
           <div className={'ui-sheet-header'}>
             {headerLeft}
-            <div className={`ui-sheet-title${titleFont === 'cinzel' ? ' ui-sheet-title--cinzel' : ''}`}>
+            <div className={'ui-sheet-title'}>
               {icon && <span className={'ui-sheet-title-icon'}>{icon}</span>}
               {title}
             </div>

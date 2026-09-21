@@ -479,7 +479,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
           onToggle={v => toggleSet(setLibTypeFilters, v)}
           open={libOpenDrop === "type"}
           setOpen={setLibOpenDrop}
-          accent="#C4A044"
+          accent="var(--color-action-primary)"
           optionAccent={getTypeColor}
           panelBorder="rgba(180,172,158,.07)"
         />
@@ -510,7 +510,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
           open={libOpenDrop === "equip"}
           setOpen={setLibOpenDrop}
           accent={UI_COLORS.accent}
-          panelBorder="rgba(196,148,40,0.25)"
+          panelBorder="color-mix(in srgb, var(--color-action-primary) 25%, transparent)"
         />
       </div>{/* Active filter tags — show what's selected, tap to remove */
       (libTypeFilters.size > 0 || libMuscleFilters.size > 0 || libEquipFilters.size > 0 || !!libDifficultyPick) && <div style={{
@@ -519,8 +519,8 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
         flexWrap: "wrap",
         marginBottom: S.s8
       }}>{[...libTypeFilters].map(v => <button type="button" key={"t" + v} aria-label={`Remove ${TYPE_LABELS[v] || v} filter`} onClick={() => toggleSet(setLibTypeFilters, v)} style={{
-          background: "rgba(196,160,68,.08)",
-          border: "1px solid rgba(196,160,68,.25)",
+          background: "color-mix(in srgb, var(--color-action-primary) 8%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--color-action-primary) 25%, transparent)",
           color: getTypeColor(v),
           fontSize: FS.fs62,
           padding: "4px 8px",
@@ -541,8 +541,8 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
           alignItems: "center",
           gap: S.s4
         }}>{muscleLabel(v)}{" ✕"}</button>)}{[...libEquipFilters].map(v => <button type="button" key={"e" + v} aria-label={`Remove ${v} filter`} onClick={() => toggleSet(setLibEquipFilters, v)} style={{
-          background: "rgba(196,148,40,0.15)",
-          border: "1px solid rgba(196,148,40,0.27)",
+          background: "color-mix(in srgb, var(--color-action-primary) 15%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--color-action-primary) 27%, transparent)",
           color: UI_COLORS.accent,
           fontSize: FS.fs62,
           padding: "4px 8px",
@@ -552,8 +552,8 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
           alignItems: "center",
           gap: S.s4
         }}>{v.charAt(0).toUpperCase() + v.slice(1)}{" ✕"}</button>)}{libDifficultyPick && <button type="button" key="diff" aria-label={`Remove ${libDifficultyPick.label} filter`} onClick={() => setLibDifficultyPick(null)} style={{
-          background: "rgba(196,148,40,0.15)",
-          border: "1px solid rgba(196,148,40,0.27)",
+          background: "color-mix(in srgb, var(--color-action-primary) 15%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--color-action-primary) 27%, transparent)",
           color: UI_COLORS.accent,
           fontSize: FS.fs62,
           padding: "4px 8px",
