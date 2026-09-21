@@ -143,6 +143,9 @@ jobs:
       - name: No undefined references (runtime ReferenceErrors)
         run: pnpm run lint:undef
 
+      - name: Theme token baseline current
+        run: pnpm run theme:audit:check
+
       - name: Tests
         run: pnpm test
 
