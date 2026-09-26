@@ -17,12 +17,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import chestManifest from '../manifests/world_chests.json';
-import { chestPosToPx, playerNearChest, type WorldChestDef } from './chest.js';
+import { chestPosToPx, playerNearChest } from './chest.js';
 import { contentPosToPx } from '../world/zones.js';
 import { ZONES_BY_ID } from '../content/index.js';
 
 /** Verbatim transcription of the retired pre-fix body — the oracle, not a guess. */
-function oldChestPosToPx(chest: { x: number; z: number }): { x: number; y: number } {
+function oldChestPosToPx(chest) {
   return { x: chest.x * 32 + 1600, y: chest.z * 32 + 1600 };
 }
 
@@ -32,12 +32,12 @@ describe('fixture sanity', () => {
   // Zone-2 chests, each tagged explicitly. This replaces the pre-M11-2
   // snapshot ("none carry a zoneId yet") now that it is no longer true.
   it('the committed manifest has real Zone-1 chests with no zoneId', () => {
-    const zone1Chests = (chestManifest.chests as WorldChestDef[]).filter((c) => c.zoneId === undefined);
+    const zone1Chests = chestManifest.chests.filter((c) => c.zoneId === undefined);
     expect(zone1Chests.length).toBeGreaterThan(0);
   });
 
   it('the committed manifest also has real Zone-2 chests, explicitly tagged', () => {
-    const zone2Chests = (chestManifest.chests as WorldChestDef[]).filter((c) => c.zoneId === 2);
+    const zone2Chests = chestManifest.chests.filter((c) => c.zoneId === 2);
     expect(zone2Chests.length).toBeGreaterThan(0);
     for (const c of zone2Chests) {
       expect(Number.isFinite(c.x)).toBe(true);
@@ -56,7 +56,7 @@ describe('chestPosToPx: every real Zone-1 chest is unchanged within sub-pixel ro
   // would compare against the wrong zone's origin by construction, not prove
   // anything about a regression. M11-2 (D176) made this an explicit filter
   // now that the manifest carries more than one zone's chests.
-  const zone1Chests = (chestManifest.chests as WorldChestDef[]).filter((c) => c.zoneId === undefined);
+  const zone1Chests = chestManifest.chests.filter((c) => c.zoneId === undefined);
 
   it('the Zone-1 subset used by these tests is non-empty', () => {
     expect(zone1Chests.length).toBeGreaterThan(0);
@@ -75,7 +75,7 @@ describe('chestPosToPx: every real Zone-1 chest is unchanged within sub-pixel ro
     // The chest actually farthest from an integer px position in the live
     // manifest — the worst case for this run's rounding delta — probed by
     // maximizing |old - Math.round(old)| across both axes.
-    let worst: WorldChestDef | null = null;
+    let worst = null;
     let worstDelta = 0;
     for (const chest of zone1Chests) {
       const before = oldChestPosToPx(chest);
@@ -85,7 +85,7 @@ describe('chestPosToPx: every real Zone-1 chest is unchanged within sub-pixel ro
       if (delta > worstDelta) { worstDelta = delta; worst = chest; }
     }
     expect(worst).not.toBeNull();
-    const chest = worst as WorldChestDef;
+    const chest = worst;
     const before = oldChestPosToPx(chest);
     // A player standing at the OLD (unrounded) position must still read as
     // "near" the NEW (rounded) chest position — proving the open-chest
@@ -94,14 +94,14 @@ describe('chestPosToPx: every real Zone-1 chest is unchanged within sub-pixel ro
   });
 
   it('a chest with no zoneId at a clean (non-fractional) position is byte-identical, not just close', () => {
-    const chest: WorldChestDef = { id: 1, x: 10, z: -5, seed: 1 };
+    const chest = { id: 1, x: 10, z: -5, seed: 1 };
     expect(chestPosToPx(chest)).toEqual(oldChestPosToPx(chest));
     expect(chestPosToPx(chest)).toEqual({ x: 1920, y: 1440 });
   });
 });
 
 describe('a chest with an explicit non-1 zoneId resolves against ITS OWN zone (the actual D173 regression proof)', () => {
-  const zone2Chest: WorldChestDef = { id: 999999, x: 10, z: -5, seed: 1, zoneId: 2 };
+  const zone2Chest = { id: 999999, x: 10, z: -5, seed: 1, zoneId: 2 };
 
   it('chestPosToPx resolves inside zone 2, not zone 1', () => {
     const px = chestPosToPx(zone2Chest);

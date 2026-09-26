@@ -42,7 +42,6 @@ import {
 import { CASTLE_ASHWOOD_ENTRY } from '../content/dungeons/castleAshwood.generated.js';
 import { contentPosToPx } from '../world/zones.js';
 import { ZONES_BY_ID } from '../content/index.js';
-import type { DungeonDef } from '../content/types.js';
 
 const ashwood = DUNGEONS_BY_ID['castle_ashwood'];
 
@@ -61,7 +60,7 @@ describe('fixture sanity', () => {
 
 describe('interiorLocalToPx: byte-identical for Castle Ashwood (D173 item 2)', () => {
   /** Verbatim transcription of the retired pre-fix body — the oracle, not a guess. */
-  function oldInteriorLocalToPx(local: { x: number; z: number }): { x: number; y: number } {
+  function oldInteriorLocalToPx(local) {
     return {
       x: Math.round((local.x + CASTLE_INTERIOR_ANCHOR.x) * 32 + 1600),
       y: Math.round((local.z + CASTLE_INTERIOR_ANCHOR.z) * 32 + 1600),
@@ -101,9 +100,9 @@ describe('dungeonInteriorNavFor: hands back the dungeon\'s OWN grids, not a yes/
   it('gives Castle Ashwood its own descriptor, anchored where its bitmaps are', () => {
     const nav = dungeonInteriorNavFor('castle_ashwood');
     expect(nav).not.toBeNull();
-    expect(nav!.dungeonId).toBe('castle_ashwood');
-    expect(nav!.zoneId).toBe(1);
-    expect(nav!.meta.anchor).toEqual(CASTLE_INTERIOR_ANCHOR);
+    expect(nav.dungeonId).toBe('castle_ashwood');
+    expect(nav.zoneId).toBe(1);
+    expect(nav.meta.anchor).toEqual(CASTLE_INTERIOR_ANCHOR);
   });
 
   it('is null for an unregistered dungeon id, instead of assuming every instance is Ashwood', () => {
@@ -120,7 +119,7 @@ describe('a synthetic non-Zone-1 dungeon resolves against ITS OWN zone (D173/D17
   // Deliberately not 'barrowdeep' — the real Barrowdeep id is separate,
   // parallel content work (M11-5) this PR must not collide with. Zone 2
   // itself is real (content/zones/manifest.ts), only this DungeonDef is fake.
-  const synthetic: DungeonDef = {
+  const synthetic = {
     id: 'test_only_synthetic_2',
     name: 'Test-Only Synthetic Dungeon (zone 2)',
     minLevel: 1,
