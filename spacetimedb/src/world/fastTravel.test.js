@@ -20,6 +20,7 @@ import { describe, expect, it } from 'vitest';
 import { ALL_WAYPOINTS, WAYPOINTS, ZONES_BY_ID } from '../content/index.js';
 import { movementRestriction } from '../combat/auras.js';
 import { contentPosToPx, resolveZone } from './zones.js';
+import { resolveGateTravel } from './travel.js';
 import {
   FAST_TRAVEL_COMBAT_LOCKOUT_MICROS,
   FAST_TRAVEL_COOLDOWN_MICROS,
@@ -328,5 +329,48 @@ describe('index.ts wiring (the surface M12-7 regenerates bindings from)', () => 
     expect(body).toContain('isMoving: false,');
     expect(body).toContain('lastMoveAt: now,');
     expect(body).toContain('stampFastTravel(ctx.db.playerTravelState, identity, now);');
+    expect(body).toContain('discovered: hasDiscoveredWaypoint(ctx.db.playerWaypoint, identity, waypointId),');
+    expect(body).toContain('playerLevel: getPlayerLevel(ctx, identity),');
+    expect(body).toContain('lastFastTravelAt: lastFastTravelAtFor(ctx.db.playerTravelState, identity),');
+  });
+
+  it('discoverWaypoint resolves the guards and inserts once via the shared helpers', () => {
+    const start = src.indexOf('export const discoverWaypoint = spacetimedb.reducer(');
+    const body = src.slice(start, src.indexOf('\n);\n', start));
+    expect(start).toBeGreaterThan(-1);
+    expect(body).toContain('const outcome = resolveDiscoverWaypoint(player, waypointId, now);');
+    expect(body).toContain('if (!outcome.ok) return;');
+    expect(body).toContain('recordWaypointDiscovery(ctx.db.playerWaypoint, identity, waypointId, now);');
+  });
+});
+
+describe('level-floor parity with gate travel (world/travel.ts)', () => {
+  it('every real waypoint lands inside its own zone box', () => {
+    for (const wp of ALL_WAYPOINTS) {
+      const p = contentPosToPx(wp.zoneId, wp.pos);
+      expect(resolveZone(p.x, p.y), wp.id).toEqual({ zoneId: wp.zoneId, inBounds: true, x: p.x, y: p.y });
+    }
+  });
+
+  it('resolveGateTravel and resolveFastTravel agree on ok vs level-too-low for every gated zone, levels 0..20', () => {
+    let compared = 0;
+    for (const zone of Object.values(ZONES_BY_ID)) {
+      for (const gate of zone.gates) {
+        const dest = ZONES_BY_ID[gate.toZoneId];
+        if (!dest) continue;
+        const wp = ALL_WAYPOINTS.find((w) => w.zoneId === dest.id);
+        if (!wp) continue;
+        const gatePx = contentPosToPx(zone.id, gate.pos);
+        for (let lvl = 0; lvl <= 20; lvl++) {
+          const viaGate = resolveGateTravel(gatePx, zone.id, gate.id, lvl);
+          const viaFast = resolveFastTravel(travelInput({ waypointId: wp.id, playerLevel: lvl }));
+          expect(viaFast.ok ? 'ok' : viaFast.reason, `${gate.id} -> zone ${dest.id} @ level ${lvl}`)
+            .toBe(viaGate.ok ? 'ok' : viaGate.reason);
+          compared++;
+        }
+      }
+    }
+    // Zones 1 and 2 gate into each other today, so both directions are compared.
+    expect(compared).toBeGreaterThanOrEqual(2 * 21);
   });
 });
