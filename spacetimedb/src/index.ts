@@ -110,6 +110,15 @@ import { clampMoveToMaxSpeed } from './world/moveGuard.js';
 import { contentPosToPx, resolveZone, WORLD_ORIGIN_PX } from './world/zones.js';
 import { resolveGateTravel } from './world/travel.js';
 import {
+  hasDiscoveredWaypoint,
+  lastFastTravelAtFor,
+  playerWithinWaypointRange,
+  recordWaypointDiscovery,
+  resolveDiscoverWaypoint,
+  resolveFastTravel,
+  stampFastTravel,
+} from './world/fastTravel.js';
+import {
   equipItemForPlayer,
   unequipSlotForPlayer,
 } from './equip/helpers.js';
@@ -632,6 +641,34 @@ const spacetimedb = schema({
   combatEventReapSchedule: table(
     { scheduled: (): any => reapCombatEvents },
     combatEventReapScheduleRow,
+  ),
+
+  /**
+   * M12-6 (D189) — waypoints a player has discovered; fastTravel only goes to
+   * one of these. Shaped like playerChestOpened. A NEW table, so maincloud
+   * auto-migrates it (no column on any existing table). Clients subscribe to
+   * their own rows (owner = own identity) for the map's discovered state.
+   */
+  playerWaypoint: table(
+    { public: true },
+    {
+      id:           t.u64().primaryKey().autoInc(),
+      owner:        t.identity().index('btree'),
+      waypointId:   t.string(),   // content WaypointDef.id
+      discoveredAt: t.u64(),      // micros since epoch
+    }
+  ),
+
+  /**
+   * M12-6 (D189) — per-player fast-travel bookkeeping. A separate NEW table
+   * rather than a column on `player` so the live schema only gains tables.
+   */
+  playerTravelState: table(
+    { public: true },
+    {
+      identity:         t.identity().primaryKey(),
+      lastFastTravelAt: t.u64(),  // micros since epoch of the last accepted fastTravel (60 s cooldown anchor)
+    }
   ),
 
 });
@@ -2754,11 +2791,8 @@ export const reachWaypoint = spacetimedb.reducer(
 
     const wp = WAYPOINTS[obj.targetId];
     if (!wp) return;
-    const px = contentPosToPx(wp.zoneId, wp.pos);
-    const rangePx = (wp.radiusM + 2) * PX_PER_M;
-    const dx = player.x - px.x;
-    const dy = player.y - px.y;
-    if (dx * dx + dy * dy > rangePx * rangePx) return;
+    // radiusM + 2 m, shared with discoverWaypoint (world/fastTravel.ts).
+    if (!playerWithinWaypointRange(player, wp)) return;
 
     const counts = parseCounts(row.countsJson, quest.objectives.length);
     if (counts[objectiveIdx] >= 1) return; // already found
@@ -2771,6 +2805,81 @@ export const reachWaypoint = spacetimedb.reducer(
         ? QUEST_STATE_READY
         : QUEST_STATE_ACTIVE,
     });
+  }
+);
+
+/**
+ * M12-6 (D189) — record that the caller has discovered a waypoint. The client
+ * calls this when it walks within a waypoint's radius; the server re-checks
+ * everything from the stored row: alive, outdoors (dungeonInstanceId == 0),
+ * in the waypoint's own zone and within radiusM + 2 m — the same range check
+ * reachWaypoint uses (world/fastTravel.ts). Idempotent: a repeat call for a
+ * waypoint already discovered inserts nothing.
+ */
+export const discoverWaypoint = spacetimedb.reducer(
+  { waypointId: t.string() },
+  (ctx, { waypointId }) => {
+    const identity = ctx.sender;
+    const player = ctx.db.player.identity.find(identity);
+    if (!player) return;
+
+    const now = ctx.timestamp.microsSinceUnixEpoch;
+    const outcome = resolveDiscoverWaypoint(player, waypointId, now);
+    if (!outcome.ok) return;
+
+    recordWaypointDiscovery(ctx.db.playerWaypoint, identity, waypointId, now);
+  }
+);
+
+/**
+ * M12-6 (D189) — server-authoritative fast travel to a discovered waypoint,
+ * same zone or cross-zone. Guards (world/fastTravel.ts resolveFastTravel):
+ * alive; outdoors (dungeonInstanceId == 0); not stunned/rooted
+ * (movementRestriction, as movePlayer/travelToZone); no castAbility /
+ * castAbilityById within 10 s (player.lastAttackAt); waypoint discovered by
+ * this identity; caller's level clears the destination zone's levelBand[0]
+ * (the travelToZone rule); 60 s cooldown (playerTravelState).
+ *
+ * Known limitation: "in combat" = attacked recently. A player being hit by a
+ * mob without having attacked back is not detected in this pass.
+ *
+ * The row is written exactly as travelToZone writes it; the client completes
+ * every fast travel, same zone included, as a reload of the destination
+ * zone's Root (D189) rather than a local teleport.
+ */
+export const fastTravel = spacetimedb.reducer(
+  { waypointId: t.string() },
+  (ctx, { waypointId }) => {
+    const identity = ctx.sender;
+    const player = ctx.db.player.identity.find(identity);
+    if (!player) return;
+
+    const now = ctx.timestamp.microsSinceUnixEpoch;
+    const outcome = resolveFastTravel({
+      player,
+      waypointId,
+      nowMicros: now,
+      movementBlocked: movementRestriction(playerAuraRows(ctx, identity), now).blocked,
+      discovered: hasDiscoveredWaypoint(ctx.db.playerWaypoint, identity, waypointId),
+      playerLevel: getPlayerLevel(ctx, identity),
+      lastFastTravelAt: lastFastTravelAtFor(ctx.db.playerTravelState, identity),
+    });
+    if (!outcome.ok) return;
+
+    ctx.db.player.identity.update({
+      ...player,
+      x: outcome.x,
+      y: outcome.y,
+      isMoving: false,
+      // From resolveZone, as travelToZone: the stored zoneId follows the
+      // position actually written, not the waypoint's declared zone.
+      zoneId: resolveZone(outcome.x, outcome.y).zoneId,
+      floorYM: 0,
+      // Teleports bypass the speed guard but must restart its clock.
+      lastMoveAt: now,
+    });
+
+    stampFastTravel(ctx.db.playerTravelState, identity, now);
   }
 );
 
