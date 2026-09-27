@@ -210,7 +210,11 @@
         "z": -145
       },
       "facingRad": 0.4,
-      "questIds": [],
+      "questIds": [
+        "q_z2_up_from_the_pass",
+        "q_z2_the_barrow_revenant",
+        "q_z2_into_the_barrowdeep"
+      ],
       "greeting": "You came up through the pass, $C? Then you already know the moor is worse."
     },
     {
@@ -223,7 +227,9 @@
         "z": -133
       },
       "facingRad": -2.3,
-      "questIds": [],
+      "questIds": [
+        "q_z2_stalker_pelts"
+      ],
       "greeting": "Everything here is carried up the pass on someone's back, $N. Prices reflect it.",
       "vendorItemIds": [
         "baked_bread",
@@ -241,7 +247,11 @@
         "z": -124
       },
       "facingRad": 1.9,
-      "questIds": [],
+      "questIds": [
+        "q_z2_up_from_the_pass",
+        "q_z2_what_the_cairns_let_out",
+        "q_z2_lay_the_wights"
+      ],
       "greeting": "Three things move out there: stalkers, the raiders, and whatever the cairns let out."
     },
     {
@@ -254,7 +264,10 @@
         "z": -122
       },
       "facingRad": 2.6,
-      "questIds": [],
+      "questIds": [
+        "q_z2_trampled_fences",
+        "q_z2_under_the_scarp"
+      ],
       "greeting": "Bulls are trampling the south fences, the wights grow bolder by the week, and now something's rallying the raiders under the scarp. Pick your direction, $C, and mind your back."
     }
   ],
@@ -670,6 +683,12 @@
         {
           "itemId": "wolf_fang",
           "chance": 0.5,
+          "min": 1,
+          "max": 1
+        },
+        {
+          "itemId": "stalker_pelt",
+          "chance": 0.6,
           "min": 1,
           "max": 1
         },

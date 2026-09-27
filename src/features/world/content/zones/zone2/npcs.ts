@@ -11,9 +11,9 @@
  * (spacetimedb/src/world/zones.ts, contentPosToPx). Zone 2's origin is 3000 m
  * east of Zone 1's, so (0,0) here is Kestrel Hold's valley floor, not Oakrest.
  *
- * questIds are empty on purpose: Zone 2 has no quest chain yet (D167 defers
- * it to M12). A quest added here must also be listed by its giver
- * (validateContent enforces the back-link).
+ * M13 (D206): each giver and turn-in lists the chain's quests.
+ * Arren also lists Kesk's opening hand-off so it appears in his dialogue.
+ * validateContent enforces both back-links.
  */
 import type { NpcDef } from '../../types';
 
@@ -27,7 +27,7 @@ export const NPCS: NpcDef[] = [
     // stays clear (the road runs up x = 0 from the pass at z = -170).
     pos: { x: -9, z: -145 },
     facingRad: 0.4,
-    questIds: [],
+    questIds: ['q_z2_up_from_the_pass', 'q_z2_the_barrow_revenant', 'q_z2_into_the_barrowdeep'],
     greeting: 'You came up through the pass, $C? Then you already know the moor is worse.',
   },
   {
@@ -37,7 +37,7 @@ export const NPCS: NpcDef[] = [
     title: 'Hold Quartermaster',
     pos: { x: -21, z: -133 },
     facingRad: -2.3,
-    questIds: [],
+    questIds: ['q_z2_stalker_pelts'],
     greeting: 'Everything here is carried up the pass on someone\'s back, $N. Prices reflect it.',
     vendorItemIds: ['baked_bread', 'spring_water', 'roasted_boar'],
   },
@@ -48,7 +48,7 @@ export const NPCS: NpcDef[] = [
     title: 'Moor Scout',
     pos: { x: -11, z: -124 },
     facingRad: 1.9,
-    questIds: [],
+    questIds: ['q_z2_up_from_the_pass', 'q_z2_what_the_cairns_let_out', 'q_z2_lay_the_wights'],
     greeting: 'Three things move out there: stalkers, the raiders, and whatever the cairns let out.',
   },
   {
@@ -61,7 +61,7 @@ export const NPCS: NpcDef[] = [
     title: 'Hold Sergeant',
     pos: { x: -35, z: -122 },
     facingRad: 2.6,
-    questIds: [],
+    questIds: ['q_z2_trampled_fences', 'q_z2_under_the_scarp'],
     greeting: "Bulls are trampling the south fences, the wights grow bolder by the week, and now "
       + "something's rallying the raiders under the scarp. Pick your direction, $C, and mind your back.",
   },

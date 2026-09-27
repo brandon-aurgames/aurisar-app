@@ -24,10 +24,9 @@
  * precedent: old_greyjaw 1.76x, rutfang 1.72x, chitter_queen 1.75x,
  * serah_the_knife 1.64x over the SAME curve at their own level) break the HP
  * line at a measured 1.64-1.76x; the two new Zone 2 elites both use 1.70x,
- * pinned exactly in zone2.test.ts. Loot draws only on items that already
- * exist in the catalog (items/zone1.ts) — Zone 2 adds no items in this pass,
- * so the two new elites improve the odds on an existing family's drop pool
- * rather than getting a new named trophy.
+ * pinned exactly in zone2.test.ts. Loot reuses the Zone 1 catalog except
+ * for M13's stalker_pelt (D208), a Zone 2 collect item dropped by both
+ * stalker camps. The elites still improve existing drop pools.
  *
  * glbKey must resolve in public/assets/manifest/mobs.manifest.json
  * (assetManifests.test.js gates this globally; zone2.test.ts also checks it
@@ -55,6 +54,7 @@ export const MOBS: MobDef[] = [
     social: true,
     lootTable: [
       { itemId: 'wolf_fang', chance: 0.5, min: 1, max: 1 },
+      { itemId: 'stalker_pelt', chance: 0.6, min: 1, max: 1 },
       { itemId: 'linen_scrap', chance: 0.25, min: 1, max: 1 },
     ],
     copperMin: 40,
