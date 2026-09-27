@@ -32,6 +32,9 @@ import { QUESTS as ZONE1_QUESTS } from './zones/zone1/quests';
 import { WAYPOINTS as ZONE1_WAYPOINTS } from './zones/zone1/waypoints';
 import { MOBS as ZONE2_MOBS, SPAWNS as ZONE2_SPAWNS } from './zones/zone2/mobs';
 import { NPCS as ZONE2_NPCS } from './zones/zone2/npcs';
+import { QUESTS as ZONE2_QUESTS } from './zones/zone2/quests';
+import { ZONE1_ITEMS } from './items/zone1';
+import { ZONE2_ITEMS } from './items/zone2';
 import { WAYPOINTS as ZONE2_WAYPOINTS } from './zones/zone2/waypoints';
 import { DUNGEONS } from './dungeons/index';
 import { LANDMARKS, ALL_LANDMARKS as ZONE1_LANDMARKS } from './zones/zone1/landmarks.generated';
@@ -61,7 +64,7 @@ export type { LandmarkDef, LandmarkId } from './zones/zone1/landmarks.generated'
 // zone 1's ground.
 
 export const ALL_NPCS: NpcDef[] = [...ZONE1_NPCS, ...ZONE2_NPCS];
-export const ALL_QUESTS: QuestDef[] = [...ZONE1_QUESTS];
+export const ALL_QUESTS: QuestDef[] = [...ZONE1_QUESTS, ...ZONE2_QUESTS];
 export const ALL_MOBS: MobDef[] = [...ZONE1_MOBS, ...ZONE2_MOBS];
 export const ALL_WAYPOINTS: WaypointDef[] = [...ZONE1_WAYPOINTS, ...ZONE2_WAYPOINTS];
 export const SPAWNS: SpawnDef[] = [...ZONE1_SPAWNS, ...ZONE2_SPAWNS];
@@ -127,6 +130,12 @@ export function validateContent(): string[] {
     }
   }
 
+  // ItemDef has no zoneId: the authoring catalogs define collect ownership.
+  const collectItemsByZone = new Map([
+    [1, new Set(ZONE1_ITEMS.map((item) => item.id))],
+    [2, new Set(ZONE2_ITEMS.map((item) => item.id))],
+  ]);
+
   // Quests
   for (const q of quests) {
     if (!ZONES_BY_ID[q.zoneId]) err(`quest ${q.id}: unknown zoneId ${q.zoneId}`);
@@ -134,6 +143,15 @@ export function validateContent(): string[] {
     if (!NPCS[q.turnInNpcId]) err(`quest ${q.id}: unknown turnInNpcId ${q.turnInNpcId}`);
     else if (!NPCS[q.giverNpcId]?.questIds.includes(q.id)) {
       err(`quest ${q.id}: giver ${q.giverNpcId} does not list it in questIds`);
+    }
+    if (q.turnInNpcId !== q.giverNpcId && NPCS[q.turnInNpcId]
+        && !NPCS[q.turnInNpcId].questIds.includes(q.id)) {
+      err(`quest ${q.id}: turn-in ${q.turnInNpcId} does not list it in questIds`);
+    }
+    for (const npcId of new Set([q.giverNpcId, q.turnInNpcId])) {
+      if (NPCS[npcId] && NPCS[npcId].zoneId !== q.zoneId) {
+        err(`quest ${q.id}: npc ${npcId} is not in quest zone ${q.zoneId}`);
+      }
     }
     if (q.requiresQuestId && !QUESTS[q.requiresQuestId]) {
       err(`quest ${q.id}: unknown requiresQuestId ${q.requiresQuestId}`);
@@ -145,6 +163,14 @@ export function validateContent(): string[] {
       }
       if (obj.type === 'collect' && !ITEMS[obj.itemId]) {
         err(`quest ${q.id}: collect objective references unknown itemId ${obj.itemId}`);
+      }
+      if (obj.type === 'collect' && ITEMS[obj.itemId]
+          && !collectItemsByZone.get(q.zoneId)?.has(obj.itemId)) {
+        err(`quest ${q.id}: collect item ${obj.itemId} does not belong to quest zone ${q.zoneId}`);
+      }
+      if (obj.type === 'find' && WAYPOINTS[obj.targetId]
+          && WAYPOINTS[obj.targetId].zoneId !== q.zoneId) {
+        err(`quest ${q.id}: waypoint ${obj.targetId} is not in quest zone ${q.zoneId}`);
       }
       if (obj.type === 'find' && !WAYPOINTS[obj.targetId]) {
         err(`quest ${q.id}: find objective references unknown waypoint ${obj.targetId}`);

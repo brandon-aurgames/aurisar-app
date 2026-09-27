@@ -634,6 +634,14 @@
         }
       },
       "minLevel": 6
+    },
+    {
+      "id": "stalker_pelt",
+      "name": "Moor Stalker Pelt",
+      "icon": "🐾",
+      "type": "quest",
+      "stack": 20,
+      "quality": "common"
     }
   ]
 }
