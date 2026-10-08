@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { BTN, C } from '../../utils/tokens.js';
+import { BTN, C, FG } from '../../utils/tokens.js';
+import { hubGraphicsStyles, worldGraphicsStyles } from '../../features/world/ui/graphicsPanelStyles.js';
 
 /**
  * Guards the steel button tokens: class names stay legacy (btn-gold*) so
@@ -39,14 +40,25 @@ describe('steel button tokens', () => {
     expect(BTN.solid.background).toBe(C.steelFill);
     expect(BTN.outline.background).toBe(C.steelOutlineFill);
     expect(BTN.solid.color).not.toBe(BTN.outline.color);
+    expect(BTN.on.background).toBe('#8FE3D2');
   });
 
-  it('solid primary families use steel fill, not gold', () => {
-    for (const sel of ['.btn-gold-solid', '.btn-gold']) {
-      const block = rule(sel);
-      expect(block).toMatch(/var\(--btn-steel-fill\)/);
-      expect(block).not.toMatch(GOLD_FILL);
-    }
+  it('World selected/ON chrome is brighter than ghost OFF', () => {
+    expect(BTN.on.background).toBe(FG.teal);
+    expect(worldGraphicsStyles.optionBtnActive.background).toBe(FG.teal);
+    expect(hubGraphicsStyles.optionBtnActive.background).toBe(FG.teal);
+    expect(worldGraphicsStyles.optionBtn.background).not.toBe(FG.teal);
+    expect(hubGraphicsStyles.optionBtn.background).not.toBe(FG.teal);
+  });
+
+  it('solid primary is the only filled steel family', () => {
+    const solid = rule('.btn-gold-solid');
+    expect(solid).toMatch(/var\(--btn-steel-fill\)/);
+    expect(solid).not.toMatch(GOLD_FILL);
+    const gold = rule('.btn-gold');
+    expect(gold).toMatch(/var\(--btn-steel-outline-fill\)/);
+    expect(gold).not.toMatch(/var\(--btn-steel-fill\)/);
+    expect(gold).not.toMatch(GOLD_FILL);
   });
 
   it('outline secondary uses steel outline fill, not yellow glass', () => {

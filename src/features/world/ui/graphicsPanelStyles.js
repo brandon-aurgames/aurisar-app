@@ -33,7 +33,7 @@ export const worldGraphicsStyles = Object.freeze({
   },
   optionBtn: worldOptionBtn,
   optionBtnActive: {
-    ...BTN.solid, fontWeight: 700,
+    ...BTN.on, fontWeight: 700,
   },
   optionBtnBlocked: { opacity: 0.35, cursor: 'not-allowed' },
   primaryBtn: { ...worldPrimaryBtn, width: '100%', marginBottom: 12 },
@@ -78,7 +78,7 @@ export const hubGraphicsStyles = Object.freeze({
   divider: { height: 1, background: C.lineStrong, margin: `0 0 ${S.s14}px` },
   optionBtn: hubOptionBtn,
   optionBtnActive: {
-    ...BTN.solid, fontWeight: 700,
+    ...BTN.on, fontWeight: 700,
   },
   optionBtnBlocked: { opacity: 0.3, cursor: 'not-allowed' },
   primaryBtn: {

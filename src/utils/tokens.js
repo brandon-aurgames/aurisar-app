@@ -270,8 +270,14 @@ const BTN = {
   outline: {
     background: C.steelOutlineFill,
     color: C.steelTextBody,
-    border: `1px solid ${C.steelBorder}`,
+    border: `1px solid ${C.steelBorderStrong}`,
     boxShadow: `inset 0 1px 0 ${C.steelHighlight}`,
+  },
+  // Selected / ON — orb teal, brighter than OFF ghost so toggles read clearly.
+  on: {
+    background: FG.teal,
+    color: "#0b1220",
+    border: `1px solid ${FG.teal}`,
   },
 };
 
