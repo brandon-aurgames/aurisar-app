@@ -53,7 +53,7 @@ describe('Workout Details interaction', () => {
     expect(document.getElementById('root').hasAttribute('inert')).toBe(true);
     expect(document.body.style.overflow).toBe('hidden');
     expect(document.activeElement).toBe(dialog);
-    const save = screen.getByRole('button', { name: 'SAVE DETAILS' });
+    const save = screen.getByRole('button', { name: /save details/i });
     save.focus(); fireEvent.keyDown(save, { key: 'Tab' });
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }));
     fireEvent.keyDown(document.activeElement, { key: 'Tab', shiftKey: true });

@@ -42,6 +42,7 @@ import { useAvatarConfig } from './features/avatar/useAvatarConfig.js';
 import MapOverlay from './features/character/MapOverlay';
 import WorkoutsTabContainer from './features/workouts/WorkoutsTabContainer';
 import { normalizeSupersetGroups } from './features/workouts/supersetModel';
+import { liveStartAction } from './features/workouts/liveSession';
 import CompletionModal from './features/workouts/CompletionModal';
 import CalendarTab from './features/calendar/CalendarTab';
 import LeaderboardTab from './features/leaderboard/LeaderboardTab';
@@ -625,6 +626,7 @@ function App() {
     try { return JSON.parse(localStorage.getItem('aurisar-live-workout') || 'null'); } catch { return null; }
   });
   const [pendingLiveWorkout, setPendingLiveWorkout] = useState(null);
+  const [liveOpenSignal, setLiveOpenSignal] = useState(0);
   // Set only by Repeat Last just before it opens the replace-confirm, so
   // confirmReplaceLiveWorkout knows to toast — a plain Start-triggered
   // replace (Workouts tab, StartDock) has nothing to say beyond the confirm
@@ -3832,16 +3834,23 @@ function App() {
   }
 
   function startLiveWorkout(wo) {
-    if (liveWorkout && liveWorkout.workoutId !== wo.id) {
+    const action = liveStartAction(liveWorkout, wo);
+    if (action === "resume") {
+      setLiveOpenSignal(n => n + 1);
+      return;
+    }
+    if (action === "replace") {
       setPendingLiveWorkout(wo);
       return;
     }
     setLiveWorkout({ workoutId: wo.id, name: wo.name, icon: wo.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(wo), userId: authUser?.id || null });
+    setLiveOpenSignal(n => n + 1);
   }
 
   function confirmReplaceLiveWorkout() {
     setLiveWorkout({ workoutId: pendingLiveWorkout.id, name: pendingLiveWorkout.name, icon: pendingLiveWorkout.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(pendingLiveWorkout), userId: authUser?.id || null });
     setPendingLiveWorkout(null);
+    setLiveOpenSignal(n => n + 1);
     // Only Repeat Last's replace-confirm stamps this — a plain "Start"
     // replace (Workouts tab, StartDock) confirms silently, same as before.
     if (pendingLiveWorkoutToastRef.current) {
@@ -5305,7 +5314,7 @@ function App() {
       } : null} /><StartDock profile={profile} allExById={allExById} liveWorkout={liveWorkout} stagedCount={stagedIds.length} onStartWorkout={startLiveWorkout} onQuickLogSolo={quickLogSoloEx} onSeeAll={() => guardAll(() => {
         setActiveTab("workouts");
         workoutsRef.current?.showSubTab("scheduled");
-      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} openExEditor={openExEditor} />}{pendingLiveWorkout && <ConfirmSheet
+      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} openSignal={liveOpenSignal} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} openExEditor={openExEditor} />}{pendingLiveWorkout && <ConfirmSheet
         open
         icon={"⚡"}
         title={"Replace Active Workout?"}

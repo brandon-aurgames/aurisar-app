@@ -1458,6 +1458,17 @@
     .wo-last-done{font-size:.68rem;color:#b4ac9e;margin-top:3px}
     .wo-card-actions{display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(180,172,158,.06)}
     .wo-card-actions .btn{flex:1;min-height:44px}
+    .workout-card.live{box-shadow:0 0 0 1px rgba(109,187,58,.4),0 0 16px rgba(109,187,58,.14)}
+    .btn-gold-solid.on,.wo-card-actions .btn.on{
+      background:linear-gradient(135deg,rgba(90,140,50,.6),rgba(70,110,40,.42));
+      border:1px solid rgba(140,190,90,.55);
+      color:#e8f4d8;
+      box-shadow:0 0 12px rgba(109,187,58,.28)
+    }
+    .wb-ex-toolbar{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+    .wb-ex-meta{font-family:'Inter',sans-serif;font-size:.72rem;color:#b4ac9e;letter-spacing:0;text-transform:none;line-height:1.35}
+    .wb-ex-actions{display:flex;gap:8px}
+    .wb-ex-actions .btn{flex:1;min-height:44px;white-space:normal}
     .wb-ex-overflow{display:none;position:relative;flex-shrink:0}
     .wb-ex-overflow-btn{min-width:44px;min-height:44px;padding:0;border:0;border-radius:8px;background:transparent;color:#b4ac9e;font-size:.95rem;letter-spacing:.08em;cursor:pointer}
     .wb-ex-menu-scrim{position:fixed;inset:0;z-index:20}
@@ -1673,7 +1684,12 @@
     .recipe-filter-btn:hover{border-color:rgba(180,172,158,.25)}
 
     /* ── Collapsible description ── */
+    .recipe-desc-text{font-size:.82rem;color:#8a8478;font-style:italic;line-height:1.5;white-space:pre-line;padding-right:48px}
     .recipe-desc-collapsed{max-height:1.3em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .recipe-desc-text + .ex-collapse-btn{
+      position:absolute;top:0;right:0;min-width:44px;min-height:44px;padding:0;
+      background:transparent;border:0;color:inherit;font-size:.75rem
+    }
 
     /* ── Superset group in recipe breakdown ── */
     .recipe-ss-group{border-left:2px solid #C4A044;padding-left:8px;margin:4px 0}

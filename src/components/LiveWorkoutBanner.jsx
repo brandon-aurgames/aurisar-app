@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { isMetric, lbsToKg, weightLabel } from '../utils/units';
 import Sheet from './ui/Sheet';
 import ConfirmSheet from './ui/ConfirmSheet';
@@ -8,6 +8,7 @@ import { isGroupStart, isGrouped } from '../features/workouts/supersetModel';
 
 export default function LiveWorkoutBanner({
   liveWorkout,
+  openSignal = 0,
   onToggleExercise,
   onFinish,
   onDiscard,
@@ -29,6 +30,10 @@ export default function LiveWorkoutBanner({
   const [pickerEquipFilter, setPickerEquipFilter] = useState(() => new Set());
   const [pickerOpenDrop, setPickerOpenDrop] = useState(null);
   const [pickerSelected, setPickerSelected] = useState([]);
+
+  useEffect(() => {
+    if (openSignal) setOpen(true);
+  }, [openSignal]);
 
   const { exercises, name, icon } = liveWorkout;
   const doneCount = exercises.filter(e => e.done).length;
