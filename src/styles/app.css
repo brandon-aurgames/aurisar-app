@@ -78,7 +78,7 @@
       --btn-steel-shadow:rgba(0,0,0,.45);
       --btn-steel-glow:rgba(180,172,158,.22);
       --btn-steel-fill:linear-gradient(145deg,var(--btn-steel-hi) 0%,var(--btn-steel-mid) 55%,var(--btn-steel-lo) 100%);
-      --btn-steel-outline-fill:linear-gradient(145deg,rgba(58,56,52,.32),rgba(20,19,16,.18));
+      --btn-steel-outline-fill:linear-gradient(145deg,rgba(58,56,52,.14),rgba(20,19,16,.06));
     }
     html{font-size:17.333px}
     .root{min-height:100vh;background:#0c0c0a;color:#d4cec4;font-family:var(--font-body);position:relative;overflow-x:hidden}
@@ -126,7 +126,7 @@
     .btn-cls:hover{transform:translateY(-2px);box-shadow:0 7px 28px color-mix(in srgb,var(--cls-color) 55%,transparent)}
     .btn-glass{background:linear-gradient(135deg,rgba(45,42,36,.4),rgba(32,30,26,.25));color:#d4cec4;border:1px solid rgba(180,172,158,.06);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 rgba(180,172,158,.03),0 2px 12px rgba(0,0,0,.3);text-shadow:0 1px 2px rgba(0,0,0,.4)}
     .btn-glass:hover{background:rgba(45,42,36,.3);border-color:rgba(180,172,158,.1);box-shadow:inset 0 1px 0 rgba(180,172,158,.05),0 4px 18px rgba(0,0,0,.45);transform:translateY(-1px)}
-    .btn-glass-yellow{background:var(--btn-steel-outline-fill);color:var(--btn-steel-text-body);border:1px solid var(--btn-steel-border);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 var(--btn-steel-highlight);text-shadow:0 1px 3px rgba(0,0,0,.5)}
+    .btn-glass-yellow{background:var(--btn-steel-outline-fill);color:var(--btn-steel-text-body);border:1px solid var(--btn-steel-border-strong);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 var(--btn-steel-highlight);text-shadow:0 1px 3px rgba(0,0,0,.5)}
     .btn-glass-yellow:hover{background:rgba(58,56,52,.42);border-color:var(--btn-steel-border-strong);box-shadow:inset 0 1px 0 var(--btn-steel-highlight-strong),0 4px 16px var(--btn-steel-shadow);transform:translateY(-1px);color:var(--btn-steel-text)}
     .btn-glass-yellow:active{transform:translateY(0) scale(.98);box-shadow:inset 0 1px 0 var(--btn-steel-highlight)}
     .btn-danger{background:rgba(180,30,30,.1);color:#e74c3c;border:1px solid rgba(180,30,30,.25)}

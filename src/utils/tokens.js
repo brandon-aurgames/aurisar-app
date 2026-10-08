@@ -182,7 +182,7 @@ const C = {
   steelShadow:       "rgba(0,0,0,.45)",
   steelGlow:         "rgba(180,172,158,.22)",
   steelFill:         "linear-gradient(145deg,#3a3834 0%,#1f1d1a 55%,#141310 100%)",
-  steelOutlineFill:  "linear-gradient(145deg,rgba(58,56,52,.32),rgba(20,19,16,.18))",
+  steelOutlineFill:  "linear-gradient(145deg,rgba(58,56,52,.14),rgba(20,19,16,.06))",
 
   // Surfaces
   bg:        "#0c0c0a", // app background
