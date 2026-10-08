@@ -25,7 +25,7 @@ describe('builder fresh-start reset (P2c)', () => {
       'setWbName', 'setWbIcon', 'setWbDesc', 'setWbExercises', 'setWbEditId',
       'setWbCopySource', 'setWbIsOneOff', 'setWbDuration', 'setWbDurSec',
       'setWbActiveCal', 'setWbTotalCal', 'setWbLabels', 'setNewLabelInput',
-      'setCollapsedWbEx', 'setSsChecked', 'setDragWbExIdx',
+      'setCollapsedWbEx', 'setSsChecked',
     ]) {
       expect(fn, `resetBuilderFields must clear ${setter}`).toContain(setter);
     }

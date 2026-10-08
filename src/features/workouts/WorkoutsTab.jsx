@@ -344,11 +344,10 @@ const WorkoutsTab = memo(function WorkoutsTab({
   wbTotalCal, setWbTotalCal,
   wbCopySource, setWbCopySource,
   wbIconPickerOpen, setWbIconPickerOpen,
-  wbExPickerOpen, setWbExPickerOpen,
+  setWbExPickerOpen,
   wbTotalXP,
   collapsedWbEx, setCollapsedWbEx,
   ssChecked, setSsChecked,
-  dragWbExIdx, setDragWbExIdx,
   // Callbacks (defined in App)
   initWorkoutBuilder,
   copyWorkout,
@@ -441,7 +440,6 @@ const woMeta = useMemo(() => {
     });
   }
   return m;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [allW, profile.chosenClass, allExById]);
 const woLabelCounts = useMemo(() => {
   const c = new Map();
@@ -826,18 +824,23 @@ if (workoutView === "recipes") {
             lineHeight: 1.5,
             whiteSpace: "pre-line",
             paddingRight: 20
-          }}>{tpl.desc}</div><span className={`ex-collapse-btn ${descExpanded ? "open" : ""}`} style={{
+          }}>{tpl.desc}</div><button type={"button"} className={`ex-collapse-btn ${descExpanded ? "open" : ""}`} style={{
             position: "absolute",
             top: 0,
             right: 0,
             fontSize: FS.md,
             padding: "0 4px",
-            cursor: "pointer"
-          }} role={"button"} aria-label={descExpanded ? `Collapse ${tpl.name} description` : `Expand ${tpl.name} description`} onClick={() => setExpandedRecipeDesc(s => {
+            cursor: "pointer",
+            minWidth: 44,
+            minHeight: 44,
+            background: "transparent",
+            border: 0,
+            color: "inherit"
+          }} aria-label={descExpanded ? `Collapse ${tpl.name} description` : `Expand ${tpl.name} description`} onClick={() => setExpandedRecipeDesc(s => {
             const n = new Set(s);
             n.has(tpl.id) ? n.delete(tpl.id) : n.add(tpl.id);
             return n;
-          })}>{"▼"}</span></div>
+          })}>{"▼"}</button></div>
         /* Exercise breakdown — collapsible, collapsed by default */}<div style={{
           background: "rgba(45,42,36,.12)",
           border: "1px solid rgba(45,42,36,.18)",

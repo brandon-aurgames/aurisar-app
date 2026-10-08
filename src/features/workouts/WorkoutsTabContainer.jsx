@@ -73,7 +73,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
   const [newLabelInput, setNewLabelInput] = useState("");
   const [collapsedWbEx, setCollapsedWbEx] = useState({});
   const [ssChecked, setSsChecked] = useState(() => new Set());
-  const [dragWbExIdx, setDragWbExIdx] = useState(null);
 
   // ── List / recipes ──
   const [woLabelFilters, setWoLabelFilters] = useState(() => new Set());
@@ -117,7 +116,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setNewLabelInput("");
     setCollapsedWbEx({});
     setSsChecked(new Set());
-    setDragWbExIdx(null);
   }
 
   function initWorkoutBuilder(base) {
@@ -396,8 +394,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         setCollapsedWbEx={setCollapsedWbEx}
         ssChecked={ssChecked}
         setSsChecked={setSsChecked}
-        dragWbExIdx={dragWbExIdx}
-        setDragWbExIdx={setDragWbExIdx}
         initWorkoutBuilder={initWorkoutBuilder}
         copyWorkout={copyWorkout}
         openCompletionFlow={openStatsPrompt}
