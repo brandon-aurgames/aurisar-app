@@ -63,7 +63,13 @@ class ErrorBoundary extends React.Component {
       background: 'linear-gradient(135deg,rgba(45,42,36,.5),rgba(45,42,36,.35))',
       color: '#d4cec4',
     };
-    const btnGold = { ...btn, background: 'linear-gradient(135deg,#c49428,#8a6010)', color: '#fff', borderColor: '#c49428' };
+    const btnSteel = {
+      ...btn,
+      background: 'var(--btn-steel-fill)',
+      color: 'var(--btn-steel-text)',
+      borderColor: 'var(--btn-steel-border)',
+      boxShadow: '0 4px 16px var(--btn-steel-shadow), inset 0 1px 0 var(--btn-steel-highlight), inset 0 -3px 8px var(--btn-steel-inset)',
+    };
 
     // Chunk-load failures usually mean the user's tab outlived a deploy and
     // the JS bundle hash is gone. lazyWithRetry will have already auto-
@@ -78,7 +84,7 @@ class ErrorBoundary extends React.Component {
               A new version is available. Tap reload to get the latest — your saved data is safe.
             </div>
             <div style={btnRow}>
-              <button type="button" style={btnGold} onClick={this.reload}>Reload</button>
+              <button type="button" style={btnSteel} onClick={this.reload}>Reload</button>
             </div>
           </div>
         </div>
@@ -95,7 +101,7 @@ class ErrorBoundary extends React.Component {
           {error?.message && <pre style={pre}>{String(error.message)}</pre>}
           <div style={btnRow}>
             <button type="button" style={btn} onClick={this.reset}>Try again</button>
-            <button type="button" style={btnGold} onClick={this.reload}>Reload</button>
+            <button type="button" style={btnSteel} onClick={this.reload}>Reload</button>
           </div>
         </div>
       </div>

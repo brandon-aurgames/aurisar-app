@@ -59,6 +59,26 @@
       --font-body:'Barlow','Inter',system-ui,sans-serif;
       --font-cond:'Barlow Condensed','Barlow',sans-serif;
       --font-serif:'Cinzel',serif;
+
+      /* ── Steel button tokens ────────────────────────────────────────────
+         Sampled from .orb-btn (the Log orb): steel/stone body, parchment
+         rim, inner highlight + inset shade. JS mirrors live on C / BTN in
+         src/utils/tokens.js. Gold stays reserved for earned XP, not actions.
+         Solid vs outline is the primary/secondary split. */
+      --btn-steel-hi:#3a3834;
+      --btn-steel-mid:#1f1d1a;
+      --btn-steel-lo:#141310;
+      --btn-steel-text:#e8e0d0;
+      --btn-steel-text-body:#d4cec4;
+      --btn-steel-border:rgba(180,172,158,.34);
+      --btn-steel-border-strong:rgba(180,172,158,.5);
+      --btn-steel-highlight:rgba(255,255,255,.1);
+      --btn-steel-highlight-strong:rgba(255,255,255,.12);
+      --btn-steel-inset:rgba(0,0,0,.35);
+      --btn-steel-shadow:rgba(0,0,0,.45);
+      --btn-steel-glow:rgba(180,172,158,.22);
+      --btn-steel-fill:linear-gradient(145deg,var(--btn-steel-hi) 0%,var(--btn-steel-mid) 55%,var(--btn-steel-lo) 100%);
+      --btn-steel-outline-fill:linear-gradient(145deg,rgba(58,56,52,.32),rgba(20,19,16,.18));
     }
     html{font-size:17.333px}
     .root{min-height:100vh;background:#0c0c0a;color:#d4cec4;font-family:var(--font-body);position:relative;overflow-x:hidden}
@@ -81,28 +101,34 @@
     .r2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
     .field{display:flex;flex-direction:column;gap:4px}
     /* ── Button hierarchy ────────────────────────────────────────────────
-       One ladder, most to least prominent. Pick the highest rung the
-       action deserves; a view should have at most one gold-solid.
-         btn-gold-solid  the single primary commit of a screen (Save)
-         btn-gold        default action
-         btn-glass-yellow  highlighted alternative (Complete/Schedule)
-         btn-ghost       secondary / dismiss
+       One ladder, most to least prominent. Steel is sampled from the Log
+       orb; a view should have at most one solid primary.
+         btn-gold-solid  the single primary commit (Save / Start) — solid steel
+         btn-gold        default primary action — solid steel, slightly softer
+         btn-glass-yellow  outline steel secondary (Complete / Log)
+         btn-ghost       dismiss / tertiary
          btn-danger      destructive
-       Sizes: btn-sm / btn-xs (both get a 44px touch extension on coarse
-       pointers, below). For bare glyph actions use .icon-btn instead. */
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font-body);font-size:.68rem;font-weight:700;letter-spacing:.07em;transition:all .2s;text-transform:uppercase;white-space:nowrap}
-    .btn-gold-solid{background:linear-gradient(135deg,#8B7425,#A89030);color:#d4cec4;border:1px solid rgba(196,160,68,.35);box-shadow:0 2px 14px rgba(140,116,37,.28);text-shadow:0 1px 2px rgba(0,0,0,.35)}
-    .btn-gold-solid:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(140,116,37,.4)}
-    .btn-gold{background:linear-gradient(135deg,rgba(45,42,36,.5),rgba(45,42,36,.35));color:#d4cec4;box-shadow:none;border:1px solid rgba(180,172,158,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-    .btn-gold:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(0,0,0,.4)}
+       Class names are legacy; the chrome is steel. Pair solid with outline
+       when a screen has two commits. Sizes: btn-sm / btn-xs (both get a
+       44px touch extension on coarse pointers, below). For bare glyph
+       actions use .icon-btn instead. */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font-body);font-size:.68rem;font-weight:700;letter-spacing:.07em;transition:background var(--dur-base) var(--ease-standard),border-color var(--dur-base) var(--ease-standard),box-shadow var(--dur-base) var(--ease-standard),color var(--dur-base) var(--ease-standard),transform var(--dur-fast) var(--ease-standard);text-transform:uppercase;white-space:nowrap}
+    .btn-gold-solid{background:var(--btn-steel-fill);color:var(--btn-steel-text);border:1px solid var(--btn-steel-border);box-shadow:0 4px 16px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -3px 8px var(--btn-steel-inset);text-shadow:0 1px 2px rgba(0,0,0,.35)}
+    .btn-gold-solid:hover{transform:translateY(-2px);border-color:var(--btn-steel-border-strong);box-shadow:0 6px 22px var(--btn-steel-shadow),0 0 16px var(--btn-steel-glow),inset 0 1px 0 var(--btn-steel-highlight-strong),inset 0 -3px 8px var(--btn-steel-inset)}
+    .btn-gold-solid:active{transform:translateY(0) scale(.98);box-shadow:0 2px 10px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -2px 6px var(--btn-steel-inset)}
+    .btn-gold{background:var(--btn-steel-fill);color:var(--btn-steel-text-body);border:1px solid var(--btn-steel-border);box-shadow:0 3px 12px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -3px 8px var(--btn-steel-inset);text-shadow:0 1px 2px rgba(0,0,0,.35)}
+    .btn-gold:hover{transform:translateY(-2px);border-color:var(--btn-steel-border-strong);box-shadow:0 6px 20px var(--btn-steel-shadow),0 0 12px var(--btn-steel-glow),inset 0 1px 0 var(--btn-steel-highlight-strong),inset 0 -3px 8px var(--btn-steel-inset)}
+    .btn-gold:active{transform:translateY(0) scale(.98);box-shadow:0 2px 8px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -2px 6px var(--btn-steel-inset)}
+    .btn-gold-solid:focus-visible,.btn-gold:focus-visible,.btn-glass-yellow:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
     .btn-ghost{background:linear-gradient(135deg,rgba(45,42,36,.25),rgba(32,30,26,.15));color:#8a8478;border:1px solid rgba(180,172,158,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
     .btn-ghost:hover{border-color:rgba(180,172,158,.07);color:#b4ac9e}
     .btn-cls{background:linear-gradient(135deg,var(--cls-color),color-mix(in srgb,var(--cls-color) 65%,black));color:#fff;box-shadow:0 4px 18px color-mix(in srgb,var(--cls-color) 35%,transparent)}
     .btn-cls:hover{transform:translateY(-2px);box-shadow:0 7px 28px color-mix(in srgb,var(--cls-color) 55%,transparent)}
     .btn-glass{background:linear-gradient(135deg,rgba(45,42,36,.4),rgba(32,30,26,.25));color:#d4cec4;border:1px solid rgba(180,172,158,.06);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 rgba(180,172,158,.03),0 2px 12px rgba(0,0,0,.3);text-shadow:0 1px 2px rgba(0,0,0,.4)}
     .btn-glass:hover{background:rgba(45,42,36,.3);border-color:rgba(180,172,158,.1);box-shadow:inset 0 1px 0 rgba(180,172,158,.05),0 4px 18px rgba(0,0,0,.45);transform:translateY(-1px)}
-    .btn-glass-yellow{background:rgba(255,232,124,.18);color:#FFE87C;border:1px solid rgba(255,232,124,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 rgba(255,232,124,.28),0 2px 14px rgba(255,232,124,.18);text-shadow:0 1px 3px rgba(0,0,0,.5)}
-    .btn-glass-yellow:hover{background:rgba(255,232,124,.24);border-color:rgba(255,232,124,.65);box-shadow:inset 0 1px 0 rgba(255,232,124,.38),0 4px 20px rgba(255,232,124,.28);transform:translateY(-1px)}
+    .btn-glass-yellow{background:var(--btn-steel-outline-fill);color:var(--btn-steel-text-body);border:1px solid var(--btn-steel-border);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 var(--btn-steel-highlight);text-shadow:0 1px 3px rgba(0,0,0,.5)}
+    .btn-glass-yellow:hover{background:rgba(58,56,52,.42);border-color:var(--btn-steel-border-strong);box-shadow:inset 0 1px 0 var(--btn-steel-highlight-strong),0 4px 16px var(--btn-steel-shadow);transform:translateY(-1px);color:var(--btn-steel-text)}
+    .btn-glass-yellow:active{transform:translateY(0) scale(.98);box-shadow:inset 0 1px 0 var(--btn-steel-highlight)}
     .btn-danger{background:rgba(180,30,30,.1);color:#e74c3c;border:1px solid rgba(180,30,30,.25)}
     .btn-danger:hover{background:rgba(180,30,30,.22)}
     .btn-green{background:rgba(46,204,113,.12);color:#2ecc71;border:1px solid rgba(46,204,113,.28)}
@@ -521,11 +547,13 @@
     }
     .wb-picker-add-btn{
       pointer-events:auto;width:auto;min-width:0;min-height:44px;padding:8px 16px;
-      background:rgba(14,13,10,.32);border:1px solid rgba(232,180,74,.32);color:#f0e2b8;
-      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:none;
+      background:var(--btn-steel-outline-fill);border:1px solid var(--btn-steel-border);color:var(--btn-steel-text);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 var(--btn-steel-highlight);
       text-shadow:0 1px 2px rgba(0,0,0,.55)
     }
-    .wb-picker-add-btn:hover{background:rgba(14,13,10,.42);border-color:rgba(232,180,74,.45)}
+    .wb-picker-add-btn:hover{background:rgba(58,56,52,.42);border-color:var(--btn-steel-border-strong)}
+    .wb-picker-add-btn:active{transform:scale(.98)}
+    .wb-picker-add-btn:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
 
     /* ── SetsEditor primitive (src/components/ui/SetsEditor.jsx) ─────────
        One field grid for sets/reps/weight and duration/distance/HR across
@@ -768,9 +796,12 @@
     .cart-forge-btn:hover{border-color:rgba(180,172,158,.22);color:#d4cec4}
     .cart-forge-btn:active{transform:scale(.97)}
     .cart-forge-primary{
-      flex:1.4;background:linear-gradient(135deg,rgba(196,148,40,.28),rgba(140,100,20,.18));
-      border-color:rgba(196,148,40,.42);color:#e8d08a
+      flex:1.4;background:var(--btn-steel-fill);
+      border-color:var(--btn-steel-border);color:var(--btn-steel-text);
+      box-shadow:0 3px 12px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -3px 8px var(--btn-steel-inset)
     }
+    .cart-forge-primary:hover{border-color:var(--btn-steel-border-strong);color:var(--btn-steel-text)}
+    .cart-forge-btn:focus-visible,.cart-forge-primary:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
     .cart-tray-clear{
       width:100%;background:transparent;border:none;cursor:pointer;
       color:#6f6a62;font-size:.58rem;letter-spacing:.06em;padding:3px;
@@ -1960,7 +1991,7 @@
     /* ── Boot / Intro Screen ── */
     @keyframes bootLineIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     @keyframes bootBarFill{from{opacity:.6}to{opacity:1}}
-    @keyframes bootBtnPulse{0%,100%{box-shadow:0 4px 24px rgba(196,148,40,.25),0 0 0 0 rgba(196,148,40,0)}50%{box-shadow:0 4px 32px rgba(196,148,40,.55),0 0 28px rgba(196,148,40,.2)}}
+    @keyframes bootBtnPulse{0%,100%{box-shadow:0 4px 16px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),0 0 0 0 transparent}50%{box-shadow:0 4px 22px var(--btn-steel-shadow),0 0 18px var(--btn-steel-glow),inset 0 1px 0 var(--btn-steel-highlight-strong)}}
     .boot-screen{gap:18px}
     .boot-title{font-family:'Cinzel Decorative',serif;font-size:clamp(1.4rem,6vw,2rem);font-weight:900;letter-spacing:.18em;text-align:center;background:linear-gradient(135deg,#f0d060,#c49428,#8a6010);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;filter:drop-shadow(0 0 18px rgba(196,148,40,.55)) drop-shadow(0 0 40px rgba(196,148,40,.25))}
     .boot-title-sub{display:block;font-family:'Cinzel',serif;font-size:.5em;font-weight:600;letter-spacing:.35em;margin-top:3px;background:linear-gradient(135deg,#b4ac9e,#8a8478);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -1973,7 +2004,7 @@
     .boot-prompt{color:#c49428;font-weight:700}
     .boot-check{color:#4caf6e;font-weight:700}
     .boot-ellipsis{color:#8a8478}
-    .boot-btn-ready{animation:bootBtnPulse 2s ease-in-out infinite!important;border-color:rgba(196,148,40,.22)!important;color:#d4cec4!important}
+    .boot-btn-ready{animation:bootBtnPulse 2s ease-in-out infinite!important;border-color:var(--btn-steel-border-strong)!important;color:var(--btn-steel-text)!important}
     .boot-cancel-btn{font-size:.58rem;color:#8a8478;border-color:transparent;padding:5px 14px;margin-top:-8px}
     .boot-cancel-btn:hover{color:#8a8478;background:transparent;border-color:rgba(180,172,158,.06)}
     .boot-resume-card{width:min(300px,88vw);background:rgba(45,42,36,.15);border:1px solid rgba(180,172,158,.07);border-radius:10px;padding:13px 16px;text-align:center;backdrop-filter:blur(8px)}
@@ -2218,20 +2249,21 @@
     .au-input-action:hover{color:var(--au-accent)}
 
     /* Primary button */
-    .au-btn{width:100%;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(180deg,oklch(0.78 0.12 var(--au-accent-h)),oklch(0.62 0.10 var(--au-accent-h)));color:oklch(0.12 0.01 60);border:1px solid oklch(0.55 0.09 var(--au-accent-h));font-family:var(--au-font-display);font-size:13px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;padding:14px 16px;cursor:pointer;border-radius:2px;overflow:hidden;transition:transform 0.12s,box-shadow 0.18s,filter 0.18s;box-shadow:0 8px 28px -10px var(--au-accent-glow),inset 0 1px 0 oklch(0.92 0.05 75 / 0.6)}
+    .au-btn{width:100%;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:var(--btn-steel-fill);color:var(--btn-steel-text);border:1px solid var(--btn-steel-border);font-family:var(--au-font-display);font-size:13px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;padding:14px 16px;cursor:pointer;border-radius:2px;overflow:hidden;transition:transform 0.12s,box-shadow 0.18s,filter 0.18s,border-color 0.18s;box-shadow:0 8px 28px -10px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -3px 8px var(--btn-steel-inset)}
     .au-btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,0.35) 50%,transparent 70%);transform:translateX(-100%);transition:transform 0.6s}
-    .au-btn:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1px)}
+    .au-btn:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);border-color:var(--btn-steel-border-strong);box-shadow:0 8px 28px -10px var(--btn-steel-shadow),0 0 16px var(--btn-steel-glow),inset 0 1px 0 var(--btn-steel-highlight-strong),inset 0 -3px 8px var(--btn-steel-inset)}
     .au-btn:hover:not(:disabled)::after{transform:translateX(100%)}
     .au-btn:active:not(:disabled){transform:translateY(0)}
-    .au-btn:disabled{opacity:0.55;cursor:not-allowed}
+    .au-btn:disabled{opacity:0.35;cursor:not-allowed}
+    .au-btn:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
 
     /* Ghost button */
     .au-btn-ghost{background:transparent;border:1px solid var(--au-hairline-strong);color:var(--au-text-dim);border-radius:2px;padding:10px 16px;font-family:var(--au-font-display);font-size:12px;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}
-    .au-btn-ghost:hover{color:var(--au-text);border-color:var(--au-accent)}
+    .au-btn-ghost:hover{color:var(--au-text);border-color:var(--btn-steel-border-strong)}
 
     /* Passkey button */
     .au-btn-passkey{width:100%;background:transparent;color:var(--au-text);border:1px solid var(--au-hairline-strong);border-radius:2px;padding:13px 16px;font-family:var(--au-font-display);font-size:13px;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:border-color .15s,color .15s,background .15s}
-    .au-btn-passkey:hover:not(:disabled){border-color:var(--au-accent);color:var(--au-accent);background:oklch(0.74 0.11 75 / 0.05)}
+    .au-btn-passkey:hover:not(:disabled){border-color:var(--btn-steel-border-strong);color:var(--btn-steel-text-body);background:rgba(58,56,52,.22)}
     .au-btn-passkey:disabled{opacity:0.5;cursor:not-allowed}
 
     /* Link-style button */
@@ -2318,14 +2350,17 @@
       /* Hover/press displacement reads as motion too. */
       .lib-hero-card:hover, .lib-muscle-tile:hover, .lib-discover-card:hover,
       .picker-ex-row:hover, .lib-hero-card:active, .lib-muscle-tile:active,
-      .lib-discover-card:active, .picker-ex-row:active { transform: none; }
+      .lib-discover-card:active, .picker-ex-row:active,
+      .btn:hover, .btn:active, .au-btn:hover, .track-toggle-btn:active { transform: none; }
     }
 
     /* ══ LIVE WORKOUT BANNER + SHEET ══════════════════════════════════════ */
 
     /* Track toggle button on workout cards */
-    .track-toggle-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 12px;min-height:44px;font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.07em;text-transform:uppercase;color:#b4ac9e;background:rgba(45,42,36,.35);border:1px solid rgba(180,172,158,.09);border-radius:20px;cursor:pointer;transition:all .18s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
-    .track-toggle-btn:active{background:rgba(45,42,36,.6)}
+    .track-toggle-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 12px;min-height:44px;font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.07em;text-transform:uppercase;color:var(--btn-steel-text-body);background:var(--btn-steel-outline-fill);border:1px solid var(--btn-steel-border);border-radius:20px;cursor:pointer;transition:all .18s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+    .track-toggle-btn:hover{border-color:var(--btn-steel-border-strong);color:var(--btn-steel-text)}
+    .track-toggle-btn:active{background:rgba(58,56,52,.5);transform:scale(.98)}
+    .track-toggle-btn:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
     .track-toggle-btn.on{color:#6dbb3a;background:rgba(109,187,58,.12);border-color:rgba(109,187,58,.32);box-shadow:0 0 10px rgba(109,187,58,.15)}
 
     /* Persistent banner pill */

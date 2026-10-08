@@ -4875,18 +4875,12 @@ function App() {
             fontSize: FS.fs90
           }} onKeyDown={e => {
             if (e.key === "Enter") submitMfaChallenge();
-          }} /><button style={{
+          }} /><button className={"btn btn-gold-solid"} style={{
             width: "100%",
             padding: "11px",
             borderRadius: R.xl,
-            border: "none",
-            background: mfaChallengeLoading || mfaChallengeCode.length < 6 ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, #c49428, #8a6010)",
-            color: mfaChallengeLoading || mfaChallengeCode.length < 6 ? "#8a8478" : "#0c0c0a",
             fontFamily: "'Cinzel',serif",
-            fontSize: FS.fs62,
-            fontWeight: 700,
-            letterSpacing: ".12em",
-            cursor: "pointer"
+            fontSize: FS.fs62
           }} disabled={mfaChallengeLoading || mfaChallengeCode.length < 6} onClick={submitMfaChallenge}>{mfaChallengeLoading ? "Verifying\u2026" : "VERIFY"}</button></div>
 
         /* Recovery code input */}{mfaRecoveryMode && <div style={{
@@ -4903,18 +4897,12 @@ function App() {
             fontFamily: "monospace"
           }} onKeyDown={e => {
             if (e.key === "Enter") submitRecoveryCode();
-          }} /><button style={{
+          }} /><button className={"btn btn-gold-solid"} style={{
             width: "100%",
             padding: "11px",
             borderRadius: R.xl,
-            border: "none",
-            background: mfaChallengeLoading || !mfaRecoveryInput.trim() ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, #c49428, #8a6010)",
-            color: mfaChallengeLoading || !mfaRecoveryInput.trim() ? "#8a8478" : "#0c0c0a",
             fontFamily: "'Cinzel',serif",
-            fontSize: FS.fs62,
-            fontWeight: 700,
-            letterSpacing: ".12em",
-            cursor: "pointer"
+            fontSize: FS.fs62
           }} disabled={mfaChallengeLoading || !mfaRecoveryInput.trim()} onClick={submitRecoveryCode}>{mfaChallengeLoading ? "Verifying\u2026" : "USE RECOVERY CODE"}</button></div>}{mfaChallengeMsg && <div style={{
           fontSize: FS.fs74,
           color: mfaChallengeMsg.ok ? UI_COLORS.success : UI_COLORS.danger,

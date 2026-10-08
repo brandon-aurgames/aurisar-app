@@ -8,7 +8,7 @@
  * which settings exist, only about how they look.
  */
 
-import { C, FS, R, S } from '../../../utils/tokens.js';
+import { BTN, C, FS, R, S } from '../../../utils/tokens.js';
 import { FONT, ghostBtn as worldGhostBtn, primaryBtn as worldPrimaryBtn } from './panelTheme.js';
 
 // ── World overlay (in-game menu) ─────────────────────────────────────────────
@@ -33,8 +33,7 @@ export const worldGraphicsStyles = Object.freeze({
   },
   optionBtn: worldOptionBtn,
   optionBtnActive: {
-    color: '#0b1220', background: '#c49428',
-    border: '1px solid #c49428', fontWeight: 700,
+    ...BTN.solid, fontWeight: 700,
   },
   optionBtnBlocked: { opacity: 0.35, cursor: 'not-allowed' },
   primaryBtn: { ...worldPrimaryBtn, width: '100%', marginBottom: 12 },
@@ -79,14 +78,13 @@ export const hubGraphicsStyles = Object.freeze({
   divider: { height: 1, background: C.lineStrong, margin: `0 0 ${S.s14}px` },
   optionBtn: hubOptionBtn,
   optionBtnActive: {
-    color: C.bg, background: C.gold,
-    border: `1px solid ${C.gold}`, fontWeight: 700,
+    ...BTN.solid, fontWeight: 700,
   },
   optionBtnBlocked: { opacity: 0.3, cursor: 'not-allowed' },
   primaryBtn: {
     ...hubOptionBtn,
-    width: '100%', color: C.bg, background: C.gold,
-    border: `1px solid ${C.gold}`, fontWeight: 700,
+    ...BTN.solid,
+    width: '100%', fontWeight: 700,
     minHeight: 40, marginBottom: S.s12,
   },
   ghostBtn: { ...hubOptionBtn, marginBottom: S.s18 },
