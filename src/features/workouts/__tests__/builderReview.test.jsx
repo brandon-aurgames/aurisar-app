@@ -47,12 +47,19 @@ it('clears positional superset selections when a drag merge reorders the exercis
   expect(container.querySelector('.ss-cb.on')).toBeNull();
   expect(dnd.current.exercises.map(ex => ex.exId)).toEqual(['b', 'c', 'a']);
 });
+it('lists Reusable and Scheduled tabs and hides One-Off', () => {
+  setup();
+  expect(screen.getByRole('button', { name: /^Reusable$/i })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /^Scheduled$/i })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /One-Off/i })).toBeNull();
+  expect(screen.getAllByRole('button', { name: /New Workout/i }).length).toBeGreaterThan(0);
+});
 it('keeps duration and calories when saving an edited scheduled one-off', () => {
-  const workout = { id: 'oneoff', name: 'Scheduled', icon: 'X', oneOff: true, exercises, durationMin: 3723, activeCal: '300', totalCal: '420', labels: [] };
+  const workout = { id: 'oneoff', name: 'Morning Push', icon: 'X', oneOff: true, exercises, durationMin: 3723, activeCal: '300', totalCal: '420', labels: [] };
   const profile = { workouts: [workout], scheduledWorkouts: [{ sourceWorkoutId: 'oneoff', sourceWorkoutName: workout.name, scheduledDate: '2099-01-01', exId: 'a' }], workoutLabels: [] };
   const { props } = setup({ profile });
-  fireEvent.click(screen.getByRole('button', { name: /One-Off/ }));
-  fireEvent.click(screen.getByText('Scheduled'));
+  fireEvent.click(screen.getByRole('button', { name: /^Scheduled$/i }));
+  fireEvent.click(screen.getByText('Morning Push'));
   fireEvent.click(screen.getByRole('button', { name: /Edit/ }));
   fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
   const updated = props.setProfile.mock.calls.at(-1)[0](profile);

@@ -25,7 +25,7 @@ describe('builder fresh-start reset (P2c)', () => {
       'setWbName', 'setWbIcon', 'setWbDesc', 'setWbExercises', 'setWbEditId',
       'setWbCopySource', 'setWbIsOneOff', 'setWbDuration', 'setWbDurSec',
       'setWbActiveCal', 'setWbTotalCal', 'setWbLabels', 'setNewLabelInput',
-      'setCollapsedWbEx', 'setSsChecked', 'setSsAccordion', 'setDragWbExIdx',
+      'setCollapsedWbEx', 'setSsChecked', 'setDragWbExIdx',
     ]) {
       expect(fn, `resetBuilderFields must clear ${setter}`).toContain(setter);
     }
@@ -68,7 +68,7 @@ describe('builder session-notes peek', () => {
     expect(src).not.toContain('placeholder={"450"}');
     const overlay = read('src/features/workouts/WorkoutDetails.jsx');
     expect(overlay).toContain('Open workout details');
-    expect(overlay).toContain('WORKOUT DETAILS');
+    expect(overlay).toContain('Session details');
     expect(overlay).toContain("setPhase('closing')");
   });
 

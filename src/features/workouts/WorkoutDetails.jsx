@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import Sheet from '../../components/ui/Sheet';
 import { normalizeHHMM } from '../../utils/time';
 import { createDetailsFire } from './detailsFire';
@@ -9,40 +8,14 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 
 export default function WorkoutDetails({ name, notes, intensity, onSave, session, availableLabels = [] }) {
   const [phase, setPhase] = useState('idle');
-  const [hovered, setHovered] = useState(false);
   const [origin, setOrigin] = useState(200);
   const [newLabel, setNewLabel] = useState('');
   const [draft, setDraft] = useState({ name: '', notes: '', intensity: '' });
   const [paused, setPaused] = useState(document.hidden);
   const trigger = useRef(null), dialog = useRef(null), canvas = useRef(null), fire = useRef(null);
-  const timer = useRef(null), positionAnchor = useRef(null);
+  const timer = useRef(null);
   const id = useId();
   const active = phase !== 'idle';
-  // Escape scroll-area clipping, but stay inside #root so the modal stack
-  // makes this trigger inert alongside the rest of the app while a sheet opens.
-  const triggerHost = document.getElementById('root') || document.body;
-
-  // Follow the name panel vertically and the builder's edge horizontally.
-  useEffect(() => {
-    const anchor = positionAnchor.current;
-    const hud = anchor.closest('.hud');
-    let frame = 0;
-    function schedulePosition() {
-      if (!frame) frame = requestAnimationFrame(() => { frame = 0; position(); });
-    }
-    function position() {
-      const rect = anchor.getBoundingClientRect();
-      trigger.current?.style.setProperty('--wd-top', `${Math.max(100, Math.min(rect.top + 8, window.innerHeight - 120))}px`);
-      trigger.current?.style.setProperty('--wd-left', `${Math.max(0, hud?.getBoundingClientRect().left || 0)}px`);
-    }
-    position();
-    const observer = new ResizeObserver(schedulePosition);
-    observer.observe(document.body);
-    if (hud) observer.observe(hud);
-    window.addEventListener('resize', schedulePosition);
-    document.addEventListener('scroll', schedulePosition, true);
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener('resize', schedulePosition); document.removeEventListener('scroll', schedulePosition, true); };
-  }, []);
 
   useEffect(() => {
     function visibility() { setPaused(document.hidden); if (document.hidden) fire.current?.stop(); }
@@ -68,9 +41,6 @@ export default function WorkoutDetails({ name, notes, intensity, onSave, session
 
   function open() {
     if (active) return;
-    setHovered(false);
-    // Safari does not focus buttons on pointer click; explicitly capture this
-    // trigger before Sheet's lifecycle records the return-focus element.
     trigger.current.focus({ preventScroll: true });
     setDraft({ name, notes, intensity: intensity || '', ...(session ? { session: { ...session, labels: [...session.labels] } } : {}) });
     setNewLabel('');
@@ -109,8 +79,6 @@ export default function WorkoutDetails({ name, notes, intensity, onSave, session
     onSave(draft.session ? { ...draft, session: { ...draft.session, duration: normalizedDuration(draft.session.duration) } } : draft);
     close();
   }
-  // A local Tab wrap supplements the app's inert modal stack: even the browser
-  // chrome cannot steal the next Tab while the user is working in this form.
   function trapTab(e) {
     if (e.key !== 'Tab') return;
     const controls = [...dialog.current.querySelectorAll('*')].filter(el => el.matches('button, input, textarea, summary') && !el.disabled);
@@ -120,17 +88,12 @@ export default function WorkoutDetails({ name, notes, intensity, onSave, session
   }
 
   return <>
-    <span ref={positionAnchor} aria-hidden="true" />
-    {createPortal(<button ref={trigger} type="button" className={`wd-trigger${paused ? ' wd-paused' : ''}`} data-open={active} data-hovered={hovered}
-      onPointerEnter={e => { if (e.pointerType !== 'touch') setHovered(true); }}
-      onPointerLeave={() => setHovered(false)} onPointerCancel={() => setHovered(false)}
+    <button ref={trigger} type="button" className="btn btn-ghost btn-sm wd-session-btn"
       aria-label="Open workout details" aria-haspopup="dialog" aria-expanded={active} aria-controls={`${id}-dialog`} onClick={open}>
-      <span className="wd-handle" aria-hidden="true"><span className="wd-label-vertical">DETAILS</span>
-        <span className="wd-label-horizontal">DETAILS<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m6 3 5 5-5 5" /></svg></span>
-      </span><span className="wd-spark" aria-hidden="true" />
-    </button>, triggerHost)}
+      Session details
+    </button>
     <Sheet open={active} onClose={close} placement="fullscreen" navOffset={false} showHandle={false} sheetRef={dialog} onKeyDown={trapTab}
-      id={`${id}-dialog`} title="WORKOUT DETAILS" ariaLabel="Workout details" ariaDescribedBy={`${id}-subtitle`}
+      id={`${id}-dialog`} title="Session details" ariaLabel="Workout details" ariaDescribedBy={`${id}-subtitle`}
       className="wd-dialog" backdropClassName={`wd-backdrop wd-${phase}${paused ? ' wd-paused' : ''}`}
       atmosphere={<div className="wd-fire" aria-hidden="true" style={{ '--wd-origin': `${origin}px` }}><canvas ref={canvas} /><i className="wd-spark" /><i className="wd-spark" /><i className="wd-spark" /></div>}
       footer={<div className="wd-actions"><button type="button" className="btn btn-ghost wd-secondary" onClick={close}>Cancel</button><button type="submit" form={`${id}-form`} className="btn btn-gold-solid wd-primary">SAVE DETAILS</button></div>}>
