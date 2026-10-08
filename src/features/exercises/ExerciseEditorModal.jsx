@@ -246,7 +246,7 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
               gap: S.s8
             }}><button className={"btn btn-ghost btn-sm"} style={{
                 flex: 1
-              }} onClick={() => setExEditorOpen(false)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+              }} onClick={() => setExEditorOpen(false)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
                 flex: 2
               }} onClick={saveExEditor}>{exEditorMode === "edit" ? "Save changes" : "Save exercise"}</button></div>{exEditorMode === "edit" && <button className={"btn btn-ghost btn-sm"} style={{
               width: "100%",

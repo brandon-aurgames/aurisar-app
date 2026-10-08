@@ -675,7 +675,7 @@ function PlanWizard(props) {
             <div><div className="xp-proj-label">Projected Total XP</div><div className="xp-proj-detail">{bDays.filter(d=>d.exercises.length>0).length}{" active days · "}{bDays.reduce((t,d)=>t+d.exercises.length,0)}{" exercises"}</div></div>
             <div className="xp-proj-value">{"⚡ "}{builderXP.toLocaleString()}</div>
           </div>
-          <button className="btn btn-gold btn-plan-action"
+          <button className="btn btn-gold-solid btn-plan-action"
             onClick={()=>{setPlanWizardOpen(true);setWizardWeekIdx(0);}}>
             {bEditId ? "✎ Edit Plan" : "⚔ Create Plan"}
           </button>
@@ -715,7 +715,7 @@ function PlanWizard(props) {
                 <span className="plan-wizard-hdr-icon">{bIcon}</span>
                 {" "}{bName||"Untitled Plan"}
               </div>
-              <button className="btn btn-gold btn-sm" onClick={()=>{saveBuiltPlan();setPlanWizardOpen(false);}}>{"💾 Save"}</button>
+              <button className="btn btn-gold-solid btn-sm" onClick={()=>{saveBuiltPlan();setPlanWizardOpen(false);}}>{"💾 Save"}</button>
             </div>
 
             {/* Week tabs (only for multi-week plans) */}
@@ -911,7 +911,7 @@ function PlanWizard(props) {
                   }
                 }}>{"✓ Complete Day"}</button>}
               <div className="div" style={{margin:"3px 0"}} />
-              <button className="btn btn-gold" style={{width:"100%"}} onClick={saveBuiltPlan}>{"💾 Save Plan"}</button>
+              <button className="btn btn-gold-solid" style={{width:"100%"}} onClick={saveBuiltPlan}>{"💾 Save Plan"}</button>
             </div>{/* close wizard-day-editor */}
           </div>{/* close plan-wizard-inner */}
         </div>,
@@ -967,7 +967,7 @@ function PlanWizard(props) {
                 {"Add to Plan"}{pickerSelected.length>0 && <span style={{color:"#b4ac9e",marginLeft:S.s6}}>{pickerSelected.length+" selected"}</span>}
               </div>
               <div style={{display:"flex",gap:S.s6}}>
-                {pickerSelected.length>0 && <button className="btn btn-gold btn-xs" onClick={commitPickerToPlan}>{"＋ Add "+pickerSelected.length}</button>}
+                {pickerSelected.length>0 && <button className="btn btn-gold-solid btn-xs" onClick={commitPickerToPlan}>{"＋ Add "+pickerSelected.length}</button>}
                 <button className="btn btn-ghost btn-xs" onClick={()=>{closePicker();if(onOpenExEditor)onOpenExEditor("create",null);}}>{"✦ New Custom"}</button>
                 <button className="btn btn-ghost btn-sm" onClick={closePicker}>{"✕"}</button>
               </div>

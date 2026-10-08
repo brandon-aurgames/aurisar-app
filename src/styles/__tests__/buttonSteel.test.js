@@ -88,4 +88,13 @@ describe('steel button tokens', () => {
     expect(rule('.wb-picker-add-btn')).toMatch(/var\(--btn-steel-outline-fill\)/);
     expect(rule('.cart-forge-primary')).toMatch(/var\(--btn-steel-fill\)/);
   });
+
+  it('leaves WorkoutsTab and LiveWorkoutBanner primaries for the #389 rebase', () => {
+    const workouts = readFileSync(ROOT + 'src/features/workouts/WorkoutsTab.jsx', 'utf8');
+    const live = readFileSync(ROOT + 'src/components/LiveWorkoutBanner.jsx', 'utf8');
+    expect(workouts).toContain('btn btn-gold btn-sm');
+    expect(workouts).toContain('＋ New Workout');
+    expect(live).toContain('className="btn btn-gold"');
+    expect(live).toContain('handleFinishPress');
+  });
 });

@@ -190,7 +190,7 @@ const CompletionModal = memo(function CompletionModal({
               }
             }}>{"✓ Confirm & Claim XP"}</button>
           ) : (
-            <button className={"btn btn-gold"} style={{ flex: 2 }} disabled={!scheduleWoDate} onClick={() => {
+            <button className={"btn btn-gold-solid"} style={{ flex: 2 }} disabled={!scheduleWoDate} onClick={() => {
               if (completionModal.soloExScheduleCallback) {
                 completionModal.soloExScheduleCallback(scheduleWoDate);
               } else {
