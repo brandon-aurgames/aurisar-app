@@ -1,23 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { isMetric, lbsToKg, weightLabel } from '../utils/units';
-import { getExerciseHistory } from '../utils/exerciseHistory';
 import Sheet from './ui/Sheet';
 import ConfirmSheet from './ui/ConfirmSheet';
 import SetsEditor from './ui/SetsEditor';
 import WorkoutExercisePicker from '../features/workouts/WorkoutExercisePicker';
 import { isGroupStart, isGrouped } from '../features/workouts/supersetModel';
-
-const LIVE_ADD_FALLBACK = { sets: '3', reps: '10', weightLbs: '' };
-
-export function liveAddDefaultsFromLog(log, exId) {
-  const last = getExerciseHistory(log, exId, 1).at(-1);
-  if (!last) return { ...LIVE_ADD_FALLBACK };
-  return {
-    sets: last.sets ? String(last.sets) : LIVE_ADD_FALLBACK.sets,
-    reps: last.reps ? String(last.reps) : LIVE_ADD_FALLBACK.reps,
-    weightLbs: last.weightLbs != null && last.weightLbs !== '' ? String(last.weightLbs) : '',
-  };
-}
+import { liveAddDefaultsFromLog } from '../features/workouts/liveAddDefaults';
 
 export default function LiveWorkoutBanner({
   liveWorkout,
