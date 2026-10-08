@@ -75,3 +75,7 @@ it('opens a glass swipe-dismiss picker and overlays a shrink-wrapped Add N contr
   expect(css).toMatch(/\.wb-picker-sheet\{[^}]*height:\s*100%/);
   expect(css).toMatch(/\.ui-sheet-backdrop:has\(\.wb-picker-sheet\)\{[^}]*align-items:\s*stretch/);
 });
+
+it('keeps wide builder tools in a header row above 480px', () => {
+  expect(css).toMatch(/\.wb-ex-tools-wide\{display:flex;align-items:center;/);
+});

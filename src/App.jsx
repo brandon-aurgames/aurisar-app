@@ -5314,7 +5314,7 @@ function App() {
       } : null} /><StartDock profile={profile} allExById={allExById} liveWorkout={liveWorkout} stagedCount={stagedIds.length} onStartWorkout={startLiveWorkout} onQuickLogSolo={quickLogSoloEx} onSeeAll={() => guardAll(() => {
         setActiveTab("workouts");
         workoutsRef.current?.showSubTab("scheduled");
-      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} openSignal={liveOpenSignal} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} openExEditor={openExEditor} />}{pendingLiveWorkout && <ConfirmSheet
+      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} openSignal={liveOpenSignal} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} openExEditor={openExEditor} log={profile.log} />}{pendingLiveWorkout && <ConfirmSheet
         open
         icon={"⚡"}
         title={"Replace Active Workout?"}

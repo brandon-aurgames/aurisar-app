@@ -1,7 +1,7 @@
-import React, { memo, useMemo, useRef, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ExIcon } from '../../components/ExIcon';
 import { getMuscleColor, getTypeColor, calcExXP, calcExEntryXP, calcWorkoutXP } from '../../utils/xp';
-import { lbsToKg, isMetric, displayWt } from '../../utils/units';
+import { lbsToKg, isMetric, displayWt, displayPace } from '../../utils/units';
 import { formatXP } from '../../utils/format';
 import { todayStr } from '../../utils/helpers';
 import { combineHHMMSec, daysUntil, formatLastDone } from '../../utils/time';
@@ -13,6 +13,8 @@ import Sheet from '../../components/ui/Sheet';
 import ConfirmSheet from '../../components/ui/ConfirmSheet';
 import WorkoutDetails from './WorkoutDetails';
 import { buildWorkoutObject } from './workoutModel';
+import { formatExPb } from './formatExPb';
+import { builderDraftIsDirty, serializeBuilderDraft } from './builderDraft';
 import {
   SS_MAX,
   adjacentGroupId,
@@ -118,28 +120,6 @@ function getWorkoutMgColor(wo, exById, mgColors) {
   return top && mgColors[top] || "#B0A090";
 }
 
-function formatExPb(exPB, units) {
-  if (!exPB) return null;
-  const metric = isMetric(units);
-  const val = exPB.value ?? exPB.weight;
-  if (val == null || val === "") return null;
-  const type = (exPB.type || "").toLowerCase();
-  if (type === "cardio" || type === "cardio pace") {
-    const n = Number(val);
-    if (!Number.isFinite(n)) return null;
-    return metric ? parseFloat((n * 1.60934).toFixed(2)) + " min/km" : parseFloat(n.toFixed(2)) + " min/mi";
-  }
-  const wt = displayWt(val, units) || (metric ? String(val) + " kg" : String(val) + " lbs");
-  if (type === "assisted" || type === "assisted weight") return "🏆 1RM: " + wt + " (Assisted)";
-  if (type === "max reps per 1 set") return "🏆 " + val + " reps";
-  if (type === "longest hold" || type === "fastest time") {
-    const n = Number(val);
-    return Number.isFinite(n) ? "🏆 " + parseFloat(n.toFixed(2)) + " min" : null;
-  }
-  if (type === "heaviest weight") return "🏆 " + wt;
-  return "🏆 1RM: " + wt;
-}
-
 function lastDoneLabel(dateKey) {
   return formatLastDone(dateKey);
 }
@@ -151,6 +131,99 @@ function isLiveWorkout(liveWorkout, wo) {
 function IntensityChip({ value }) {
   const label = { low: 'Low', moderate: 'Moderate', high: 'High' }[value];
   return label ? <span className="workout-intensity">{label} intensity</span> : null;
+}
+
+function prefersReducedMotion() {
+  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function WbExOverflowMenu({
+  exName,
+  index,
+  canMoveUp,
+  canMoveDown,
+  grouped,
+  exCount,
+  ssOn,
+  onMove,
+  onToggleSuperset,
+  onRemove,
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const menuId = `wb-ex-menu-${index}`;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const menu = menuRef.current;
+    const items = () => [...(menu?.querySelectorAll('[role="menuitem"]:not(:disabled)') ?? [])];
+    items()[0]?.focus();
+    function onKey(e) {
+      if (!open) return;
+      const enabled = items();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      if (!enabled.length) return;
+      const i = Math.max(0, enabled.indexOf(document.activeElement));
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const dir = e.key === "ArrowDown" ? 1 : -1;
+        enabled[(i + dir + enabled.length) % enabled.length]?.focus();
+        return;
+      }
+      if (e.key === "Home") {
+        e.preventDefault();
+        enabled[0]?.focus();
+        return;
+      }
+      if (e.key === "End") {
+        e.preventDefault();
+        enabled.at(-1)?.focus();
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const dir = e.shiftKey ? -1 : 1;
+        enabled[(i + dir + enabled.length) % enabled.length]?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [open]);
+
+  function close({ restore = false } = {}) {
+    setOpen(false);
+    if (restore) triggerRef.current?.focus();
+  }
+
+  return <div className={"wb-ex-overflow"}><button ref={triggerRef} type={"button"} className={"wb-ex-overflow-btn"} aria-label={`More actions for ${exName}`} aria-haspopup={"menu"} aria-expanded={open} aria-controls={menuId} onClick={e => {
+        e.stopPropagation();
+        setOpen(v => !v);
+      }}>{"···"}</button>{open && <><div className={"wb-ex-menu-scrim"} onClick={e => {
+        e.stopPropagation();
+        close({ restore: true });
+      }} /><div ref={menuRef} id={menuId} className={"wb-ex-menu"} role={"menu"}><button type={"button"} role={"menuitem"} disabled={!canMoveUp} onClick={e => {
+        e.stopPropagation();
+        onMove(-1);
+        close();
+      }}>{"Move up"}</button><button type={"button"} role={"menuitem"} disabled={!canMoveDown} onClick={e => {
+        e.stopPropagation();
+        onMove(1);
+        close();
+      }}>{"Move down"}</button>{!grouped && exCount >= 2 && <button type={"button"} role={"menuitem"} onClick={e => {
+        onToggleSuperset(e);
+        close();
+      }}>{ssOn ? "Unmark superset" : "Mark as superset"}</button>}<button type={"button"} role={"menuitem"} className={"danger"} onClick={e => {
+        e.stopPropagation();
+        onRemove();
+        close();
+      }}>{"Remove"}</button></div></>}</div>;
 }
 
 function SsStagingBar({ count, joinLetter, onGroup, onCancel }) {
@@ -170,7 +243,6 @@ const WbExCard = React.memo(function WbExCard({
   collapsed,
   profile,
   allExById,
-  metric,
   setWbExercises,
   setCollapsedWbEx,
   setSsChecked,
@@ -202,12 +274,10 @@ const WbExCard = React.memo(function WbExCard({
     setSsChecked(new Set());
     setWbExercises(exs => moveExercise(exs, i, dir));
   }
-  const [menuOpen, setMenuOpen] = useState(false);
   const noSetsEx = NO_SETS_EX_IDS.has(exD.id);
   const isRunningEx = exD.id === RUNNING_EX_ID;
   const age = profile.age || 30;
-  const pbPaceMi = profile.runningPB || null;
-  const pbDisp = pbPaceMi ? metric ? parseFloat((pbPaceMi * 1.60934).toFixed(2)) + " min/km" : parseFloat(pbPaceMi.toFixed(2)) + " min/mi" : null;
+  const pbDisp = displayPace(profile.runningPB || null, profile.units);
   const exPBDisp = formatExPb((profile.exercisePBs || {})[exD.id], profile.units);
   function toggleSuperset(e) {
     e.stopPropagation();
@@ -280,28 +350,7 @@ const WbExCard = React.memo(function WbExCard({
         transform: collapsed ? "rotate(0deg)" : "rotate(180deg)",
         flexShrink: 0,
         lineHeight: 1
-      }}>{"▼"}</span><div className={"wb-ex-tools-wide"}>{removeBtn}</div><div className={"wb-ex-overflow"}><button type={"button"} className={"wb-ex-overflow-btn"} aria-label={`More actions for ${exD.name}`} aria-expanded={menuOpen} onClick={e => {
-        e.stopPropagation();
-        setMenuOpen(v => !v);
-      }}>{"···"}</button>{menuOpen && <><div className={"wb-ex-menu-scrim"} onClick={e => {
-        e.stopPropagation();
-        setMenuOpen(false);
-      }} /><div className={"wb-ex-menu"} role={"menu"}><button type={"button"} role={"menuitem"} disabled={!canMoveUp} onClick={e => {
-        e.stopPropagation();
-        reorder(-1);
-        setMenuOpen(false);
-      }}>{"Move up"}</button><button type={"button"} role={"menuitem"} disabled={!canMoveDown} onClick={e => {
-        e.stopPropagation();
-        reorder(1);
-        setMenuOpen(false);
-      }}>{"Move down"}</button>{!grouped && exCount >= 2 && <button type={"button"} role={"menuitem"} onClick={e => {
-        toggleSuperset(e);
-        setMenuOpen(false);
-      }}>{ssChecked.has(i) ? "Unmark superset" : "Mark as superset"}</button>}<button type={"button"} role={"menuitem"} className={"danger"} onClick={e => {
-        e.stopPropagation();
-        removeEx();
-        setMenuOpen(false);
-      }}>{"Remove"}</button></div></>}</div></div>{!collapsed && exD.id !== "rest_day" && <div className={"wb-ex-body"}>
+      }}>{"▼"}</span><div className={"wb-ex-tools-wide"}>{removeBtn}</div><WbExOverflowMenu exName={exD.name} index={i} canMoveUp={canMoveUp} canMoveDown={canMoveDown} grouped={grouped} exCount={exCount} ssOn={ssChecked.has(i)} onMove={reorder} onToggleSuperset={toggleSuperset} onRemove={removeEx} /></div>{!collapsed && exD.id !== "rest_day" && <div className={"wb-ex-body"}>
     <SetsEditor exD={exD} value={ex} onField={updateField} units={profile.units} age={age} variant={"builder"} />
   </div>}</>;
 });
@@ -375,6 +424,27 @@ const [helpOpen, setHelpOpen] = useState(false);
 const [wbNameError, setWbNameError] = useState("");
 const [confirmCancel, setConfirmCancel] = useState(false);
 const wbNameRef = useRef(null);
+const builderBaselineRef = useRef(null);
+const builderFieldsRef = useRef(null);
+builderFieldsRef.current = {
+  name: wbName,
+  icon: wbIcon,
+  desc: wbDesc,
+  intensity: wbIntensity,
+  exercises: wbExercises,
+  duration: wbDuration,
+  durationSec: wbDurSec,
+  activeCal: wbActiveCal,
+  totalCal: wbTotalCal,
+  labels: wbLabels,
+};
+useEffect(() => {
+  if (workoutView !== "builder") {
+    builderBaselineRef.current = null;
+    return;
+  }
+  builderBaselineRef.current = serializeBuilderDraft(builderFieldsRef.current);
+}, [workoutView]);
 const lastDoneMap = useMemo(() => {
   const m = new Map();
   for (const e of profile.log || []) {
@@ -402,7 +472,10 @@ function guardWbName() {
     setWbNameError("Name your workout first.");
     const el = wbNameRef.current;
     if (el) {
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.scrollIntoView({
+        block: "center",
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
       el.focus();
     }
     return false;
@@ -425,7 +498,7 @@ function leaveBuilder() {
   setConfirmCancel(false);
 }
 function requestLeaveBuilder() {
-  if (wbExercises.length > 0) {
+  if (builderDraftIsDirty(builderBaselineRef.current, builderFieldsRef.current)) {
     setConfirmCancel(true);
     return;
   }
@@ -1035,7 +1108,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
         for (const label of draft.session.labels) if (!labels.some(l => l.toLowerCase() === label.toLowerCase())) labels.push(label);
         return labels.length === (p.workoutLabels || []).length ? p : { ...p, workoutLabels: labels };
       });
-    }} />}</div><div className={"wb-section wb-details-identity"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input ref={wbNameRef} id={"wb-name"} className={"inp"} value={wbName} onChange={e => { setWbName(e.target.value); if (wbNameError) setWbNameError(""); }} placeholder={"e.g. Morning Push Day…"} aria-invalid={!!wbNameError} /></div>{wbNameError && <div className={"wb-name-error"}>{wbNameError}</div>}</div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
+    }} />}</div><div className={"wb-section wb-details-identity"}><div className={"field"}><label htmlFor={"wb-name"}>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input ref={wbNameRef} id={"wb-name"} className={"inp"} value={wbName} onChange={e => { setWbName(e.target.value); if (wbNameError) setWbNameError(""); }} placeholder={"e.g. Morning Push Day…"} required aria-required={"true"} aria-invalid={!!wbNameError} aria-describedby={wbNameError ? "wb-name-error" : undefined} /></div>{wbNameError && <div id={"wb-name-error"} className={"wb-name-error"} role={"alert"}>{wbNameError}</div>}</div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
     /* Exercise list */
   }<div className={"wo-section-hdr"} style={{
     marginTop: S.s18,
@@ -1062,7 +1135,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
         gap: S.s0,
         "--cat-color": getTypeColor(exD.category),
         "--mg-color": getMuscleColor(exD.muscleGroup)
-      }}><WbExCard ex={ex} i={i} exD={exD} collapsed={!!collapsedWbEx[i]} profile={profile} allExById={allExById} metric={metric} setWbExercises={setWbExercises} setCollapsedWbEx={setCollapsedWbEx} setSsChecked={setSsChecked} ssChecked={ssChecked} exCount={wbExercises.length} openExEditor={openExEditor} canMoveUp={canMoveUp} canMoveDown={canMoveDown} grouped={grouped} orderBadge={grouped ? memberBadge(wbExercises, i) : null} /></div>;
+      }}><WbExCard ex={ex} i={i} exD={exD} collapsed={!!collapsedWbEx[i]} profile={profile} allExById={allExById} setWbExercises={setWbExercises} setCollapsedWbEx={setCollapsedWbEx} setSsChecked={setSsChecked} ssChecked={ssChecked} exCount={wbExercises.length} openExEditor={openExEditor} canMoveUp={canMoveUp} canMoveDown={canMoveDown} grouped={grouped} orderBadge={grouped ? memberBadge(wbExercises, i) : null} /></div>;
     };
     const nodes = [];
     eachRun(wbExercises, (run, gid, start) => {
@@ -1177,7 +1250,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
     open={confirmCancel}
     icon={"📝"}
     title={"Discard draft?"}
-    body={"This workout has exercises. Cancel anyway and lose the draft?"}
+    body={"You have unsaved changes. Cancel anyway and lose the draft?"}
     confirmLabel={"Discard"}
     danger
     onConfirm={leaveBuilder}

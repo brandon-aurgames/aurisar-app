@@ -10,6 +10,7 @@ describe('displayPace', () => {
     // 8 min/mi covers a mile in 8 minutes; a km is shorter, so the same pace
     // takes FEWER minutes per km (8 / 1.60934), not more.
     expect(displayPace(8, 'metric')).toBe('4.97 min/km');
+    expect(displayPace(10, 'metric')).toBe('6.21 min/km');
   });
 
   it('returns null for no pace, in either unit system', () => {

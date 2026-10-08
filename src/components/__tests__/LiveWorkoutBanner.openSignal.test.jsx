@@ -27,3 +27,19 @@ it('opens the tracker when openSignal increments without rebuilding the session'
   expect(screen.getByRole('dialog', { name: 'Active workout tracker' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Mark Bench not done' })).toBeTruthy();
 });
+
+it('does not auto-open on mount when openSignal is already nonzero', () => {
+  render(
+    <LiveWorkoutBanner liveWorkout={liveWorkout} openSignal={2} allExercises={[]} />,
+    { container: document.getElementById('root') },
+  );
+  expect(screen.queryByRole('dialog', { name: 'Active workout tracker' })).toBeNull();
+});
+
+it('does not auto-open on mount when openSignal is already nonzero', () => {
+  render(
+    <LiveWorkoutBanner liveWorkout={liveWorkout} openSignal={2} allExercises={[]} />,
+    { container: document.getElementById('root') },
+  );
+  expect(screen.queryByRole('dialog', { name: 'Active workout tracker' })).toBeNull();
+});

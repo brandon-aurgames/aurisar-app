@@ -1,10 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { isMetric, lbsToKg, weightLabel } from '../utils/units';
+import { getExerciseHistory } from '../utils/exerciseHistory';
 import Sheet from './ui/Sheet';
 import ConfirmSheet from './ui/ConfirmSheet';
 import SetsEditor from './ui/SetsEditor';
 import WorkoutExercisePicker from '../features/workouts/WorkoutExercisePicker';
 import { isGroupStart, isGrouped } from '../features/workouts/supersetModel';
+
+const LIVE_ADD_FALLBACK = { sets: '3', reps: '10', weightLbs: '' };
+
+export function liveAddDefaultsFromLog(log, exId) {
+  const last = getExerciseHistory(log, exId, 1).at(-1);
+  if (!last) return { ...LIVE_ADD_FALLBACK };
+  return {
+    sets: last.sets ? String(last.sets) : LIVE_ADD_FALLBACK.sets,
+    reps: last.reps ? String(last.reps) : LIVE_ADD_FALLBACK.reps,
+    weightLbs: last.weightLbs != null && last.weightLbs !== '' ? String(last.weightLbs) : '',
+  };
+}
 
 export default function LiveWorkoutBanner({
   liveWorkout,
@@ -18,8 +31,10 @@ export default function LiveWorkoutBanner({
   allExercises,
   units,
   openExEditor,
+  log = [],
 }) {
   const [open, setOpen] = useState(false);
+  const prevOpenSignalRef = useRef(openSignal);
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [expandedIdx, setExpandedIdx] = useState(null);
@@ -32,7 +47,9 @@ export default function LiveWorkoutBanner({
   const [pickerSelected, setPickerSelected] = useState([]);
 
   useEffect(() => {
-    if (openSignal) setOpen(true);
+    const prev = prevOpenSignalRef.current;
+    prevOpenSignalRef.current = openSignal;
+    if (openSignal !== prev) setOpen(true);
   }, [openSignal]);
 
   const { exercises, name, icon } = liveWorkout;
@@ -73,11 +90,12 @@ export default function LiveWorkoutBanner({
     setPickerSelected(prev => {
       const exists = prev.find(e => e.exId === exId);
       if (exists) return prev.filter(e => e.exId !== exId);
+      const last = liveAddDefaultsFromLog(log, exId);
       return [...prev, {
         exId,
-        sets: '3',
-        reps: '10',
-        weightLbs: '',
+        sets: last.sets,
+        reps: last.reps,
+        weightLbs: last.weightLbs,
         weightPct: 100,
         durationMin: '',
         distanceMi: '',

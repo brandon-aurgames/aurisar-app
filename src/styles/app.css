@@ -1469,6 +1469,7 @@
     .wb-ex-meta{font-family:'Inter',sans-serif;font-size:.72rem;color:#b4ac9e;letter-spacing:0;text-transform:none;line-height:1.35}
     .wb-ex-actions{display:flex;gap:8px}
     .wb-ex-actions .btn{flex:1;min-height:44px;white-space:normal}
+    .wb-ex-tools-wide{display:flex;align-items:center;gap:6px;flex-shrink:0}
     .wb-ex-overflow{display:none;position:relative;flex-shrink:0}
     .wb-ex-overflow-btn{min-width:44px;min-height:44px;padding:0;border:0;border-radius:8px;background:transparent;color:#b4ac9e;font-size:.95rem;letter-spacing:.08em;cursor:pointer}
     .wb-ex-menu-scrim{position:fixed;inset:0;z-index:20}
