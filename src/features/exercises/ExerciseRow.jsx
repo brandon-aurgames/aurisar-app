@@ -75,7 +75,7 @@ const ExerciseRow = memo(function ExerciseRow({
       style={{ ...style, "--mg-color": mg }}
       {...rest}
     >
-      <div className={"picker-ex-orb"}><ExIcon ex={ex} size={"1rem"} color={"#d4cec4"} /></div>
+      <div className={"picker-ex-orb"}><ExIcon ex={ex} size={"1.15rem"} color={"#e8e2d6"} /></div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
@@ -94,8 +94,8 @@ const ExerciseRow = memo(function ExerciseRow({
             style={{
               fontSize: FS.fs83,
               fontWeight: 600,
-              color: "#d4cec4",
-              letterSpacing: ".01em"
+              color: "#ece6da",
+              letterSpacing: ".005em"
             }}
           >{ex.name}</button>
           {showPB && <span aria-hidden="true" style={{ fontSize: FS.sm }}>{"🏆"}</span>}
@@ -104,7 +104,7 @@ const ExerciseRow = memo(function ExerciseRow({
           )}
         </div>
 
-        <div aria-hidden="true" style={{ fontSize: FS.fs62, fontStyle: "italic", lineHeight: 1.4 }}>
+        <div className={"picker-ex-meta"} aria-hidden="true" style={{ fontSize: FS.fs62, fontStyle: "italic", lineHeight: 1.4 }}>
           {ex.category && <span style={{ color: getTypeColor(ex.category) }}>{cap(ex.category)}</span>}
           {ex.category && ex.muscleGroup && <span style={{ color: "#8a8478" }}>{" · "}</span>}
           {ex.muscleGroup && <span style={{ color: mg }}>{muscleLabel(ex.muscleGroup)}</span>}
@@ -122,12 +122,7 @@ const ExerciseRow = memo(function ExerciseRow({
         alignItems: "flex-end",
         gap: S.s6
       }}>
-        <span aria-hidden="true" style={{
-          fontSize: FS.fs66,
-          fontWeight: 700,
-          color: "#b4ac9e",
-          letterSpacing: ".02em"
-        }}>{ex.baseXP + " XP"}</span>
+        <span className={"picker-ex-xp"} aria-hidden="true">{ex.baseXP + " XP"}</span>
 
         <span aria-hidden="true" style={{
           display: "inline-flex",

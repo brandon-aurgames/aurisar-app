@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useRef } from 'react';
 import { useModalLifecycle } from '../../utils/useModalLifecycle';
 import { Z } from '../../utils/tokens';
+import { useSwipeDismiss } from './useSwipeDismiss';
 
 // Layer names → the Z ladder in tokens.js (mirrored as --z-* in app.css).
 const LAYER_Z = {
@@ -32,6 +33,15 @@ const LAYER_Z = {
  * On open, focus moves into the dialog (unless a caller has already placed
  * focus inside — e.g. ConfirmSheet focuses its Cancel), so keyboard and
  * screen-reader users land in the sheet rather than on the trigger behind it.
+ *
+ * `swipeDismiss` (bottom placement only) lets a downward pull on the handle,
+ * header, or the top of the scroller close the sheet — the gesture the
+ * workout builder's exercise picker needs so a user can scroll up to exit.
+ * Callers with `scroll="none"` pass `innerScrolledToTop` so a nested
+ * virtualized list does not steal that exit pull.
+ *
+ * `glass` switches the opaque sheet fill for a frosted overlay so content
+ * behind the sheet (the workout being built) stays visible.
  */
 export default function Sheet({
   open,
@@ -50,6 +60,9 @@ export default function Sheet({
   tall = false,               // 92dvh cap instead of 85dvh
   navOffset = true,           // keep the sheet above the bottom tab bar
   scroll = 'body',            // "body" | "none"
+  swipeDismiss = false,       // bottom sheets: pull down to close
+  innerScrolledToTop = true,  // for scroll="none" inner lists
+  glass = false,              // frosted overlay instead of opaque fill
   ariaLabel,
   ariaDescribedBy,
   backdropClassName = '',
@@ -90,6 +103,15 @@ export default function Sheet({
     });
     return () => cancelAnimationFrame(id);
   }, [open]);
+
+  const swipeEnabled = !!(open && swipeDismiss && placement === 'bottom');
+  const { offset, dragging } = useSwipeDismiss({
+    enabled: swipeEnabled,
+    onClose,
+    dialogRef,
+    bodyScrollable: scroll !== 'none',
+    innerScrolledToTop,
+  });
 
   if (!open) return null;
 
@@ -135,8 +157,12 @@ export default function Sheet({
         aria-describedby={ariaDescribedBy}
         ref={dialogRef}
         tabIndex={tabIndex != null ? tabIndex : -1}
-        className={`ui-sheet ${sheetMod}${tall ? ' ui-sheet--tall' : ''} ${className}`}
-        style={{ maxWidth: isFullscreen ? 'none' : maxWidth, ...style }}
+        className={`ui-sheet ${sheetMod}${tall ? ' ui-sheet--tall' : ''}${glass ? ' ui-sheet--glass' : ''}${swipeEnabled ? ' ui-sheet--swipe' : ''}${dragging ? ' ui-sheet--dragging' : ''} ${className}`}
+        style={{
+          maxWidth: isFullscreen ? 'none' : maxWidth,
+          ...style,
+          ...(offset ? { transform: `translateY(${offset}px)` } : null),
+        }}
         id={id}
         {...passthrough}
       >

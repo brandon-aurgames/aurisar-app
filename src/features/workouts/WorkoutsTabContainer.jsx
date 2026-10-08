@@ -275,6 +275,19 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setPickerSelected([]);
   }
 
+  function commitPickerToWorkout() {
+    if (pickerSelected.length === 0) return;
+    setWbExercises(ex => [...ex, ...pickerSelected.map(e => ({
+      ...e,
+      sets: e.sets || "",
+      reps: e.reps || "",
+      weightLbs: e.weightLbs || null,
+      durationMin: e.durationMin || null,
+      distanceMi: e.distanceMi || null
+    }))]);
+    closePicker();
+  }
+
   function pickerToggleEx(exId) {
     setPickerSelected(prev => {
       const exists = prev.find(e => e.exId === exId);
@@ -290,19 +303,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         hrZone: null
       }];
     });
-  }
-
-  function commitPickerToWorkout() {
-    if (pickerSelected.length === 0) return;
-    setWbExercises(ex => [...ex, ...pickerSelected.map(e => ({
-      ...e,
-      sets: e.sets || "",
-      reps: e.reps || "",
-      weightLbs: e.weightLbs || null,
-      durationMin: e.durationMin || null,
-      distanceMi: e.distanceMi || null
-    }))]);
-    closePicker();
   }
 
   // ── Reorder (group-id model — pairs AND 2–4 member runs) ──

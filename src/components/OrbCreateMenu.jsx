@@ -21,20 +21,6 @@ import { FG } from "../utils/tokens";
 // threaded up here.
 const WORKOUT_BLUE = "#3498db"; // matches .log-source-badge.workout elsewhere
 
-const ROW_BASE = {
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-  width: "100%",
-  minHeight: 60,
-  padding: "0 14px",
-  borderRadius: 17,
-  cursor: "pointer",
-  textAlign: "left",
-  background: FG.solidBg,
-  boxShadow: "0 12px 34px rgba(0,0,0,.5)",
-};
-
 function recentFromLog(log, allById, limit) {
   const seen = new Set();
   const out = [];
@@ -142,9 +128,9 @@ function OrbCreateMenu({ open, onClose, log, allExercises, onPickExercise, onBui
       label: "Quick Log",
       sub: "Straight into the Set Forge for one exercise",
       glyph: "⚡",
-      color: FG.goldSoft,
-      border: "rgba(232,180,74,.42)",
-      orb: "rgba(232,180,74,.24)",
+      color: FG.teal,
+      border: "rgba(143,227,210,.38)",
+      orb: "rgba(143,227,210,.18)",
       run: () => setView("pick"),
     },
     {
@@ -218,7 +204,7 @@ function OrbCreateMenu({ open, onClose, log, allExercises, onPickExercise, onBui
             fontSize: ".52rem",
             letterSpacing: ".3em",
             textTransform: "uppercase",
-            color: "rgba(232,180,74,.8)",
+            color: "rgba(180,172,158,.78)",
             margin: "0 2px 2px",
             animation: "orbRise var(--dur-slow) var(--ease-out) both",
           }}
@@ -236,48 +222,14 @@ function OrbCreateMenu({ open, onClose, log, allExercises, onPickExercise, onBui
               aria-disabled={a.disabled}
               onClick={a.disabled ? undefined : () => a.run && a.run()}
               className={"orb-action"}
-              style={{
-                ...ROW_BASE,
-                border: `1px solid ${a.border}`,
-                opacity: a.disabled ? 0.45 : 1,
-                cursor: a.disabled ? "default" : "pointer",
-                animation: "orbRise .4s var(--ease-out) both",
-                animationDelay: `${i * 55}ms`,
-              }}
+              style={{ "--orb-accent": a.color, animationDelay: `${i * 55}ms` }}
             >
-              <span
-                style={{
-                  flex: "none",
-                  width: 42,
-                  height: 42,
-                  borderRadius: 13,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.1rem",
-                  background: a.orb,
-                }}
-              >
-                {a.glyph}
+              <span className={"orb-action-sigil"} aria-hidden="true">{a.glyph}</span>
+              <span className={"orb-action-text"}>
+                <span className={"orb-action-label"}>{a.label}</span>
+                <span className={"orb-action-sub"}>{a.sub}</span>
               </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span
-                  style={{
-                    display: "block",
-                    fontFamily: FG.fontCond,
-                    fontSize: ".92rem",
-                    fontWeight: 600,
-                    letterSpacing: ".07em",
-                    textTransform: "uppercase",
-                    color: a.color,
-                    lineHeight: 1.05,
-                  }}
-                >
-                  {a.label}
-                </span>
-                <span style={{ display: "block", fontSize: ".64rem", color: "rgba(232,226,216,.76)", marginTop: 3 }}>{a.sub}</span>
-              </span>
-              <span style={{ flex: "none", fontFamily: FG.fontCond, fontSize: ".9rem", color: a.color, opacity: 0.6 }}>→</span>
+              <span className={"orb-action-arrow"} aria-hidden="true">{"→"}</span>
             </button>
           ))}
 
