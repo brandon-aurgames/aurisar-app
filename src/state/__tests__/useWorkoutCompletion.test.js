@@ -43,10 +43,12 @@ function setup(workout) {
     setScheduleWoDate: vi.fn(),
   });
   confirmWorkoutComplete();
-  return () => {
+  const getProfile = () => {
     if (!updater) throw new Error('setProfile was never called — entries.length was probably 0');
-    return updater(profile).log;
+    return updater(profile);
   };
+  const getLog = () => getProfile().log;
+  return Object.assign(getLog, { getProfile, getLog });
 }
 
 describe('useWorkoutCompletion — cardio/timed metadata through completion', () => {
@@ -118,5 +120,19 @@ describe('useWorkoutCompletion — cardio/timed metadata through completion', ()
     await vi.runAllTimersAsync();
     const [entry] = getLog();
     expect(entry.reps).toBe(10);
+  });
+});
+
+describe('useWorkoutCompletion — exercise PBs', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('writes Strength 1RM after a 1×1×225 bench workout', async () => {
+    const done = setup({
+      id: 'w1', name: 'Max Out', icon: '🏋️', oneOff: true,
+      exercises: [{ exId: 'bench', sets: 1, reps: 1, weightLbs: 225 }],
+    });
+    await vi.runAllTimersAsync();
+    expect(done.getProfile().exercisePBs.bench).toEqual({ type: 'Strength 1RM', value: 225 });
   });
 });

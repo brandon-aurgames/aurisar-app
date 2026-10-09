@@ -4,8 +4,9 @@
  * stops the chrome from rendering on exercise rows, builder/plan
  * lists, quick log, and the exercise detail sheet.
  *
- * Flip to `true` to restore the previous display.
+ * Default off. Set VITE_SHOW_EXERCISE_PB=true at build/dev time to
+ * restore the previous display on a branch deploy without a source edit.
  * TODO(remove): drop this flag and the gated spans once PB chrome
  * has a less crowded home (or is deleted for good).
  */
-export const SHOW_EXERCISE_PB_DISPLAY = false;
+export const SHOW_EXERCISE_PB_DISPLAY = import.meta.env.VITE_SHOW_EXERCISE_PB === 'true';

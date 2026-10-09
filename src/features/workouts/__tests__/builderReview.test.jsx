@@ -206,11 +206,15 @@ it('renders pace PBs via displayPace and legacy weight PBs', () => {
   pbDisplay.on = true;
   const { ref, rerender, props } = openPbBuilder();
   act(() => ref.current.openBuilderWithExercises([{ exId: 'run', sets: 1, reps: 20 }, { exId: 'jog', sets: 1, reps: 20 }, { exId: 'a', sets: 3, reps: 10 }]));
-  expect(screen.getAllByText(/6\.21 min\/km/).length).toBeGreaterThanOrEqual(2);
-  expect(screen.getByText(/83\.9 kg/)).toBeTruthy();
+  expect(screen.getAllByText('🏆 6.21 min/km')).toHaveLength(2);
+  expect(screen.getByText('🏆 83.9 kg')).toBeTruthy();
+  expect(screen.queryByText(/🏆 🏆/)).toBeNull();
+  expect(screen.queryByText(/1RM/)).toBeNull();
   rerender(<WorkoutsTabContainer {...props} ref={ref} profile={{ ...props.profile, units: 'imperial' }} />);
-  expect(screen.getAllByText(/10\.00 min\/mi/).length).toBeGreaterThanOrEqual(2);
-  expect(screen.getByText(/185 lbs/)).toBeTruthy();
+  expect(screen.getAllByText('🏆 10.00 min/mi')).toHaveLength(2);
+  expect(screen.getByText('🏆 185 lbs')).toBeTruthy();
+  expect(screen.queryByText(/🏆 🏆/)).toBeNull();
+  expect(screen.queryByText(/1RM/)).toBeNull();
 });
 it('moves focus into the overflow menu and restores it on Escape', () => {
   const { ref } = setup();

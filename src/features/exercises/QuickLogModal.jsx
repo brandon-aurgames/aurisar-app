@@ -3,6 +3,7 @@ import { UI_COLORS, NO_SETS_EX_IDS, RUNNING_EX_ID } from '../../data/constants';
 import { calcExXP } from '../../utils/xp';
 import { planQuickLogRows } from '../../utils/quickLogRows';
 import { isMetric, kgToLbs, lbsToKg, kmToMi, miToKm, weightLabel, distLabel, displayPace } from '../../utils/units';
+import { formatPbValue } from '../../utils/formatPbValue';
 import { S, R, FS, FG } from '../../utils/tokens';
 import Sheet from '../../components/ui/Sheet';
 import SetsEditor from '../../components/ui/SetsEditor';
@@ -140,14 +141,7 @@ const QuickLogModal = memo(function QuickLogModal({
   const pbPaceMi = profile.runningPB || null;
   const pbDisp = SHOW_EXERCISE_PB_DISPLAY ? displayPace(pbPaceMi, profile.units) : null;
   const exPB4 = SHOW_EXERCISE_PB_DISPLAY ? (profile.exercisePBs || {})[ex.id] || null : null;
-  const pbWeightDisp = v => (metric ? parseFloat(lbsToKg(v)).toFixed(1) : v) + (metric ? " kg" : " lbs");
-  const exPBDisp4 = exPB4
-    ? exPB4.type === "Cardio Pace" ? displayPace(exPB4.value, profile.units)
-    : exPB4.type === "Assisted Weight" ? "1RM: " + pbWeightDisp(exPB4.value) + " (Assisted)"
-    : exPB4.type === "Max Reps Per 1 Set" ? exPB4.value + " reps"
-    : exPB4.type === "Longest Hold" || exPB4.type === "Fastest Time" ? parseFloat(exPB4.value.toFixed(2)) + " min"
-    : exPB4.type === "Heaviest Weight" ? pbWeightDisp(exPB4.value)
-    : "1RM: " + pbWeightDisp(exPB4.value)
+  const exPBDisp4 = formatPbValue(exPB4, profile.units);
     : null;
 
   const durationMin = parseFloat(reps || 0);

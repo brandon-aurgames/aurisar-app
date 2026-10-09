@@ -6,7 +6,9 @@ import { EX_BY_ID, CAT_ICON_COLORS, NAME_ICON_MAP, MUSCLE_ICON_MAP, CAT_ICON_FAL
 import { _nullishCoalesce, _optionalChain, uid, clone, todayStr } from './utils/helpers';
 import { loadSave, doSave, flushSave, setPreviewMode, loadAdminFlags } from './utils/storage';
 import { lazyWithRetry } from './utils/lazyWithRetry';
-import { isMetric, lbsToKg, kgToLbs, miToKm, ftInToCm, cmToFtIn, weightLabel, distLabel, displayWt, displayDist, pctToSlider, sliderToPct } from './utils/units';
+import { isMetric, lbsToKg, kgToLbs, miToKm, ftInToCm, cmToFtIn, weightLabel, distLabel, displayWt, displayDist, displayPace, pctToSlider, sliderToPct } from './utils/units';
+import { formatPbValue } from './utils/formatPbValue';
+import { newPbsBetweenLogs } from './utils/pbUpdates';
 import { buildXPTable, XP_TABLE, xpToLevel, xpForLevel, xpForNext, calcBMI, detectClassFromAnswers, detectClass, calcExXP, calcPlanXP, calcDayXP, calcExercisePBs, calcDecisionTreeBonus, calcCharStats, checkQuestCompletion, hrRange, scaleWeight, scaleDur } from './utils/xp';
 import { perkAward, applyStoredPerk } from './utils/gearPerks';
 import { secToHMS, HMSToSec, normalizeHHMM, secToHHMMSplit, HHMMToSec, combineHHMMSec, daysUntil } from './utils/time';
@@ -1104,16 +1106,10 @@ function App() {
     friendBannerTimerRef.current = setTimeout(() => setFriendExBanner(null), 5000);
   }
 
-  // Format PB info for friend exercise banner
+  // Format PB info for friend exercise banner using the viewer's units.
   function formatFriendPB(pb) {
-    if (!pb) return null;
-    if (pb.type === "Strength 1RM" || pb.type === "Heaviest Weight") return "\uD83C\uDFC6 PB: " + pb.value + " lbs";
-    if (pb.type === "Cardio Pace") return "\uD83C\uDFC6 PB: " + parseFloat(pb.value).toFixed(2) + " min/mi";
-    if (pb.type === "Max Reps Per 1 Set") return "\uD83C\uDFC6 PB: " + pb.value + " reps";
-    if (pb.type === "Assisted Weight") return "\uD83C\uDFC6 PB: " + pb.value + " lbs (assisted)";
-    if (pb.type === "Longest Hold") return "\uD83C\uDFC6 PB: " + parseFloat(pb.value).toFixed(1) + " min";
-    if (pb.type === "Fastest Time") return "\uD83C\uDFC6 PB: " + parseFloat(pb.value).toFixed(1) + " min";
-    return null;
+    const val = formatPbValue(pb, profile.units);
+    return val ? "\uD83C\uDFC6 PB: " + val : null;
   }
   async function handleAuthSubmit() {
     if (!authEmail.trim() || !authPassword.trim()) return;
@@ -2270,27 +2266,25 @@ function App() {
   // accepted friends only). Replaces the old "stream the whole profile.data
   // jsonb to every authenticated user" pattern.
   const lastSeenLogLenRef = React.useRef(null);
-  const lastSeenPBsRef = React.useRef(null);
   useEffect(() => {
     if (!authUser || isPreviewMode) return;
     const currentLog = profile.log || [];
-    const currentPBs = profile.exercisePBs || {};
     if (lastSeenLogLenRef.current === null) {
       lastSeenLogLenRef.current = currentLog.length;
-      lastSeenPBsRef.current = currentPBs;
       return;
     }
     const prevLen = lastSeenLogLenRef.current;
     const newLen = currentLog.length;
     if (newLen > prevLen) {
       const newEntries = currentLog.slice(0, newLen - prevLen);
-      const prevPBs = lastSeenPBsRef.current || {};
+      const oldLog = currentLog.slice(newLen - prevLen);
+      const customLookup = Object.fromEntries((profile.customExercises || []).filter(e => e?.id).map(e => [e.id, e]));
+      const updates = newPbsBetweenLogs(oldLog, currentLog, { ...EX_BY_ID, ...customLookup });
       for (const entry of newEntries) {
         const exId = entry?.exId;
         if (!exId || exId === 'rest_day') continue;
-        const prevPB = prevPBs[exId];
-        const curPB = currentPBs[exId];
-        const isPB = !!(curPB && (!prevPB || curPB.value !== prevPB.value));
+        const curPB = updates[exId];
+        const isPB = !!curPB;
         sb.from('friend_exercise_events').insert({
           user_id: authUser.id,
           exercise_name: entry.exercise || null,
@@ -2307,13 +2301,11 @@ function App() {
       }
     }
     lastSeenLogLenRef.current = newLen;
-    lastSeenPBsRef.current = currentPBs;
-  }, [profile.log, profile.exercisePBs, authUser?.id, isPreviewMode]);
+  }, [profile.log, profile.customExercises, authUser?.id, isPreviewMode]);
 
   // Reset emit-tracker on auth change so the next session starts from baseline.
   useEffect(() => {
     lastSeenLogLenRef.current = null;
-    lastSeenPBsRef.current = null;
   }, [authUser?.id]);
 
   // Realtime subscription for friend exercise completions (in-app banner).
@@ -3454,10 +3446,10 @@ function App() {
         });
         let newPB = profile.runningPB || null;
         if (runPace && (!newPB || runPace < newPB)) newPB = runPace;
-        const newExPBs = calcExercisePBs(newLog);
-        const oldPB = (profile.exercisePBs || {})[ex.id];
-        const curPB = newExPBs[ex.id];
-        const isNewPB = curPB && (!oldPB || curPB.value !== oldPB.value);
+        const newExPBs = calcExercisePBs(newLog, allExById);
+        const newPbMap = newPbsBetweenLogs(profile.log, newLog, allExById);
+        const curPB = newPbMap[ex.id] || newExPBs[ex.id];
+        const isNewPB = !!newPbMap[ex.id];
         let _ciResult = {
           checkInApplied: false,
           checkInXP: 0,
@@ -3486,7 +3478,7 @@ function App() {
         });
         setTimeout(() => setXpFlash(null), 2000);
         const ciSuffix = _ciResult.checkInApplied ? ` · Checked in! +${_ciResult.checkInXP} XP · ${_ciResult.checkInStreak} day streak 🔥` : "";
-        if (newPB !== null && newPB === runPace && (!profile.runningPB || runPace < profile.runningPB)) showToast(`🏆 New Personal Best! ${metric ? parseFloat((runPace * 1.60934).toFixed(2)) + " min/km" : parseFloat(runPace.toFixed(2)) + " min/mi"}${ciSuffix}`);else if (isNewPB && curPB.type === "strength") showToast(`🏆 New 1RM! ${ex.name} — ${curPB.value} lbs${ciSuffix}`);else if (isNewPB && curPB.type === "assisted") showToast(`🏆 New 1RM! ${ex.name} — ${curPB.value} lbs (assisted PR)${ciSuffix}`);else showToast((travelActive && regionBoost > 1 ? `+${finalEarned} XP (+10% travel, +7% ${myRegion.boost.label}) ⚔️` : travelActive ? `+${finalEarned} XP (+10% travel bonus) ⚔️` : regionBoost > 1 ? `+${finalEarned} XP (+7% ${myRegion.boost.label} boost) ${myRegion.icon}` : `+${finalEarned} XP earned!`) + ciSuffix);
+        if (newPB !== null && newPB === runPace && (!profile.runningPB || runPace < profile.runningPB)) showToast(`🏆 New Personal Best! ${displayPace(runPace, profile.units)}${ciSuffix}`);else if (isNewPB && (curPB.type === "Strength 1RM" || curPB.type === "Heaviest Weight" || curPB.type === "Assisted Weight" || curPB.type === "Max Reps Per 1 Set" || curPB.type === "Cardio Pace" || curPB.type === "Longest Hold" || curPB.type === "Fastest Time")) showToast(`🏆 New Personal Best! ${ex.name} — ${formatPbValue(curPB, profile.units)}${ciSuffix}`);else showToast((travelActive && regionBoost > 1 ? `+${finalEarned} XP (+10% travel, +7% ${myRegion.boost.label}) ⚔️` : travelActive ? `+${finalEarned} XP (+10% travel bonus) ⚔️` : regionBoost > 1 ? `+${finalEarned} XP (+7% ${myRegion.boost.label} boost) ${myRegion.icon}` : `+${finalEarned} XP earned!`) + ciSuffix);
         // Clean up form state after successful completion
         setSets("");
         setReps("");
@@ -3607,7 +3599,7 @@ function App() {
         };
       });
       const newLog = [entry, ...profile.log];
-      const newExPBs = calcExercisePBs(newLog);
+      const newExPBs = calcExercisePBs(newLog, allExById);
       let _ciResult = {
         checkInApplied: false,
         checkInXP: 0,
@@ -4088,7 +4080,7 @@ function App() {
       }
     });
     const pbChanged = newPB !== profile.runningPB;
-    const newExPBs = calcExercisePBs(updatedLog);
+    const newExPBs = calcExercisePBs(updatedLog, allExById);
     setProfile(p => ({
       ...p,
       xp: Math.max(0, p.xp + xpDiff),
@@ -4140,7 +4132,7 @@ function App() {
       xp: Math.max(0, p.xp - entry.xp),
       log: updatedLog,
       runningPB: newPB,
-      exercisePBs: calcExercisePBs(updatedLog),
+      exercisePBs: calcExercisePBs(updatedLog, allExById),
       deletedItems: bin
     }));
     showToast("Entry removed. -" + entry.xp + " XP");
@@ -4481,19 +4473,23 @@ function App() {
       customExercises: [],
       exercisePBs: {
         bench: {
-          weight: 185
+          type: "Strength 1RM",
+          value: 185
         },
         squat: {
-          weight: 205
+          type: "Strength 1RM",
+          value: 205
         },
         deadlift: {
-          weight: 225
+          type: "Strength 1RM",
+          value: 225
         },
         run: {
-          type: "cardio",
+          type: "Cardio Pace",
           value: 9.03
         }
-      }
+      },
+      runningPB: 9.03
     });
     setMyPublicId("UQHDD2");
     setMyPrivateId("mPTSbPw8vTnd");

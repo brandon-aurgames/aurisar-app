@@ -4,7 +4,8 @@ import { PLAN_TEMPLATES, HR_ZONES, NO_SETS_EX_IDS, RUNNING_EX_ID, UI_COLORS, QUE
 import { CLASSES } from '../data/exercises';
 import { _optionalChain, uid, todayStr } from '../utils/helpers';
 import { daysUntil } from '../utils/time';
-import { isMetric, lbsToKg, kgToLbs, miToKm, weightLabel, pctToSlider, sliderToPct } from '../utils/units';
+import { isMetric, lbsToKg, kgToLbs, miToKm, weightLabel, pctToSlider, sliderToPct, displayPace } from '../utils/units';
+import { formatPbValue } from '../utils/formatPbValue';
 import { calcPlanXP, calcDayXP, calcExXP, hrRange, checkQuestCompletion, calcExercisePBs, getMuscleColor } from '../utils/xp';
 import { perkAward } from '../utils/gearPerks';
 import { formatXP } from '../utils/format';
@@ -486,9 +487,9 @@ const PlansTabContainer = React.memo(React.forwardRef(function PlansTabContainer
               const inputDistVal = ex.distanceMi ? metric ? String(parseFloat((ex.distanceMi * 1.60934).toFixed(2))) : String(ex.distanceMi) : "";
               const age = profile.age || 30;
               const pbPaceMi = profile.runningPB || null;
-              const pbDisp = SHOW_EXERCISE_PB_DISPLAY && pbPaceMi ? metric ? parseFloat((pbPaceMi * 1.60934).toFixed(2)) + " min/km" : parseFloat(pbPaceMi.toFixed(2)) + " min/mi" : null;
+              const pbDisp = SHOW_EXERCISE_PB_DISPLAY ? displayPace(pbPaceMi, profile.units) : null;
               const exPB2 = SHOW_EXERCISE_PB_DISPLAY ? (profile.exercisePBs || {})[exData.id] || null : null;
-              const exPBDisp2 = exPB2 ? exPB2.type === "cardio" ? metric ? parseFloat((exPB2.value * 1.60934).toFixed(2)) + " min/km" : parseFloat(exPB2.value.toFixed(2)) + " min/mi" : exPB2.type === "assisted" ? "1RM: " + exPB2.value + (metric ? " kg" : " lbs") + " (Assisted)" : "1RM: " + exPB2.value + (metric ? " kg" : " lbs") : null;
+              const exPBDisp2 = formatPbValue(exPB2, profile.units);
               const durationMin = parseFloat(ex.reps || 0);
               const runPace = isRunningEx && distMiVal > 0 && durationMin > 0 ? durationMin / distMiVal : null;
               const runBoostPct = runPace ? runPace <= 8 ? 20 : 5 : 0;

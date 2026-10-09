@@ -1,6 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { getMuscleColor, getTypeColor } from '../../utils/xp';
-import { displayWt, displayPace } from '../../utils/units';
+import { displayWt } from '../../utils/units';
+import { formatPbValue } from '../../utils/formatPbValue';
 import { getExerciseHistory } from '../../utils/exerciseHistory';
 import { ExIcon } from '../../components/ExIcon';
 import { S, R, FS, FG } from '../../utils/tokens';
@@ -41,17 +42,6 @@ const GLASS_BTN = {
   fontSize: FS.fs82,
   cursor: "pointer",
 };
-
-function pbText(pb, units) {
-  if (!pb) return "—";
-  // Legacy PB shape ({weight: 185}) predates calcExercisePBs' {type, value}.
-  if (pb.weight != null) return displayWt(pb.weight, units) || String(pb.weight);
-  if (pb.value == null) return "—";
-  if (/Weight|1RM/i.test(pb.type || "")) return displayWt(pb.value, units) || String(pb.value);
-  if (/Reps/i.test(pb.type || "")) return `${pb.value} reps`;
-  if (/Pace|cardio/i.test(pb.type || "")) return displayPace(pb.value, units) || String(pb.value);
-  return String(pb.value);
-}
 
 const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
   ex,
@@ -309,7 +299,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
         <div style={{ display: "flex", gap: S.s8, marginBottom: S.s10 }}>
           {statChip("Base XP", `${ex.baseXP}`, true)}
           {statChip("Tier", ex.difficulty || "—")}
-          {SHOW_EXERCISE_PB_DISPLAY && statChip("Your PB", pbText(pb, profile.units))}
+          {SHOW_EXERCISE_PB_DISPLAY && statChip("Your PB", formatPbValue(pb, profile.units) ?? "—")}
         </div>
 
         {/* About | Form | History */}

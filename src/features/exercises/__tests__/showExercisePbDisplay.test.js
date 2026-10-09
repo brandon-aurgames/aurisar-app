@@ -28,6 +28,11 @@ describe('on-exercise PB display', () => {
     expect(SHOW_EXERCISE_PB_DISPLAY).toBe(false);
   });
 
+  it('reads VITE_SHOW_EXERCISE_PB so the on-state is checkable without a source edit', () => {
+    const src = read('src/features/exercises/showExercisePbDisplay.js');
+    expect(src).toMatch(/import\.meta\.env\.VITE_SHOW_EXERCISE_PB\s*===\s*['"]true['"]/);
+  });
+
   it('gates every former exercise-row / list / detail render site', () => {
     for (const file of DISPLAY_SITES) {
       const src = read(file);
