@@ -96,6 +96,25 @@ export const WAYPOINTS: Record<string, WaypointDef> = Object.fromEntries(
   ALL_WAYPOINTS.map((w) => [w.id, w]),
 );
 
+// ── Zone geometry the validator checks against ───────────────────────
+// Each mirrors a number owned elsewhere; this package cannot import across
+// that boundary (the server module mirrors it, scripts/sync_world_content.mjs).
+
+/** A zone's box half-width when `boundsHalfExtentM` is unset (spacetimedb/src/world/zones.ts). */
+const DEFAULT_ZONE_HALF_EXTENT_M = 1000;
+/**
+ * PLAYER_HALF_PX (32 px) in spacetimedb/src/world/zones.ts: a zone's reach is
+ * its half-extent less this, so zone 2's 500 m box reaches 499 m.
+ */
+const PLAYER_HALF_M = 1;
+/**
+ * Half-width of the overworld terrain grid, centred on the layout origin:
+ * zone 1's 4×4 tiles of 512 m from -1024 (scripts/lib/unity_export/terrain.mjs).
+ */
+const OVERWORLD_GRID_HALF_M = 1024;
+/** How far apart, in layout metres, two reciprocal gates may sit and still coincide. */
+const GATE_COINCIDENCE_M = 0.01;
+
 // ── Referential integrity ────────────────────────────────────────────
 
 /**
@@ -219,7 +238,6 @@ export function validateContent(): string[] {
   }
 
   // Zones
-  const DEFAULT_ZONE_HALF_EXTENT_M = 1000;
   for (const zone of ZONES as ZoneDef[]) {
     if (zone.levelBand[0] > zone.levelBand[1]) {
       err(`zone ${zone.key}: levelBand min > max`);
@@ -272,6 +290,9 @@ export function validateContent(): string[] {
     }
   }
 
+  // Overworld layout (D232/D233) — the seam crossZone accepts crossings at.
+  for (const e of validateZoneLayout(ZONES as ZoneDef[], layoutItems())) err(e);
+
   // Dungeons
   for (const d of dungeons) {
     if (!MOBS[d.bossMobType]) err(`dungeon ${d.id}: unknown bossMobType ${d.bossMobType}`);
@@ -307,6 +328,195 @@ export function validateContent(): string[] {
   dupCheck('landmark id', ALL_LANDMARKS.map((l) => l.id));
   dupCheck('spawn netId', SPAWNS.map((s) => s.netId));
   dupCheck('zone id', (ZONES as ZoneDef[]).map((z) => String(z.id)));
+
+  return errors;
+}
+
+// ── Overworld layout rules (D232/D233) ───────────────────────────────
+
+/**
+ * One authored thing that must stand on its own zone's side of every seam:
+ * an NPC, landmark or dungeon entrance (a point, `radiusM` 0), or a waypoint
+ * or spawn camp (a disc). Zone-local metres.
+ */
+export interface LayoutItem {
+  label: string;
+  zoneId: number;
+  x: number;
+  z: number;
+  radiusM: number;
+}
+
+/** Rule (f)'s inputs from the live content. */
+export function layoutItems(): LayoutItem[] {
+  return [
+    ...ALL_NPCS.map((n) => ({ label: `npc ${n.id}`, zoneId: n.zoneId, x: n.pos.x, z: n.pos.z, radiusM: 0 })),
+    ...ALL_WAYPOINTS.map((w) => ({
+      label: `waypoint ${w.id}`, zoneId: w.zoneId, x: w.pos.x, z: w.pos.z, radiusM: w.radiusM,
+    })),
+    ...SPAWNS.map((s) => ({
+      label: `spawn ${s.netId}`, zoneId: s.zoneId, x: s.pos.x, z: s.pos.z, radiusM: s.radiusM,
+    })),
+    ...ALL_LANDMARKS.map((l) => ({ label: `landmark ${l.id}`, zoneId: l.zoneId, x: l.x, z: l.z, radiusM: 0 })),
+    ...(DUNGEONS as DungeonDef[]).map((d) => ({
+      label: `dungeon ${d.id} entrance`,
+      zoneId: d.entrance.zoneId,
+      x: d.entrance.pos.x,
+      z: d.entrance.pos.z,
+      radiusM: 0,
+    })),
+  ];
+}
+
+type Rect = { minX: number; maxX: number; minZ: number; maxZ: number };
+
+const shiftRect = (r: Rect, dx: number, dz: number): Rect =>
+  ({ minX: r.minX + dx, maxX: r.maxX + dx, minZ: r.minZ + dz, maxZ: r.maxZ + dz });
+
+const rectWithin = (inner: Rect, outer: Rect): boolean =>
+  inner.minX >= outer.minX && inner.maxX <= outer.maxX &&
+  inner.minZ >= outer.minZ && inner.maxZ <= outer.maxZ;
+
+/** Closed rectangles: sharing an edge counts, since a point on it would belong to both. */
+const rectsIntersect = (a: Rect, b: Rect): boolean =>
+  a.minX <= b.maxX && b.minX <= a.maxX && a.minZ <= b.maxZ && b.minZ <= a.maxZ;
+
+/**
+ * Signed distance from a point to a rectangle's boundary: the Euclidean
+ * distance outside it, minus the depth to the nearest edge inside it, 0 on it.
+ */
+function signedDistanceToRect(x: number, z: number, r: Rect): number {
+  const dx = Math.max(r.minX - x, 0, x - r.maxX);
+  const dz = Math.max(r.minZ - z, 0, z - r.maxZ);
+  if (dx > 0 || dz > 0) return Math.hypot(dx, dz);
+  return -Math.min(x - r.minX, r.maxX - x, z - r.minZ, r.maxZ - z);
+}
+
+/** A zone's server box in its own zone-local metres, at player reach (world/zones.ts zoneBoxPx). */
+function zoneReachRect(zone: ZoneDef): Rect {
+  const half = zone.boundsHalfExtentM !== undefined && zone.boundsHalfExtentM > 0
+    ? zone.boundsHalfExtentM
+    : DEFAULT_ZONE_HALF_EXTENT_M;
+  const reach = half - PLAYER_HALF_M;
+  return { minX: -reach, maxX: reach, minZ: -reach, maxZ: reach };
+}
+
+/**
+ * The overworld layout rules (a)–(g) of D233, over an explicit zone list so
+ * each rule can be shown to fire (content/__tests__/zoneLayout.test.ts).
+ * `validateContent` runs it on the live manifest. Zones without `layout` are
+ * not in the overworld and are skipped.
+ *
+ * Why each rule matters to the server: `crossZone` accepts a crossing within
+ * 6 m of the destination region and writes the row at the same layout point
+ * in the destination's px, unclamped (world/layout.ts). That is only sound if
+ * a layout point belongs to exactly one zone (a, b), every region point is
+ * somewhere its own zone's box can store (c) and the base's box can too, so a
+ * crossing back out lands on base ground (g), the client has terrain under it
+ * (d), the old gates still meet (e), and nothing authored is stranded on the
+ * wrong side of a seam (f).
+ */
+export function validateZoneLayout(zones: readonly ZoneDef[], items: readonly LayoutItem[]): string[] {
+  const errors: string[] = [];
+  const err = (msg: string) => errors.push(msg);
+
+  const layoutZones = zones.filter((z) => z.layout);
+  if (layoutZones.length === 0) return errors;
+  const layoutById = new Map(layoutZones.map((z) => [z.id, z]));
+
+  // (a) Exactly one base: the zone that owns whatever no region claims.
+  const bases = layoutZones.filter((z) => !z.layout!.regionM);
+  if (bases.length !== 1) {
+    err(
+      `layout (a): ${bases.length} base zones (${bases.map((z) => z.key).join(', ')}); ` +
+      'exactly one layout zone may omit regionM',
+    );
+  }
+  const base = bases.length === 1 ? bases[0] : null;
+
+  const regions = layoutZones
+    .filter((z) => z.layout!.regionM)
+    .map((z) => ({
+      zone: z,
+      local: z.layout!.regionM!,
+      layout: shiftRect(z.layout!.regionM!, z.layout!.offsetM.x, z.layout!.offsetM.z),
+    }));
+
+  const grid: Rect = {
+    minX: -OVERWORLD_GRID_HALF_M, maxX: OVERWORLD_GRID_HALF_M,
+    minZ: -OVERWORLD_GRID_HALF_M, maxZ: OVERWORLD_GRID_HALF_M,
+  };
+  for (const r of regions) {
+    // (c) Inside its own server box, at player reach.
+    const ownBox = zoneReachRect(r.zone);
+    if (!rectWithin(r.local, ownBox)) {
+      err(`layout (c): zone ${r.zone.key} region leaves its own server box (reach ±${ownBox.maxX} m)`);
+    }
+    // (d) Inside the overworld terrain grid.
+    if (!rectWithin(r.layout, grid)) {
+      err(`layout (d): zone ${r.zone.key} region leaves the overworld grid (±${OVERWORLD_GRID_HALF_M} m)`);
+    }
+    // (g) Inside the base's server box, so every edge borders base ground.
+    if (base) {
+      const inBase = shiftRect(r.layout, -base.layout!.offsetM.x, -base.layout!.offsetM.z);
+      if (!rectWithin(inBase, zoneReachRect(base))) {
+        err(`layout (g): zone ${r.zone.key} region leaves base zone ${base.key}'s server box`);
+      }
+    }
+  }
+
+  // (b) Pairwise disjoint, edges included.
+  for (let i = 0; i < regions.length; i++) {
+    for (let j = i + 1; j < regions.length; j++) {
+      if (rectsIntersect(regions[i].layout, regions[j].layout)) {
+        err(`layout (b): zone ${regions[i].zone.key} and zone ${regions[j].zone.key} regions intersect`);
+      }
+    }
+  }
+
+  // (e) Reciprocal gates of two layout zones meet at one layout point. A
+  // missing partner is the back-link rule's error, not this one's.
+  const checkedPairs = new Set<string>();
+  for (const zone of layoutZones) {
+    for (const gate of zone.gates) {
+      const target = layoutById.get(gate.toZoneId);
+      const back = target?.gates.find((g) => g.id === gate.toGateId);
+      if (!target || !back) continue;
+      const pair = [`${zone.id}:${gate.id}`, `${target.id}:${back.id}`].sort().join('|');
+      if (checkedPairs.has(pair)) continue;
+      checkedPairs.add(pair);
+      const gap = Math.hypot(
+        gate.pos.x + zone.layout!.offsetM.x - (back.pos.x + target.layout!.offsetM.x),
+        gate.pos.z + zone.layout!.offsetM.z - (back.pos.z + target.layout!.offsetM.z),
+      );
+      if (gap > GATE_COINCIDENCE_M) {
+        err(`layout (e): gate ${gate.id} and gate ${back.id} are ${gap.toFixed(3)} m apart in layout`);
+      }
+    }
+  }
+
+  // (f) Authored content stays on its own side, radius included (≥ 0 m margin).
+  for (const item of items) {
+    const zone = layoutById.get(item.zoneId);
+    if (!zone) continue;
+    const own = zone.layout!.regionM;
+    if (own) {
+      const margin = -signedDistanceToRect(item.x, item.z, own) - item.radiusM;
+      if (margin < 0) {
+        err(`layout (f): ${item.label} (zone ${zone.key}) reaches ${(-margin).toFixed(2)} m outside its zone's region`);
+      }
+      continue;
+    }
+    // A zone without a region owns what the regions leave, so its items must
+    // stay out of every region. Compared in this zone's local frame.
+    for (const r of regions) {
+      const there = shiftRect(r.layout, -zone.layout!.offsetM.x, -zone.layout!.offsetM.z);
+      const margin = signedDistanceToRect(item.x, item.z, there) - item.radiusM;
+      if (margin < 0) {
+        err(`layout (f): ${item.label} (zone ${zone.key}) reaches ${(-margin).toFixed(2)} m into zone ${r.zone.key}'s region`);
+      }
+    }
+  }
 
   return errors;
 }

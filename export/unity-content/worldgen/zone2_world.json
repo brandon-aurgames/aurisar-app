@@ -86,7 +86,11 @@
     "beachSand": "#c9bea0"
   },
   "exclusions": [
-    { "x": 125, "z": -30, "r": 26, "note": "Barrowdeep mound footprint + approach (barrowdeep/barrowdeepPlan.js EXTERIOR, D169/M11-5) — mirrors Zone 1's castle-entry exclusion" }
+    { "x": 125, "z": -30, "r": 26, "note": "Barrowdeep mound footprint + approach (barrowdeep/barrowdeepPlan.js EXTERIOR, D169/M11-5) — mirrors Zone 1's castle-entry exclusion" },
+    { "x": -11.67, "z": -196.74, "r": 1.5, "note": "M14-1 (D233): chest 2726859950 lies south of the pass, outside Zone 2's layout region (D232) — Zone 1 ground in the overworld" },
+    { "x": -177.05, "z": -279.46, "r": 1.5, "note": "M14-1 (D233): chest 473446047 lies south of the pass, outside Zone 2's layout region (D232) — Zone 1 ground in the overworld" },
+    { "x": -138.93, "z": -302.09, "r": 1.5, "note": "M14-1 (D233): chest 1777056995 lies south of the pass, outside Zone 2's layout region (D232) — Zone 1 ground in the overworld" },
+    { "x": -238.14, "z": -189.72, "r": 1.5, "note": "M14-1 (D233): chest 856786405 lies south of the pass, outside Zone 2's layout region (D232) — Zone 1 ground in the overworld" }
   ],
   "biomeAnchors": [
     { "x": 0, "z": -140, "b": 0, "note": "Kestrel Hold — sheltered vale floor" },
