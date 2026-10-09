@@ -5328,15 +5328,11 @@ function App() {
           workoutsRef.current?.openBuilderWithExercises(stagedIds.map(id => cartEntry(id, allExById)));
           setActiveTab("workouts");
           clearCart();
-          setLibSelectMode(false);
-          setFavSelectMode(false);
         }}
         onAddToExisting={() => {
           if (!stagedIds.length) return;
           setAddToWorkoutPicker({ exercises: stagedIds.map(id => cartEntry(id, allExById)) });
           clearCart();
-          setLibSelectMode(false);
-          setFavSelectMode(false);
         }}
         onForgePlan={() => {
           if (!stagedIds.length) return;
@@ -5346,8 +5342,6 @@ function App() {
             "Staged Exercises"
           );
           clearCart();
-          setLibSelectMode(false);
-          setFavSelectMode(false);
         }}
       />
     )
