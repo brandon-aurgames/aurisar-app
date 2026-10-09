@@ -89,6 +89,21 @@ describe('steel button tokens', () => {
     expect(rule('.cart-forge-primary')).toMatch(/var\(--btn-steel-fill\)/);
   });
 
+  it('keeps repeated row actions as outline steel', () => {
+    const quests = readFileSync(ROOT + 'src/features/quests/QuestsTab.jsx', 'utf8');
+    const guild = readFileSync(ROOT + 'src/features/social/GuildTab.jsx', 'utf8');
+    const history = readFileSync(ROOT + 'src/features/history/HistoryTab.jsx', 'utf8');
+    expect(quests).toContain('btn btn-gold btn-sm');
+    expect(quests).toContain('Claim!');
+    expect(quests).not.toContain('btn-gold-solid');
+    expect(guild).toContain('btn btn-gold btn-xs');
+    expect(guild).toContain('+ Add');
+    expect(guild).not.toContain('btn-gold-solid');
+    expect(history).toContain('btn btn-gold btn-xs');
+    expect(history).toContain('↩ Restore');
+    expect(history).not.toContain('btn-gold-solid');
+  });
+
   it('leaves WorkoutsTab and LiveWorkoutBanner primaries for the #389 rebase', () => {
     const workouts = readFileSync(ROOT + 'src/features/workouts/WorkoutsTab.jsx', 'utf8');
     const live = readFileSync(ROOT + 'src/components/LiveWorkoutBanner.jsx', 'utf8');
