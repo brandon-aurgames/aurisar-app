@@ -21,6 +21,7 @@ import { CLASSES } from '../data/exercises';
 import { ExIcon } from './ExIcon';
 import FilterDropdown from '../features/exercises/FilterDropdown';
 import { TYPE_OPTS, TYPE_LABELS, MUSCLE_OPTS, EQUIP_OPTS, muscleLabel, equipLabel } from '../features/exercises/exerciseFilterOptions';
+import { SHOW_EXERCISE_PB_DISPLAY } from '../features/exercises/showExercisePbDisplay';
 import { matchesAll, facetCounts as countFacet, muscleKeys, typeKeys, equipKeys } from '../features/exercises/matchesFacets';
 
 const ICONS = ["⚔️","🏹","🧘","🛡️","🔥","💪","🏋️","⚡","🏃","🚴","🌅","🌙","🏔️","🗡️","🧗","🎯"];
@@ -136,7 +137,7 @@ const PlanExCard = React.memo(function PlanExCard({ ex, i, exData, bDayIdx, xp, 
         {exData.custom && <div className="ex-edit-btn" style={{position:"static",marginRight:S.s2}} onClick={e=>{e.stopPropagation();onOpenExEditor("edit",exData);}}>{"✎"}</div>}
         <div className="builder-ex-orb" style={{"--cat-color":catColorPlan}}>{exData.icon}</div>
         <span className="builder-ex-name-styled" style={{flex:1}}>{exData.name}</span>
-        {(isRunningEx&&pbDisp||exPBDisp3) && <span style={{fontSize:FS.fs58,color:"#b4ac9e",flexShrink:0}}>{"🏆 "}{isRunningEx&&pbDisp?pbDisp:exPBDisp3}</span>}
+        {SHOW_EXERCISE_PB_DISPLAY && (isRunningEx&&pbDisp||exPBDisp3) && <span style={{fontSize:FS.fs58,color:"#b4ac9e",flexShrink:0}}>{"🏆 "}{isRunningEx&&pbDisp?pbDisp:exPBDisp3}</span>}
         {collapsed && exData.id!=="rest_day" && <span style={{fontSize:FS.fs60,color:"#8a8478"}}>{noSetsEx?"":ex.sets+"×"}{ex.reps}{ex.weightLbs?` · ${bMetric?lbsToKg(ex.weightLbs):ex.weightLbs}${bWUnit}`:""}</span>}
         <span style={{fontSize:FS.fs63,color:"#b4ac9e",minWidth:36,textAlign:"right"}}>{"+"+(xp||0).toLocaleString()}</span>
         <span style={{fontSize:FS.fs60,color:"#8a8478",transition:"transform .2s",transform:collapsed?"rotate(0deg)":"rotate(180deg)",flexShrink:0,lineHeight:1}}>{"▼"}</span>

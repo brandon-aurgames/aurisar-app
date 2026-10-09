@@ -9,6 +9,7 @@ import SetsEditor from '../../components/ui/SetsEditor';
 import WeightRuler from '../../components/ui/WeightRuler';
 import { entryTime } from './logEntryTime';
 import { planEntry } from './planEntry';
+import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
 /**
  * Single-exercise quick-log modal — extracted from the inline IIFE in
@@ -464,8 +465,8 @@ const QuickLogModal = memo(function QuickLogModal({
                 </div>
               )}
 
-              {/* Personal Best */}
-              {ex.id !== "rest_day" && (isRunning && pbDisp || exPBDisp4) && (
+              {/* Personal Best — hidden while SHOW_EXERCISE_PB_DISPLAY is off. */}
+              {SHOW_EXERCISE_PB_DISPLAY && ex.id !== "rest_day" && (isRunning && pbDisp || exPBDisp4) && (
                 <div style={{ fontSize: FS.fs68, color: "#b4ac9e", marginBottom: S.s8, display: "flex", alignItems: "center", gap: S.s6 }}>
                   <span>{"🏆"}</span>
                   <span>{"Current PB: "}{isRunning && pbDisp ? pbDisp : exPBDisp4}</span>

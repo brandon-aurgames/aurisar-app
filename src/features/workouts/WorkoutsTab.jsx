@@ -27,6 +27,7 @@ import {
 } from './supersetModel';
 import { useBuilderPointerDnd } from './useBuilderPointerDnd';
 import { UI_COLORS, MUSCLE_COLORS, WORKOUT_TEMPLATES, NO_SETS_EX_IDS, RUNNING_EX_ID } from '../../data/constants';
+import { SHOW_EXERCISE_PB_DISPLAY } from '../exercises/showExercisePbDisplay';
 
 /**
  * Workouts tab — extracted from the inline IIFE in App.jsx as part of
@@ -225,7 +226,7 @@ const WbExCard = React.memo(function WbExCard({
         }} onClick={e => {
           e.stopPropagation();
           openExEditor("edit", exD);
-        }}>{"✎ edit"}</button>}</div>{orderBadge && <span className={"ss-badge"}>{orderBadge}</span>}{(isRunningEx && pbDisp || exPBDisp) && <span style={{
+        }}>{"✎ edit"}</button>}</div>{orderBadge && <span className={"ss-badge"}>{orderBadge}</span>}{SHOW_EXERCISE_PB_DISPLAY && (isRunningEx && pbDisp || exPBDisp) && <span style={{
         fontSize: FS.fs58,
         color: "#b4ac9e",
         flexShrink: 0

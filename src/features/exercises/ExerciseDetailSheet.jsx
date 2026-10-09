@@ -7,6 +7,7 @@ import { S, R, FS, FG } from '../../utils/tokens';
 import Sheet from '../../components/ui/Sheet';
 import { planEntry } from './planEntry';
 import { diffColor } from './difficulty';
+import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
 /**
  * Exercise detail bottom sheet (Forge Glass).
@@ -280,7 +281,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
                 lineHeight: 1,
                 color: FG.inkBright,
               }}>{ex.name}</span>
-              {hasPB && <span style={{
+              {SHOW_EXERCISE_PB_DISPLAY && hasPB && <span style={{
                 background: "rgba(232,180,74,.14)",
                 border: "1px solid rgba(232,180,74,.3)",
                 color: FG.goldSoft,
@@ -288,7 +289,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
                 padding: "2px 8px",
                 borderRadius: R.r4,
                 fontWeight: "700"
-              }}>{"🏆 PB"}</span>}
+              }}>{"Personal best"}</span>}
             </div>
             <div style={{ display: "flex", gap: S.s8, flexWrap: "wrap", alignItems: "baseline" }}>
               <span style={{
@@ -304,11 +305,11 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           </div>
         </div>
 
-        {/* Stat chips — Base XP / Tier / Your PB. */}
+        {/* Stat chips — Base XP / Tier / Your PB (PB chip gated). */}
         <div style={{ display: "flex", gap: S.s8, marginBottom: S.s10 }}>
           {statChip("Base XP", `${ex.baseXP}`, true)}
           {statChip("Tier", ex.difficulty || "—")}
-          {statChip("Your PB", pbText(pb, profile.units))}
+          {SHOW_EXERCISE_PB_DISPLAY && statChip("Your PB", pbText(pb, profile.units))}
         </div>
 
         {/* About | Form | History */}
@@ -339,7 +340,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
             marginBottom: S.s12
           }}>{"No description yet."}</div>}
 
-          {ex.pbType && <div style={{
+          {SHOW_EXERCISE_PB_DISPLAY && ex.pbType && <div style={{
             background: FG.glassBgSoft,
             border: `1px solid ${FG.glassBorder}`,
             borderRadius: R.lg,

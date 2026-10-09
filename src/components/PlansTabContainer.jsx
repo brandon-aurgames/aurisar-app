@@ -9,6 +9,7 @@ import { calcPlanXP, calcDayXP, calcExXP, hrRange, checkQuestCompletion, calcExe
 import { perkAward } from '../utils/gearPerks';
 import { formatXP } from '../utils/format';
 import { S, FS, R } from '../utils/tokens';
+import { SHOW_EXERCISE_PB_DISPLAY } from '../features/exercises/showExercisePbDisplay';
 
 const PlanWizard = React.lazy(() => import('./PlanWizard'));
 const LazyFallback = <div style={{
@@ -527,7 +528,7 @@ const PlansTabContainer = React.memo(React.forwardRef(function PlansTabContainer
                           <span className={`ex-mult ${mult > 1.02 ? "mb" : mult < 0.98 ? "mp" : "mn"}`} style={{ marginLeft: S.s6 }}>{Math.round(mult * 100)}{"%"}</span>
                         </div>}
                       </div>
-                      {(isRunningEx && pbDisp || exPBDisp2) && <span style={{ fontSize: FS.fs58, color: "#b4ac9e", flexShrink: 0 }}>{"🏆 "}{isRunningEx && pbDisp ? pbDisp : exPBDisp2}</span>}
+                      {SHOW_EXERCISE_PB_DISPLAY && (isRunningEx && pbDisp || exPBDisp2) && <span style={{ fontSize: FS.fs58, color: "#b4ac9e", flexShrink: 0 }}>{"🏆 "}{isRunningEx && pbDisp ? pbDisp : exPBDisp2}</span>}
                       <div className={"plan-ex-xp"}>{"+"}{exXP}{" XP"}{runBoostPct > 0 && <span style={{ color: UI_COLORS.warning, marginLeft: S.s2 }}>{"⚡"}</span>}</div>
                       <div className={"ex-info-btn"} style={{ position: "static" }} onClick={() => setLibDetailEx(exData)}>{"ℹ"}</div>
                       <span className={"ex-collapse-btn"} onClick={e => { e.stopPropagation(); toggleDetailEx(vDayIdx, exI); }}>
