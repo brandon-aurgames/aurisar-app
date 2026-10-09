@@ -136,12 +136,16 @@ describe('zone 2 content agrees with zone2_world.json', () => {
   it('the config builds a real world', () => {
     expect(wg.sites.trees.length).toBeGreaterThan(0);
     expect(wg.sites.rocks.length).toBeGreaterThan(0);
-    // D168/D176: scatter.chestCount is now 12 (area-scaled against zone1's
-    // 25). They are not server-openable yet — scripts/emit_world_chests.mjs
-    // is still zone1-only (M11-2's job) — but the worldgen itself must
-    // realize exactly the configured count.
-    expect(wg.sites.chests.length).toBe(zone2Config.scatter.chestCount);
-    expect(wg.sites.chests.length).toBe(12);
+    // D168/D176: scatter.chestCount is 12 (area-scaled against zone1's 25).
+    // M14-1 (D233) excludes the 4 that fall south of the pass, outside zone
+    // 2's layout region, after every draw — so 8 are realized, and the
+    // exclusions are the only reason the count differs.
+    const m14Exclusions = zone2Config.exclusions.filter(
+      (e: { note?: string }) => e.note?.startsWith('M14-1 (D233)'),
+    ).length;
+    expect(m14Exclusions).toBe(4);
+    expect(wg.sites.chests.length).toBe(zone2Config.scatter.chestCount - m14Exclusions);
+    expect(wg.sites.chests.length).toBe(8);
     for (const list of Object.values(wg.sites) as { x: number; z: number }[][]) {
       for (const s of list) {
         expect(Number.isFinite(s.x) && Number.isFinite(s.z)).toBe(true);
