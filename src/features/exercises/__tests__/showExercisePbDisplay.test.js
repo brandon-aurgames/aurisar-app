@@ -44,6 +44,6 @@ describe('on-exercise PB display', () => {
   it('does not render the ExerciseRow trophy unless the flag and showPB are both on', () => {
     const src = read('src/features/exercises/ExerciseRow.jsx');
     expect(src).toMatch(/showPbBadge\s*=\s*SHOW_EXERCISE_PB_DISPLAY\s*&&\s*showPB/);
-    expect(src).toMatch(/\{showPbBadge && <span aria-hidden="true"/);
+    expect(src).toMatch(/\{showPbBadge && <span[^>]*aria-hidden="true"/);
   });
 });
