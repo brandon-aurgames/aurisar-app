@@ -213,7 +213,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
       ariaLabel={"Add exercises to workout"}
       bodyClassName={"wb-picker-body"}
       headerRight={
-        <button className={"btn btn-ghost btn-xs"} onClick={() => { closePicker(); openExEditor("create", null); }}>{"✦ New Custom"}</button>
+        <button className={"btn btn-ghost btn-xs"} onClick={() => { closePicker(); openExEditor("create", null); }}>{"Custom exercise"}</button>
       }
     >
         {/* ── Search bar ── */}

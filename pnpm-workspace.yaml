@@ -34,3 +34,10 @@ allowBuilds:
 supportedArchitectures:
   os: [win32, linux, darwin]
   cpu: [x64, arm64]
+
+# ajv / ajv-formats resolve fast-uri ^3.0.1 to 3.1.6, which `pnpm audit
+# --audit-level=high --prod` flags (GHSA-qw65-cvwx-89v3, GHSA-58mr-gqgx-xq4g).
+# Both advisories are patched in 3.1.7. Cap below 4 so we stay inside ajv's
+# declared 3.x range.
+overrides:
+  fast-uri@<=3.1.6: ">=3.1.7 <4"

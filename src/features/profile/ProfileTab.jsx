@@ -1,7 +1,8 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import { sb } from '../../utils/supabase';
 import { calcBMI, xpToLevel, xpForLevel, xpForNext } from '../../utils/xp';
-import { isMetric, lbsToKg, kgToLbs, ftInToCm, cmToFtIn } from '../../utils/units';
+import { isMetric, lbsToKg, kgToLbs, ftInToCm, cmToFtIn, displayPace } from '../../utils/units';
+import { formatPbValue } from '../../utils/formatPbValue';
 import { S, R, FS } from '../../utils/tokens';
 import { UI_COLORS, QUESTS, EX_BY_ID } from '../../data/constants';
 import { _optionalChain, todayStr } from '../../utils/helpers';
@@ -669,7 +670,7 @@ return (
                   { val: profile.log.length, lbl: "Sessions" },
                   { val: QUESTS.filter(q => _optionalChain([profile, "access", _a => _a.quests, "optionalAccess", _b => _b[q.id], "optionalAccess", _c => _c.claimed])).length, lbl: "Quests" },
                   profile.runningPB
-                    ? { val: isMetric(profile.units) ? parseFloat((profile.runningPB * 1.60934).toFixed(2)) + "/km" : parseFloat(profile.runningPB.toFixed(2)) + "/mi", lbl: "🏃 Run PB", gold: true }
+                    ? { val: (displayPace(profile.runningPB, profile.units) || "").replace(" min", ""), lbl: "🏃 Run PB", gold: true }
                     : { val: "—", lbl: "Run PB" },
                 ].map(chip => (
                   <div key={chip.lbl} style={{
@@ -684,7 +685,7 @@ return (
                 ))}
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                <button className={"btn btn-gold btn-sm"} style={{ flex: 1, fontSize: FS.fs58 }}
+                <button className={"btn btn-gold-solid btn-sm"} style={{ flex: 1, fontSize: FS.fs58 }}
                   disabled={profile.lastCheckIn === todayStr()} onClick={doCheckIn}>
                   {profile.lastCheckIn === todayStr() ? "✓ Checked In" : "⚡ Check In"}
                 </button>
@@ -740,7 +741,6 @@ return (
   {activeTab === "stats" && (() => {
     const allPBs = profile.exercisePBs || {};
     const pbEntries = Object.entries(allPBs);
-    const metric = isMetric(profile.units);
     const effectiveSelected = pbSelectedFilters === null
       ? pbEntries.filter(([id]) => LEADERBOARD_PB_IDS.has(id)).map(([id]) => id)
       : pbSelectedFilters;
@@ -818,13 +818,7 @@ return (
                       const ex = EX_BY_ID[exId];
                       const name = ex ? ex.name : exId;
                       const icon = ex ? ex.icon : "💪";
-                      let valDisp = "";
-                      if (pb.type === "Cardio Pace") { const pace = metric ? pb.value / 1.60934 : pb.value; valDisp = pace.toFixed(2) + (metric ? " min/km" : " min/mi"); }
-                      else if (pb.type === "Assisted Weight") { valDisp = (metric ? parseFloat(lbsToKg(pb.value)).toFixed(1) : pb.value) + (metric ? " kg" : " lbs") + " (Assisted)"; }
-                      else if (pb.type === "Max Reps Per 1 Set") { valDisp = pb.value + " reps"; }
-                      else if (pb.type === "Longest Hold" || pb.type === "Fastest Time") { valDisp = parseFloat(pb.value.toFixed(2)) + " min"; }
-                      else if (pb.type === "Heaviest Weight") { valDisp = (metric ? parseFloat(lbsToKg(pb.value)).toFixed(1) : pb.value) + (metric ? " kg" : " lbs"); }
-                      else { valDisp = (metric ? parseFloat(lbsToKg(pb.value)).toFixed(1) : pb.value) + (metric ? " kg" : " lbs") + " 1RM"; }
+                      const valDisp = formatPbValue(pb, profile.units) || "";
                       return (
                         <div key={exId} className={"cal-event-row"}>
                           <span style={{ fontSize: FS.fs90, flexShrink: 0 }}>{icon}</span>
@@ -1762,7 +1756,7 @@ return (
     boxShadow: "0 -4px 24px rgba(0,0,0,.45)",
   }}>
     <button className={"btn btn-ghost btn-sm"} style={{ flex: 1 }} onClick={() => setEditMode(false)}>{"✕ Cancel"}</button>
-    <button className={"btn btn-gold"} style={{ flex: 2 }} onClick={saveEdit}>{"⚔️ Save Profile"}</button>
+    <button className={"btn btn-gold-solid"} style={{ flex: 2 }} onClick={saveEdit}>{"⚔️ Save Profile"}</button>
   </div>
 
   {/* Edit sections — styled as log-group-cards to match the profile view */}
@@ -1937,7 +1931,7 @@ return (
     }, {
       key: "reviewBattleStats",
       icon: "📊",
-      label: "Review Battle Stats",
+      label: "Review stats",
       desc: "Remind me to input Duration, Total Calories & Active Calories for each completed Workout or Exercise"
     }];
     return <div style={{

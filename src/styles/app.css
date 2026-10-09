@@ -59,6 +59,26 @@
       --font-body:'Barlow','Inter',system-ui,sans-serif;
       --font-cond:'Barlow Condensed','Barlow',sans-serif;
       --font-serif:'Cinzel',serif;
+
+      /* ── Steel button tokens ────────────────────────────────────────────
+         Sampled from .orb-btn (the Log orb): steel/stone body, parchment
+         rim, inner highlight + inset shade. JS mirrors live on C / BTN in
+         src/utils/tokens.js. Gold stays reserved for earned XP, not actions.
+         Solid vs outline is the primary/secondary split. */
+      --btn-steel-hi:#3a3834;
+      --btn-steel-mid:#1f1d1a;
+      --btn-steel-lo:#141310;
+      --btn-steel-text:#e8e0d0;
+      --btn-steel-text-body:#d4cec4;
+      --btn-steel-border:rgba(180,172,158,.34);
+      --btn-steel-border-strong:rgba(180,172,158,.5);
+      --btn-steel-highlight:rgba(255,255,255,.1);
+      --btn-steel-highlight-strong:rgba(255,255,255,.12);
+      --btn-steel-inset:rgba(0,0,0,.35);
+      --btn-steel-shadow:rgba(0,0,0,.45);
+      --btn-steel-glow:rgba(180,172,158,.22);
+      --btn-steel-fill:linear-gradient(145deg,var(--btn-steel-hi) 0%,var(--btn-steel-mid) 55%,var(--btn-steel-lo) 100%);
+      --btn-steel-outline-fill:linear-gradient(145deg,rgba(58,56,52,.14),rgba(20,19,16,.06));
     }
     html{font-size:17.333px}
     .root{min-height:100vh;background:#0c0c0a;color:#d4cec4;font-family:var(--font-body);position:relative;overflow-x:hidden}
@@ -81,28 +101,34 @@
     .r2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
     .field{display:flex;flex-direction:column;gap:4px}
     /* ── Button hierarchy ────────────────────────────────────────────────
-       One ladder, most to least prominent. Pick the highest rung the
-       action deserves; a view should have at most one gold-solid.
-         btn-gold-solid  the single primary commit of a screen (Save)
-         btn-gold        default action
-         btn-glass-yellow  highlighted alternative (Complete/Schedule)
-         btn-ghost       secondary / dismiss
+       One ladder, most to least prominent. Steel is sampled from the Log
+       orb; a view should have at most one solid primary.
+         btn-gold-solid  the single primary commit (Save) — solid steel
+         btn-gold        default action — outline steel
+         btn-glass-yellow  highlighted alternative — outline steel
+         btn-ghost       dismiss / tertiary
          btn-danger      destructive
+       Class names are legacy; the chrome is steel. Start/Log (after #389)
+       share one equal treatment — do not split them solid vs outline.
        Sizes: btn-sm / btn-xs (both get a 44px touch extension on coarse
        pointers, below). For bare glyph actions use .icon-btn instead. */
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font-body);font-size:.68rem;font-weight:700;letter-spacing:.07em;transition:all .2s;text-transform:uppercase;white-space:nowrap}
-    .btn-gold-solid{background:linear-gradient(135deg,#8B7425,#A89030);color:#d4cec4;border:1px solid rgba(196,160,68,.35);box-shadow:0 2px 14px rgba(140,116,37,.28);text-shadow:0 1px 2px rgba(0,0,0,.35)}
-    .btn-gold-solid:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(140,116,37,.4)}
-    .btn-gold{background:linear-gradient(135deg,rgba(45,42,36,.5),rgba(45,42,36,.35));color:#d4cec4;box-shadow:none;border:1px solid rgba(180,172,158,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-    .btn-gold:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(0,0,0,.4)}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font-body);font-size:.68rem;font-weight:700;letter-spacing:.07em;transition:background var(--dur-base) var(--ease-standard),border-color var(--dur-base) var(--ease-standard),box-shadow var(--dur-base) var(--ease-standard),color var(--dur-base) var(--ease-standard),transform var(--dur-fast) var(--ease-standard);text-transform:uppercase;white-space:nowrap}
+    .btn-gold-solid{background:var(--btn-steel-fill);color:var(--btn-steel-text);border:1px solid var(--btn-steel-border);box-shadow:0 4px 16px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -3px 8px var(--btn-steel-inset);text-shadow:0 1px 2px rgba(0,0,0,.35)}
+    .btn-gold-solid:hover{transform:translateY(-2px);border-color:var(--btn-steel-border-strong);box-shadow:0 6px 22px var(--btn-steel-shadow),0 0 16px var(--btn-steel-glow),inset 0 1px 0 var(--btn-steel-highlight-strong),inset 0 -3px 8px var(--btn-steel-inset)}
+    .btn-gold-solid:active{transform:translateY(0) scale(.98);box-shadow:0 2px 10px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -2px 6px var(--btn-steel-inset)}
+    .btn-gold{background:var(--btn-steel-outline-fill);color:var(--btn-steel-text-body);border:1px solid var(--btn-steel-border-strong);box-shadow:inset 0 1px 0 var(--btn-steel-highlight);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);text-shadow:0 1px 2px rgba(0,0,0,.35)}
+    .btn-gold:hover{transform:translateY(-2px);background:rgba(58,56,52,.42);border-color:var(--btn-steel-border-strong);color:var(--btn-steel-text);box-shadow:inset 0 1px 0 var(--btn-steel-highlight-strong),0 4px 16px var(--btn-steel-shadow)}
+    .btn-gold:active{transform:translateY(0) scale(.98);box-shadow:inset 0 1px 0 var(--btn-steel-highlight)}
+    .btn-gold-solid:focus-visible,.btn-gold:focus-visible,.btn-glass-yellow:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
     .btn-ghost{background:linear-gradient(135deg,rgba(45,42,36,.25),rgba(32,30,26,.15));color:#8a8478;border:1px solid rgba(180,172,158,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
     .btn-ghost:hover{border-color:rgba(180,172,158,.07);color:#b4ac9e}
     .btn-cls{background:linear-gradient(135deg,var(--cls-color),color-mix(in srgb,var(--cls-color) 65%,black));color:#fff;box-shadow:0 4px 18px color-mix(in srgb,var(--cls-color) 35%,transparent)}
     .btn-cls:hover{transform:translateY(-2px);box-shadow:0 7px 28px color-mix(in srgb,var(--cls-color) 55%,transparent)}
     .btn-glass{background:linear-gradient(135deg,rgba(45,42,36,.4),rgba(32,30,26,.25));color:#d4cec4;border:1px solid rgba(180,172,158,.06);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 rgba(180,172,158,.03),0 2px 12px rgba(0,0,0,.3);text-shadow:0 1px 2px rgba(0,0,0,.4)}
     .btn-glass:hover{background:rgba(45,42,36,.3);border-color:rgba(180,172,158,.1);box-shadow:inset 0 1px 0 rgba(180,172,158,.05),0 4px 18px rgba(0,0,0,.45);transform:translateY(-1px)}
-    .btn-glass-yellow{background:rgba(255,232,124,.18);color:#FFE87C;border:1px solid rgba(255,232,124,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 rgba(255,232,124,.28),0 2px 14px rgba(255,232,124,.18);text-shadow:0 1px 3px rgba(0,0,0,.5)}
-    .btn-glass-yellow:hover{background:rgba(255,232,124,.24);border-color:rgba(255,232,124,.65);box-shadow:inset 0 1px 0 rgba(255,232,124,.38),0 4px 20px rgba(255,232,124,.28);transform:translateY(-1px)}
+    .btn-glass-yellow{background:var(--btn-steel-outline-fill);color:var(--btn-steel-text-body);border:1px solid var(--btn-steel-border-strong);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 var(--btn-steel-highlight);text-shadow:0 1px 3px rgba(0,0,0,.5)}
+    .btn-glass-yellow:hover{background:rgba(58,56,52,.42);border-color:var(--btn-steel-border-strong);box-shadow:inset 0 1px 0 var(--btn-steel-highlight-strong),0 4px 16px var(--btn-steel-shadow);transform:translateY(-1px);color:var(--btn-steel-text)}
+    .btn-glass-yellow:active{transform:translateY(0) scale(.98);box-shadow:inset 0 1px 0 var(--btn-steel-highlight)}
     .btn-danger{background:rgba(180,30,30,.1);color:#e74c3c;border:1px solid rgba(180,30,30,.25)}
     .btn-danger:hover{background:rgba(180,30,30,.22)}
     .btn-green{background:rgba(46,204,113,.12);color:#2ecc71;border:1px solid rgba(46,204,113,.28)}
@@ -154,6 +180,7 @@
     .tab-badge{position:absolute;top:2px;right:calc(50% - 18px);background:#e74c3c;color:#fff;border-radius:50%;width:14px;height:14px;font-size:.46rem;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;box-shadow:0 0 0 2px rgba(20,18,14,.78)}
     .hud-checkin-strip{display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(145deg,rgba(45,42,36,.35),rgba(32,30,26,.2));border:1px solid rgba(180,172,158,.05);border-radius:12px;margin-bottom:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
     .scroll-area{flex:1;overflow-y:auto;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px));-webkit-mask-image:linear-gradient(to bottom,black 0,black calc(100% - 48px),transparent 100%);mask-image:linear-gradient(to bottom,black 0,black calc(100% - 48px),transparent 100%)}
+    .scroll-area:has(.wb-footer){-webkit-mask-image:none;mask-image:none}
     .scroll-area::-webkit-scrollbar{width:3px}
     .scroll-area::-webkit-scrollbar-thumb{background:rgba(45,42,36,.3);border-radius:2px}
     .sec{font-family:'Inter',sans-serif;font-size:.6rem;color:#8a8478;letter-spacing:.13em;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(180,172,158,.04)}
@@ -168,8 +195,8 @@
     .mp{background:rgba(231,76,60,.14);color:#e74c3c}
     .mn{background:rgba(45,42,36,.2);color:#b4ac9e}
     .ex-info-btn{position:absolute;top:7px;right:7px;font-size:.65rem;color:#8a8478;cursor:pointer;width:18px;height:18px;border-radius:50%;background:rgba(45,42,36,.15);display:flex;align-items:center;justify-content:center;transition:all .2s}
-    .info-icon{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:rgba(45,42,36,.2);border:1px solid rgba(180,172,158,.07);color:#b4ac9e;font-size:.58rem;cursor:help;position:relative;flex-shrink:0;vertical-align:middle;margin-left:6px}
-    .info-icon:hover .info-tooltip{display:block}
+    .info-icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:rgba(45,42,36,.2);border:1px solid rgba(180,172,158,.07);color:#b4ac9e;font-size:.58rem;cursor:pointer;position:relative;flex-shrink:0;vertical-align:middle;margin-left:6px}
+    .info-icon:hover .info-tooltip,.info-icon.open .info-tooltip,.info-icon:focus-visible .info-tooltip{display:block}
     .info-tooltip{display:none;position:absolute;top:120%;left:50%;transform:translateX(-50%);background:#16140e;border:1px solid rgba(180,172,158,.08);border-radius:8px;padding:8px 10px;font-size:.65rem;color:#8a8478;white-space:normal;width:200px;z-index:50;line-height:1.5;box-shadow:0 4px 20px rgba(0,0,0,.7);pointer-events:none}
     .info-tooltip::before{content:"";position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:8px;height:8px;background:#16140e;border-top:1px solid rgba(180,172,158,.06);border-left:1px solid rgba(180,172,158,.06);transform:translateX(-50%) rotate(45deg)}
     .ex-info-btn:hover{color:#b4ac9e;background:rgba(45,42,36,.22)}
@@ -408,7 +435,7 @@
     .friend-meta{font-size:.65rem;color:#8a8478;margin-top:2px}
     .friend-recent{background:rgba(45,42,36,.12);border-radius:8px;padding:8px 10px;font-size:.68rem;color:#8a8478;margin-top:6px;border:1px solid rgba(180,172,158,.05)}
     .req-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(45,42,36,.14);border:1px solid rgba(180,172,158,.06);border-radius:10px;margin-bottom:8px}
-    .log-subtab-btn{flex:1;padding:7px 12px;text-align:center;font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.06em;cursor:pointer;transition:all .22s ease;color:#8a8478;background:transparent;border:none;border-radius:8px;text-transform:uppercase;-webkit-tap-highlight-color:transparent}
+    .log-subtab-btn{flex:1;padding:10px 12px;text-align:center;font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.06em;cursor:pointer;transition:all .22s ease;color:#b4ac9e;background:transparent;border:none;border-radius:8px;text-transform:uppercase;-webkit-tap-highlight-color:transparent;min-height:44px}
     .log-subtab-btn:last-child{border-right:none}
     .log-subtab-btn.on{background:rgba(180,172,158,.16);color:#d4cec4;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 1px 2px rgba(0,0,0,.2)}
     /* SOURCE BADGE on log entries */
@@ -520,11 +547,13 @@
     }
     .wb-picker-add-btn{
       pointer-events:auto;width:auto;min-width:0;min-height:44px;padding:8px 16px;
-      background:rgba(14,13,10,.32);border:1px solid rgba(232,180,74,.32);color:#f0e2b8;
-      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:none;
+      background:var(--btn-steel-outline-fill);border:1px solid var(--btn-steel-border);color:var(--btn-steel-text);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 var(--btn-steel-highlight);
       text-shadow:0 1px 2px rgba(0,0,0,.55)
     }
-    .wb-picker-add-btn:hover{background:rgba(14,13,10,.42);border-color:rgba(232,180,74,.45)}
+    .wb-picker-add-btn:hover{background:rgba(58,56,52,.42);border-color:var(--btn-steel-border-strong)}
+    .wb-picker-add-btn:active{transform:scale(.98)}
+    .wb-picker-add-btn:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
 
     /* ── SetsEditor primitive (src/components/ui/SetsEditor.jsx) ─────────
        One field grid for sets/reps/weight and duration/distance/HR across
@@ -539,19 +568,19 @@
     .se-cell{display:flex;flex-direction:column;flex:1;min-width:0}
     .se-cell:has(.se-inp--wide){flex:1.6}
     .se-col-hdr{font-size:.54rem;color:#8a8478;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .se-inp{background:rgba(45,42,36,.4);border:1px solid rgba(180,172,158,.1);border-radius:6px;padding:6px 4px;color:#d4cec4;font-family:'Inter',sans-serif;font-size:.82rem;width:100%;min-width:0;outline:none;-webkit-appearance:none;appearance:none;text-align:center}
+    .se-inp{background:rgba(45,42,36,.4);border:1px solid rgba(180,172,158,.1);border-radius:6px;padding:8px 4px;color:#d4cec4;font-family:'Inter',sans-serif;font-size:.82rem;width:100%;min-width:0;min-height:44px;outline:none;-webkit-appearance:none;appearance:none;text-align:center}
     .se-inp:focus{border-color:rgba(180,172,158,.22)}
     .se-row--extra .se-inp{background:rgba(45,42,36,.25);flex:1}
     .se-row--extra .se-inp--wide{flex:1.6}
-    .se-row-remove{background:transparent;border:none;color:#8a8478;font-size:.7rem;cursor:pointer;padding:8px 10px;min-width:32px;min-height:32px;flex-shrink:0;align-self:center;-webkit-tap-highlight-color:transparent;border-radius:6px}
+    .se-row-remove{background:transparent;border:none;color:#8a8478;font-size:.7rem;cursor:pointer;padding:8px 10px;min-width:44px;min-height:44px;flex-shrink:0;align-self:center;-webkit-tap-highlight-color:transparent;border-radius:6px}
     .se-row-remove:hover,.se-row-remove:active{color:#c0392b}
-    .se-add-row{width:100%;min-height:36px;margin-top:6px;background:transparent;border:1px dashed rgba(180,172,158,.16);border-radius:7px;color:#8a8478;font-family:'Inter',sans-serif;font-size:.6rem;letter-spacing:.04em;cursor:pointer;transition:color var(--dur-fast),border-color var(--dur-fast)}
+    .se-add-row{width:100%;min-height:44px;margin-top:6px;background:transparent;border:1px dashed rgba(180,172,158,.16);border-radius:7px;color:#8a8478;font-family:'Inter',sans-serif;font-size:.6rem;letter-spacing:.04em;cursor:pointer;transition:color var(--dur-fast),border-color var(--dur-fast)}
     .se-add-row:hover{color:#b4ac9e;border-color:rgba(180,172,158,.3)}
     .se-pace{font-size:.65rem;padding:4px 0 2px 24px}
     .se-hr{margin-top:8px}
     /* Density variants: the live sheet is the most compact context. */
-    .se--live .se-inp{padding:5px 4px}
-    .se--live .se-add-row{min-height:32px}
+    .se--live .se-inp{padding:8px 4px;min-height:44px}
+    .se--live .se-add-row{min-height:44px}
 
     /* ConfirmSheet content (src/components/ui/ConfirmSheet.jsx) */
     .ui-confirm-title{display:flex;align-items:center;gap:9px;font-family:'Cinzel',serif;font-size:.88rem;color:#d4cec4;margin-bottom:8px}
@@ -767,9 +796,12 @@
     .cart-forge-btn:hover{border-color:rgba(180,172,158,.22);color:#d4cec4}
     .cart-forge-btn:active{transform:scale(.97)}
     .cart-forge-primary{
-      flex:1.4;background:linear-gradient(135deg,rgba(196,148,40,.28),rgba(140,100,20,.18));
-      border-color:rgba(196,148,40,.42);color:#e8d08a
+      flex:1.4;background:var(--btn-steel-fill);
+      border-color:var(--btn-steel-border);color:var(--btn-steel-text);
+      box-shadow:0 3px 12px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -3px 8px var(--btn-steel-inset)
     }
+    .cart-forge-primary:hover{border-color:var(--btn-steel-border-strong);color:var(--btn-steel-text)}
+    .cart-forge-btn:focus-visible,.cart-forge-primary:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
     .cart-tray-clear{
       width:100%;background:transparent;border:none;cursor:pointer;
       color:#6f6a62;font-size:.58rem;letter-spacing:.06em;padding:3px;
@@ -1098,7 +1130,7 @@
     .workout-icon{font-size:1.6rem;flex-shrink:0}
     .workout-name{font-family:'Inter',sans-serif;font-size:.82rem;color:#d4cec4;margin-bottom:3px}
     .workout-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    .workout-tag{font-size:.58rem;padding:2px 7px;border-radius:8px;background:rgba(45,42,36,.2);border:1px solid rgba(180,172,158,.06);color:#b4ac9e;font-family:'Inter',sans-serif;letter-spacing:.03em}
+    .workout-tag{font-size:.65rem;padding:3px 8px;border-radius:8px;background:rgba(45,42,36,.2);border:1px solid rgba(180,172,158,.06);color:#b4ac9e;font-family:'Inter',sans-serif;letter-spacing:.03em}
     .workout-desc{font-size:.7rem;color:#8a8478;margin-top:6px;font-style:italic}
     .workout-ex-pill-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
     .workout-ex-pill{font-size:.6rem;padding:2px 7px;border-radius:8px;background:rgba(45,42,36,.15);border:1px solid rgba(180,172,158,.05);color:#8a8478}
@@ -1289,7 +1321,8 @@
     .ss-badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;font-size:.55rem;font-weight:700;letter-spacing:.08em;background:rgba(138,143,150,.14);color:#b0b8c0;border:1px solid rgba(138,143,150,.22);flex-shrink:0}
     .ss-target{border-color:rgba(138,144,144,.5)!important;animation:ss-pulse 1.2s ease-in-out infinite}
     @keyframes ss-pulse{0%,100%{box-shadow:0 0 0 0 rgba(138,144,144,.0)}50%{box-shadow:0 0 0 3px rgba(138,144,144,.18)}}
-    .ss-cb{width:17px;height:17px;border-radius:4px;border:1.5px solid rgba(138,143,150,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;background:transparent}
+    .ss-cb-hit{display:flex;align-items:center;justify-content:center;gap:6px;min-width:44px;min-height:44px;padding:0 4px;margin:0;background:transparent;border:0;cursor:pointer;flex-shrink:0;color:inherit;font:inherit;-webkit-tap-highlight-color:transparent}
+    .ss-cb{width:18px;height:18px;border-radius:4px;border:1.5px solid rgba(138,143,150,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;background:transparent}
     .ss-cb:hover{border-color:rgba(138,143,150,.3)}
     .ss-cb.on{border-color:#8a8f96;background:rgba(138,143,150,.12)}
     .ss-cb.on::after{content:'✓';font-size:.58rem;color:#b0b8c0;font-weight:700}
@@ -1447,8 +1480,38 @@
 
     /* Builder save/complete bar — sticky in normal flow instead of a fixed
        overlay with a spacer hack, so it never covers the last exercise. */
-    .wb-footer{position:sticky;bottom:0;z-index:var(--z-sticky);display:flex;gap:8px;margin:14px -12px 0;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(14,13,10,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid rgba(180,172,158,.12)}
+    .wb-footer{position:sticky;bottom:var(--bottom-nav-h);z-index:var(--z-sticky);display:flex;gap:8px;margin:14px -12px 0;padding:12px;background:rgba(14,13,10,.98);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid rgba(180,172,158,.12)}
     .wb-footer .btn{min-height:44px}
+    .wb-name-error{font-size:.68rem;color:#e05252;margin-top:6px}
+    .wo-search-sort{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+    .wo-search-sort .inp{flex:1;min-width:0;min-height:44px}
+    .wo-sort{min-height:44px;background:rgba(45,42,36,.4);border:1px solid rgba(180,172,158,.1);border-radius:8px;color:#b4ac9e;font-family:'Inter',sans-serif;font-size:.72rem;padding:0 10px;flex-shrink:0}
+    .wo-last-done{font-size:.68rem;color:#b4ac9e;margin-top:3px}
+    .wo-card-actions{display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(180,172,158,.06)}
+    .wo-card-actions .btn{flex:1;min-height:44px}
+    .workout-card.live{box-shadow:0 0 0 1px rgba(109,187,58,.4),0 0 16px rgba(109,187,58,.14)}
+    .btn-gold-solid.on,.btn-gold.on,.wo-card-actions .btn.on{
+      background:linear-gradient(135deg,rgba(90,140,50,.6),rgba(70,110,40,.42));
+      border:1px solid rgba(140,190,90,.55);
+      color:#e8f4d8;
+      box-shadow:0 0 12px rgba(109,187,58,.28)
+    }
+    .wb-ex-toolbar{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+    .wb-ex-meta{font-family:'Inter',sans-serif;font-size:.72rem;color:#b4ac9e;letter-spacing:0;text-transform:none;line-height:1.35}
+    .wb-ex-actions{display:flex;gap:8px}
+    .wb-ex-actions .btn{flex:1;min-height:44px;white-space:normal}
+    .wb-ex-tools-wide{display:flex;align-items:center;gap:6px;flex-shrink:0}
+    .wb-ex-overflow{display:none;position:relative;flex-shrink:0}
+    .wb-ex-overflow-btn{min-width:44px;min-height:44px;padding:0;border:0;border-radius:8px;background:transparent;color:#b4ac9e;font-size:.95rem;letter-spacing:.08em;cursor:pointer}
+    .wb-ex-menu-scrim{position:fixed;inset:0;z-index:20}
+    .wb-ex-menu{position:absolute;right:0;top:100%;z-index:21;min-width:160px;padding:6px;background:#16140e;border:1px solid rgba(180,172,158,.14);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.55);display:flex;flex-direction:column}
+    .wb-ex-menu button{min-height:44px;text-align:left;background:transparent;border:0;color:#d4cec4;font-family:'Inter',sans-serif;font-size:.75rem;padding:0 12px;border-radius:8px;cursor:pointer}
+    .wb-ex-menu button:disabled{color:#8a8478;opacity:.5}
+    .wb-ex-menu button.danger{color:#e05252}
+    @media (max-width:480px){
+      .wb-ex-tools-wide{display:none}
+      .wb-ex-overflow{display:block}
+    }
 
     /* Reorder ▲/▼ column — IconButtons whose 44px hit boxes must not overlap,
        so the visual chips are small but the column has room for two of them. */
@@ -1623,8 +1686,8 @@
       border:1px solid color-mix(in srgb,var(--mg-color) 18%,transparent);
     }
     .workout-name{font-family:'Cinzel',serif;font-size:.82rem;color:#d4cec4;line-height:1.2;margin-bottom:3px;letter-spacing:.02em}
-    .workout-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-    .workout-tag{font-size:.58rem;color:color-mix(in srgb,var(--mg-color) 75%,#b4ac9e);background:color-mix(in srgb,var(--mg-color) 9%,rgba(45,42,36,.22));border:1px solid color-mix(in srgb,var(--mg-color) 14%,rgba(180,172,158,.05));border-radius:6px;padding:2px 7px;letter-spacing:.02em;font-family:'Inter',sans-serif}
+    .workout-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;color:#b4ac9e}
+    .workout-tag{font-size:.65rem;color:#b4ac9e;background:color-mix(in srgb,var(--mg-color) 9%,rgba(45,42,36,.22));border:1px solid color-mix(in srgb,var(--mg-color) 14%,rgba(180,172,158,.05));border-radius:6px;padding:3px 8px;letter-spacing:.02em;font-family:'Inter',sans-serif}
     .workout-desc{font-size:.72rem;color:#8a8478;font-style:italic;margin-bottom:8px;line-height:1.45}
     .workout-ex-pill-row{display:flex;gap:4px;flex-wrap:wrap}
     .workout-ex-pill{font-size:.58rem;color:#8a8478;background:rgba(45,42,36,.12);border:1px solid rgba(180,172,158,.05);border-radius:4px;padding:2px 6px;white-space:nowrap}
@@ -1653,7 +1716,12 @@
     .recipe-filter-btn:hover{border-color:rgba(180,172,158,.25)}
 
     /* ── Collapsible description ── */
+    .recipe-desc-text{font-size:.82rem;color:#8a8478;font-style:italic;line-height:1.5;white-space:pre-line;padding-right:48px}
     .recipe-desc-collapsed{max-height:1.3em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .recipe-desc-text + .ex-collapse-btn{
+      position:absolute;top:0;right:0;min-width:44px;min-height:44px;padding:0;
+      background:transparent;border:0;color:inherit;font-size:.75rem
+    }
 
     /* ── Superset group in recipe breakdown ── */
     .recipe-ss-group{border-left:2px solid #C4A044;padding-left:8px;margin:4px 0}
@@ -1923,7 +1991,7 @@
     /* ── Boot / Intro Screen ── */
     @keyframes bootLineIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     @keyframes bootBarFill{from{opacity:.6}to{opacity:1}}
-    @keyframes bootBtnPulse{0%,100%{box-shadow:0 4px 24px rgba(196,148,40,.25),0 0 0 0 rgba(196,148,40,0)}50%{box-shadow:0 4px 32px rgba(196,148,40,.55),0 0 28px rgba(196,148,40,.2)}}
+    @keyframes bootBtnPulse{0%,100%{box-shadow:0 4px 16px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),0 0 0 0 transparent}50%{box-shadow:0 4px 22px var(--btn-steel-shadow),0 0 18px var(--btn-steel-glow),inset 0 1px 0 var(--btn-steel-highlight-strong)}}
     .boot-screen{gap:18px}
     .boot-title{font-family:'Cinzel Decorative',serif;font-size:clamp(1.4rem,6vw,2rem);font-weight:900;letter-spacing:.18em;text-align:center;background:linear-gradient(135deg,#f0d060,#c49428,#8a6010);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;filter:drop-shadow(0 0 18px rgba(196,148,40,.55)) drop-shadow(0 0 40px rgba(196,148,40,.25))}
     .boot-title-sub{display:block;font-family:'Cinzel',serif;font-size:.5em;font-weight:600;letter-spacing:.35em;margin-top:3px;background:linear-gradient(135deg,#b4ac9e,#8a8478);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -1936,7 +2004,7 @@
     .boot-prompt{color:#c49428;font-weight:700}
     .boot-check{color:#4caf6e;font-weight:700}
     .boot-ellipsis{color:#8a8478}
-    .boot-btn-ready{animation:bootBtnPulse 2s ease-in-out infinite!important;border-color:rgba(196,148,40,.22)!important;color:#d4cec4!important}
+    .boot-btn-ready{animation:bootBtnPulse 2s ease-in-out infinite!important;border-color:var(--btn-steel-border-strong)!important;color:var(--btn-steel-text)!important}
     .boot-cancel-btn{font-size:.58rem;color:#8a8478;border-color:transparent;padding:5px 14px;margin-top:-8px}
     .boot-cancel-btn:hover{color:#8a8478;background:transparent;border-color:rgba(180,172,158,.06)}
     .boot-resume-card{width:min(300px,88vw);background:rgba(45,42,36,.15);border:1px solid rgba(180,172,158,.07);border-radius:10px;padding:13px 16px;text-align:center;backdrop-filter:blur(8px)}
@@ -2181,20 +2249,21 @@
     .au-input-action:hover{color:var(--au-accent)}
 
     /* Primary button */
-    .au-btn{width:100%;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(180deg,oklch(0.78 0.12 var(--au-accent-h)),oklch(0.62 0.10 var(--au-accent-h)));color:oklch(0.12 0.01 60);border:1px solid oklch(0.55 0.09 var(--au-accent-h));font-family:var(--au-font-display);font-size:13px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;padding:14px 16px;cursor:pointer;border-radius:2px;overflow:hidden;transition:transform 0.12s,box-shadow 0.18s,filter 0.18s;box-shadow:0 8px 28px -10px var(--au-accent-glow),inset 0 1px 0 oklch(0.92 0.05 75 / 0.6)}
+    .au-btn{width:100%;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:var(--btn-steel-fill);color:var(--btn-steel-text);border:1px solid var(--btn-steel-border);font-family:var(--au-font-display);font-size:13px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;padding:14px 16px;cursor:pointer;border-radius:2px;overflow:hidden;transition:transform 0.12s,box-shadow 0.18s,filter 0.18s,border-color 0.18s;box-shadow:0 8px 28px -10px var(--btn-steel-shadow),inset 0 1px 0 var(--btn-steel-highlight),inset 0 -3px 8px var(--btn-steel-inset)}
     .au-btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,0.35) 50%,transparent 70%);transform:translateX(-100%);transition:transform 0.6s}
-    .au-btn:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1px)}
+    .au-btn:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);border-color:var(--btn-steel-border-strong);box-shadow:0 8px 28px -10px var(--btn-steel-shadow),0 0 16px var(--btn-steel-glow),inset 0 1px 0 var(--btn-steel-highlight-strong),inset 0 -3px 8px var(--btn-steel-inset)}
     .au-btn:hover:not(:disabled)::after{transform:translateX(100%)}
     .au-btn:active:not(:disabled){transform:translateY(0)}
-    .au-btn:disabled{opacity:0.55;cursor:not-allowed}
+    .au-btn:disabled{opacity:0.35;cursor:not-allowed}
+    .au-btn:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
 
     /* Ghost button */
     .au-btn-ghost{background:transparent;border:1px solid var(--au-hairline-strong);color:var(--au-text-dim);border-radius:2px;padding:10px 16px;font-family:var(--au-font-display);font-size:12px;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}
-    .au-btn-ghost:hover{color:var(--au-text);border-color:var(--au-accent)}
+    .au-btn-ghost:hover{color:var(--au-text);border-color:var(--btn-steel-border-strong)}
 
     /* Passkey button */
     .au-btn-passkey{width:100%;background:transparent;color:var(--au-text);border:1px solid var(--au-hairline-strong);border-radius:2px;padding:13px 16px;font-family:var(--au-font-display);font-size:13px;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:border-color .15s,color .15s,background .15s}
-    .au-btn-passkey:hover:not(:disabled){border-color:var(--au-accent);color:var(--au-accent);background:oklch(0.74 0.11 75 / 0.05)}
+    .au-btn-passkey:hover:not(:disabled){border-color:var(--btn-steel-border-strong);color:var(--btn-steel-text-body);background:rgba(58,56,52,.22)}
     .au-btn-passkey:disabled{opacity:0.5;cursor:not-allowed}
 
     /* Link-style button */
@@ -2281,14 +2350,17 @@
       /* Hover/press displacement reads as motion too. */
       .lib-hero-card:hover, .lib-muscle-tile:hover, .lib-discover-card:hover,
       .picker-ex-row:hover, .lib-hero-card:active, .lib-muscle-tile:active,
-      .lib-discover-card:active, .picker-ex-row:active { transform: none; }
+      .lib-discover-card:active, .picker-ex-row:active,
+      .btn:hover, .btn:active, .au-btn:hover, .track-toggle-btn:active { transform: none; }
     }
 
     /* ══ LIVE WORKOUT BANNER + SHEET ══════════════════════════════════════ */
 
     /* Track toggle button on workout cards */
-    .track-toggle-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.07em;text-transform:uppercase;color:#8a8478;background:rgba(45,42,36,.35);border:1px solid rgba(180,172,158,.09);border-radius:20px;cursor:pointer;transition:all .18s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
-    .track-toggle-btn:active{background:rgba(45,42,36,.6)}
+    .track-toggle-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 12px;min-height:44px;font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.07em;text-transform:uppercase;color:var(--btn-steel-text-body);background:var(--btn-steel-outline-fill);border:1px solid var(--btn-steel-border);border-radius:20px;cursor:pointer;transition:all .18s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+    .track-toggle-btn:hover{border-color:var(--btn-steel-border-strong);color:var(--btn-steel-text)}
+    .track-toggle-btn:active{background:rgba(58,56,52,.5);transform:scale(.98)}
+    .track-toggle-btn:focus-visible{outline:2px solid var(--btn-steel-border-strong);outline-offset:2px}
     .track-toggle-btn.on{color:#6dbb3a;background:rgba(109,187,58,.12);border-color:rgba(109,187,58,.32);box-shadow:0 0 10px rgba(109,187,58,.15)}
 
     /* Persistent banner pill */
@@ -2314,10 +2386,11 @@
     .lw-ex-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(45,42,36,.2);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s}
     .lw-ex-row:active{opacity:.7}
     .lw-ex-row.done{opacity:.6}
-    .lw-ex-cb{width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(180,172,158,.22);background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+    .lw-ex-cb{width:44px;height:44px;border-radius:8px;border:1.5px solid rgba(180,172,158,.22);background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;padding:0;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
     .lw-ex-cb.done{background:rgba(109,187,58,.2);border-color:#6dbb3a}
     .lw-ex-check-mark{font-size:.62rem;color:#6dbb3a;font-weight:700}
     .lw-ex-info{flex:1;min-width:0}
+    .lw-ex-open{display:block;background:transparent;border:0;padding:0;margin:0;text-align:left;color:inherit;font:inherit;cursor:pointer;min-height:44px}
     .lw-ex-name{font-family:'Inter',sans-serif;font-size:.8rem;color:#d4cec4;transition:color .15s}
     .lw-ex-row.done .lw-ex-name{color:#8a8478;text-decoration:line-through}
     .lw-ex-meta{font-size:.64rem;color:#8a8478;margin-top:2px}
@@ -2336,7 +2409,7 @@
 
     /* ── Live workout inline edit ── */
     .lw-ex-item-wrap{display:flex;flex-direction:column}
-    .lw-dots-btn{background:transparent;border:none;color:#8a8478;font-size:.95rem;letter-spacing:.08em;cursor:pointer;padding:4px 6px;border-radius:6px;flex-shrink:0;-webkit-tap-highlight-color:transparent;transition:color .15s,background .15s;line-height:1}
+    .lw-dots-btn{background:transparent;border:none;color:#b4ac9e;font-size:.95rem;letter-spacing:.08em;cursor:pointer;padding:0;min-width:44px;min-height:44px;border-radius:6px;flex-shrink:0;-webkit-tap-highlight-color:transparent;transition:color .15s,background .15s;line-height:1;display:flex;align-items:center;justify-content:center}
     .lw-dots-btn:active,.lw-dots-btn.active{color:#d4cec4;background:rgba(180,172,158,.08)}
     .lw-ex-edit{background:rgba(20,20,14,.6);border:1px solid rgba(180,172,158,.09);border-top:none;border-radius:0 0 8px 8px;padding:8px 10px 10px;margin-bottom:2px;animation:lwEditOpen .16s ease}
     @keyframes lwEditOpen{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
@@ -2359,7 +2432,7 @@
 
     /* ── Add exercise ── */
     .lw-add-ex-wrap{padding:12px 0 4px}
-    .lw-add-ex-btn{background:transparent;border:1px dashed rgba(180,172,158,.14);border-radius:8px;width:100%;padding:9px;color:#8a8478;font-size:.72rem;letter-spacing:.04em;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .15s}
+    .lw-add-ex-btn{background:transparent;border:1px dashed rgba(180,172,158,.14);border-radius:8px;width:100%;padding:9px;min-height:44px;color:#8a8478;font-size:.72rem;letter-spacing:.04em;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .15s}
     .lw-add-ex-btn:active{background:rgba(45,42,36,.3);color:#b4ac9e}
     .lw-add-ex-panel{background:rgba(28,28,20,.55);border:1px solid rgba(180,172,158,.09);border-radius:8px;padding:10px 12px;animation:lwEditOpen .16s ease}
     .lw-add-ex-search-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -2381,4 +2454,22 @@
     @media (hover: none) and (pointer: coarse) {
       .lw-banner { backdrop-filter: none; -webkit-backdrop-filter: none; }
       .lw-sheet { backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); }
+    }
+
+    /* Reduced-motion press/hover displacement — MUST stay after every family
+       that sets transform on :hover/:active. The earlier reduce block is too
+       early (and too weakly specified) for .track-toggle-btn:active,
+       .wb-picker-add-btn:active, and .cart-forge-btn:active. */
+    @media (prefers-reduced-motion: reduce) {
+      .btn-gold-solid:hover, .btn-gold-solid:active,
+      .btn-gold:hover, .btn-gold:active,
+      .btn-glass-yellow:hover, .btn-glass-yellow:active,
+      .btn-cls:hover, .btn-glass:hover,
+      .au-btn:hover, .au-btn:active,
+      .track-toggle-btn:hover, .track-toggle-btn:active,
+      .wb-picker-add-btn:hover, .wb-picker-add-btn:active,
+      .cart-forge-btn:hover, .cart-forge-btn:active,
+      .cart-forge-primary:hover, .cart-forge-primary:active {
+        transform: none;
+      }
     }

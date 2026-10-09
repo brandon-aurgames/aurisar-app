@@ -92,7 +92,7 @@ const RetroEditModal = memo(function RetroEditModal({
           {/* Actions */}
           <div style={{ display: "flex", gap: S.s8 }}>
             <button className={"btn btn-ghost btn-sm"} style={{ flex: 1 }} onClick={() => setRetroEditModal(null)}>{"Cancel"}</button>
-            <button className={"btn btn-gold"} style={{ flex: 2 }} onClick={() => {
+            <button className={"btn btn-gold-solid"} style={{ flex: 2 }} onClick={() => {
               const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
               const newEntries = rem.entries.map((e, i) => {
                 const updated = retroEditModal.entries[i];

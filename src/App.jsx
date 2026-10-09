@@ -6,7 +6,10 @@ import { EX_BY_ID, CAT_ICON_COLORS, NAME_ICON_MAP, MUSCLE_ICON_MAP, CAT_ICON_FAL
 import { _nullishCoalesce, _optionalChain, uid, clone, todayStr } from './utils/helpers';
 import { loadSave, doSave, flushSave, setPreviewMode, loadAdminFlags } from './utils/storage';
 import { lazyWithRetry } from './utils/lazyWithRetry';
-import { isMetric, lbsToKg, kgToLbs, miToKm, ftInToCm, cmToFtIn, weightLabel, distLabel, displayWt, displayDist, pctToSlider, sliderToPct } from './utils/units';
+import { isMetric, lbsToKg, kgToLbs, miToKm, ftInToCm, cmToFtIn, weightLabel, distLabel, displayWt, displayDist, displayPace, pctToSlider, sliderToPct } from './utils/units';
+import { formatPbValue } from './utils/formatPbValue';
+import { newPbsBetweenLogs } from './utils/pbUpdates';
+import { buildPreviewLeaderboard, buildPreviewLog, PREVIEW_EXERCISE_PBS, PREVIEW_RUNNING_PB, PREVIEW_WORLD_RANKS } from './data/previewSeed';
 import { buildXPTable, XP_TABLE, xpToLevel, xpForLevel, xpForNext, calcBMI, detectClassFromAnswers, detectClass, calcExXP, calcPlanXP, calcDayXP, calcExercisePBs, calcDecisionTreeBonus, calcCharStats, checkQuestCompletion, hrRange, scaleWeight, scaleDur } from './utils/xp';
 import { perkAward, applyStoredPerk } from './utils/gearPerks';
 import { secToHMS, HMSToSec, normalizeHHMM, secToHHMMSplit, HHMMToSec, combineHHMMSec, daysUntil } from './utils/time';
@@ -42,6 +45,7 @@ import { useAvatarConfig } from './features/avatar/useAvatarConfig.js';
 import MapOverlay from './features/character/MapOverlay';
 import WorkoutsTabContainer from './features/workouts/WorkoutsTabContainer';
 import { normalizeSupersetGroups } from './features/workouts/supersetModel';
+import { liveStartAction } from './features/workouts/liveSession';
 import CompletionModal from './features/workouts/CompletionModal';
 import CalendarTab from './features/calendar/CalendarTab';
 import LeaderboardTab from './features/leaderboard/LeaderboardTab';
@@ -625,6 +629,7 @@ function App() {
     try { return JSON.parse(localStorage.getItem('aurisar-live-workout') || 'null'); } catch { return null; }
   });
   const [pendingLiveWorkout, setPendingLiveWorkout] = useState(null);
+  const [liveOpenSignal, setLiveOpenSignal] = useState(0);
   // Set only by Repeat Last just before it opens the replace-confirm, so
   // confirmReplaceLiveWorkout knows to toast — a plain Start-triggered
   // replace (Workouts tab, StartDock) has nothing to say beyond the confirm
@@ -1102,16 +1107,10 @@ function App() {
     friendBannerTimerRef.current = setTimeout(() => setFriendExBanner(null), 5000);
   }
 
-  // Format PB info for friend exercise banner
+  // Format PB info for friend exercise banner using the viewer's units.
   function formatFriendPB(pb) {
-    if (!pb) return null;
-    if (pb.type === "Strength 1RM" || pb.type === "Heaviest Weight") return "\uD83C\uDFC6 PB: " + pb.value + " lbs";
-    if (pb.type === "Cardio Pace") return "\uD83C\uDFC6 PB: " + parseFloat(pb.value).toFixed(2) + " min/mi";
-    if (pb.type === "Max Reps Per 1 Set") return "\uD83C\uDFC6 PB: " + pb.value + " reps";
-    if (pb.type === "Assisted Weight") return "\uD83C\uDFC6 PB: " + pb.value + " lbs (assisted)";
-    if (pb.type === "Longest Hold") return "\uD83C\uDFC6 PB: " + parseFloat(pb.value).toFixed(1) + " min";
-    if (pb.type === "Fastest Time") return "\uD83C\uDFC6 PB: " + parseFloat(pb.value).toFixed(1) + " min";
-    return null;
+    const val = formatPbValue(pb, profile.units);
+    return val ? "\uD83C\uDFC6 PB: " + val : null;
   }
   async function handleAuthSubmit() {
     if (!authEmail.trim() || !authPassword.trim()) return;
@@ -2268,27 +2267,25 @@ function App() {
   // accepted friends only). Replaces the old "stream the whole profile.data
   // jsonb to every authenticated user" pattern.
   const lastSeenLogLenRef = React.useRef(null);
-  const lastSeenPBsRef = React.useRef(null);
   useEffect(() => {
     if (!authUser || isPreviewMode) return;
     const currentLog = profile.log || [];
-    const currentPBs = profile.exercisePBs || {};
     if (lastSeenLogLenRef.current === null) {
       lastSeenLogLenRef.current = currentLog.length;
-      lastSeenPBsRef.current = currentPBs;
       return;
     }
     const prevLen = lastSeenLogLenRef.current;
     const newLen = currentLog.length;
     if (newLen > prevLen) {
       const newEntries = currentLog.slice(0, newLen - prevLen);
-      const prevPBs = lastSeenPBsRef.current || {};
+      const oldLog = currentLog.slice(newLen - prevLen);
+      const customLookup = Object.fromEntries((profile.customExercises || []).filter(e => e?.id).map(e => [e.id, e]));
+      const updates = newPbsBetweenLogs(oldLog, currentLog, { ...EX_BY_ID, ...customLookup });
       for (const entry of newEntries) {
         const exId = entry?.exId;
         if (!exId || exId === 'rest_day') continue;
-        const prevPB = prevPBs[exId];
-        const curPB = currentPBs[exId];
-        const isPB = !!(curPB && (!prevPB || curPB.value !== prevPB.value));
+        const curPB = updates[exId];
+        const isPB = !!curPB;
         sb.from('friend_exercise_events').insert({
           user_id: authUser.id,
           exercise_name: entry.exercise || null,
@@ -2305,13 +2302,11 @@ function App() {
       }
     }
     lastSeenLogLenRef.current = newLen;
-    lastSeenPBsRef.current = currentPBs;
-  }, [profile.log, profile.exercisePBs, authUser?.id, isPreviewMode]);
+  }, [profile.log, profile.customExercises, authUser?.id, isPreviewMode]);
 
   // Reset emit-tracker on auth change so the next session starts from baseline.
   useEffect(() => {
     lastSeenLogLenRef.current = null;
-    lastSeenPBsRef.current = null;
   }, [authUser?.id]);
 
   // Realtime subscription for friend exercise completions (in-app banner).
@@ -3452,10 +3447,10 @@ function App() {
         });
         let newPB = profile.runningPB || null;
         if (runPace && (!newPB || runPace < newPB)) newPB = runPace;
-        const newExPBs = calcExercisePBs(newLog);
-        const oldPB = (profile.exercisePBs || {})[ex.id];
-        const curPB = newExPBs[ex.id];
-        const isNewPB = curPB && (!oldPB || curPB.value !== oldPB.value);
+        const newExPBs = calcExercisePBs(newLog, allExById);
+        const newPbMap = newPbsBetweenLogs(profile.log, newLog, allExById);
+        const curPB = newPbMap[ex.id] || newExPBs[ex.id];
+        const isNewPB = !!newPbMap[ex.id];
         let _ciResult = {
           checkInApplied: false,
           checkInXP: 0,
@@ -3484,7 +3479,7 @@ function App() {
         });
         setTimeout(() => setXpFlash(null), 2000);
         const ciSuffix = _ciResult.checkInApplied ? ` · Checked in! +${_ciResult.checkInXP} XP · ${_ciResult.checkInStreak} day streak 🔥` : "";
-        if (newPB !== null && newPB === runPace && (!profile.runningPB || runPace < profile.runningPB)) showToast(`🏆 New Personal Best! ${metric ? parseFloat((runPace * 1.60934).toFixed(2)) + " min/km" : parseFloat(runPace.toFixed(2)) + " min/mi"}${ciSuffix}`);else if (isNewPB && curPB.type === "strength") showToast(`🏆 New 1RM! ${ex.name} — ${curPB.value} lbs${ciSuffix}`);else if (isNewPB && curPB.type === "assisted") showToast(`🏆 New 1RM! ${ex.name} — ${curPB.value} lbs (assisted PR)${ciSuffix}`);else showToast((travelActive && regionBoost > 1 ? `+${finalEarned} XP (+10% travel, +7% ${myRegion.boost.label}) ⚔️` : travelActive ? `+${finalEarned} XP (+10% travel bonus) ⚔️` : regionBoost > 1 ? `+${finalEarned} XP (+7% ${myRegion.boost.label} boost) ${myRegion.icon}` : `+${finalEarned} XP earned!`) + ciSuffix);
+        if (newPB !== null && newPB === runPace && profile.runningPB && runPace < profile.runningPB) showToast(`🏆 New Personal Best! ${displayPace(runPace, profile.units)}${ciSuffix}`);else if (isNewPB && (curPB.type === "Strength 1RM" || curPB.type === "Heaviest Weight" || curPB.type === "Assisted Weight" || curPB.type === "Max Reps Per 1 Set" || curPB.type === "Cardio Pace" || curPB.type === "Longest Hold" || curPB.type === "Fastest Time")) showToast(`🏆 New Personal Best! ${ex.name} — ${formatPbValue(curPB, profile.units)}${ciSuffix}`);else showToast((travelActive && regionBoost > 1 ? `+${finalEarned} XP (+10% travel, +7% ${myRegion.boost.label}) ⚔️` : travelActive ? `+${finalEarned} XP (+10% travel bonus) ⚔️` : regionBoost > 1 ? `+${finalEarned} XP (+7% ${myRegion.boost.label} boost) ${myRegion.icon}` : `+${finalEarned} XP earned!`) + ciSuffix);
         // Clean up form state after successful completion
         setSets("");
         setReps("");
@@ -3605,7 +3600,7 @@ function App() {
         };
       });
       const newLog = [entry, ...profile.log];
-      const newExPBs = calcExercisePBs(newLog);
+      const newExPBs = calcExercisePBs(newLog, allExById);
       let _ciResult = {
         checkInApplied: false,
         checkInXP: 0,
@@ -3832,16 +3827,23 @@ function App() {
   }
 
   function startLiveWorkout(wo) {
-    if (liveWorkout && liveWorkout.workoutId !== wo.id) {
+    const action = liveStartAction(liveWorkout, wo);
+    if (action === "resume") {
+      setLiveOpenSignal(n => n + 1);
+      return;
+    }
+    if (action === "replace") {
       setPendingLiveWorkout(wo);
       return;
     }
     setLiveWorkout({ workoutId: wo.id, name: wo.name, icon: wo.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(wo), userId: authUser?.id || null });
+    setLiveOpenSignal(n => n + 1);
   }
 
   function confirmReplaceLiveWorkout() {
     setLiveWorkout({ workoutId: pendingLiveWorkout.id, name: pendingLiveWorkout.name, icon: pendingLiveWorkout.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(pendingLiveWorkout), userId: authUser?.id || null });
     setPendingLiveWorkout(null);
+    setLiveOpenSignal(n => n + 1);
     // Only Repeat Last's replace-confirm stamps this — a plain "Start"
     // replace (Workouts tab, StartDock) confirms silently, same as before.
     if (pendingLiveWorkoutToastRef.current) {
@@ -3898,12 +3900,18 @@ function App() {
   }
 
   function handleAddLiveEx(exId, sets, reps, weightLbs) {
-    const exData = allExById[exId];
-    const cat = (exData?.category || 'strength').toLowerCase();
+    const entries = Array.isArray(exId) ? exId : [{ exId, sets, reps, weightLbs }];
     setLiveWorkout(lw => {
       if (!lw) return null;
-      const newEx = { exId, name: exData?.name || exId, category: cat, noSets: NO_SETS_EX_IDS.has(exId), sets, reps, weightLbs: weightLbs || null, extraRows: [], setsDesc: `${sets}×${reps}`, supersetWith: null, done: false };
-      return { ...lw, exercises: [...lw.exercises, newEx] };
+      const added = entries.map(e => {
+        const id = e.exId;
+        const exData = allExById[id];
+        const cat = (exData?.category || 'strength').toLowerCase();
+        const s = e.sets || '3';
+        const r = e.reps || '10';
+        return { exId: id, name: exData?.name || id, category: cat, noSets: NO_SETS_EX_IDS.has(id), sets: s, reps: r, weightLbs: e.weightLbs || null, extraRows: [], setsDesc: `${s}×${r}`, supersetWith: null, done: false };
+      });
+      return { ...lw, exercises: [...lw.exercises, ...added] };
     });
   }
 
@@ -4073,7 +4081,7 @@ function App() {
       }
     });
     const pbChanged = newPB !== profile.runningPB;
-    const newExPBs = calcExercisePBs(updatedLog);
+    const newExPBs = calcExercisePBs(updatedLog, allExById);
     setProfile(p => ({
       ...p,
       xp: Math.max(0, p.xp + xpDiff),
@@ -4125,7 +4133,7 @@ function App() {
       xp: Math.max(0, p.xp - entry.xp),
       log: updatedLog,
       runningPB: newPB,
-      exercisePBs: calcExercisePBs(updatedLog),
+      exercisePBs: calcExercisePBs(updatedLog, allExById),
       deletedItems: bin
     }));
     showToast("Entry removed. -" + entry.xp + " XP");
@@ -4203,7 +4211,7 @@ function App() {
         showToast(p.icon + " " + p.name + " scheduled for " + formatScheduledDate(spDate) + " \u2726");
       }
       setActiveTab("workouts");
-      workoutsRef.current?.showSubTab("oneoff");
+      workoutsRef.current?.showSubTab("scheduled");
     }
     setSchedulePicker(null);
   }
@@ -4323,107 +4331,7 @@ function App() {
   }).length;
   const CSS = "";
   function launchPreviewMode() {
-    const daysAgo = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
-    const fmtDate = n => new Date(Date.now() - n * 86400000).toLocaleDateString();
-    const fmtTime = () => "07:30 AM";
-    const gid = s => `preview-grp-${s}`;
-    const previewLog = [{
-      exercise: "Bench Press",
-      icon: "\uD83C\uDFCB\uFE0F",
-      exId: "bench",
-      sets: 4,
-      reps: 8,
-      weightLbs: 185,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 420,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(1),
-      dateKey: daysAgo(1),
-      sourceGroupId: gid("a")
-    }, {
-      exercise: "Overhead Press",
-      icon: "\uD83C\uDFCB\uFE0F",
-      exId: "ohp",
-      sets: 3,
-      reps: 10,
-      weightLbs: 115,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 310,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(1),
-      dateKey: daysAgo(1),
-      sourceGroupId: gid("a")
-    }, {
-      exercise: "Running",
-      icon: "\uD83C\uDFC3",
-      exId: "run",
-      sets: 1,
-      reps: 28,
-      weightLbs: null,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: 3.1,
-      xp: 380,
-      mult: 0.94,
-      time: fmtTime(),
-      date: fmtDate(3),
-      dateKey: daysAgo(3),
-      sourceGroupId: gid("b")
-    }, {
-      exercise: "Deadlift",
-      icon: "\uD83C\uDFCB\uFE0F",
-      exId: "deadlift",
-      sets: 4,
-      reps: 6,
-      weightLbs: 225,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 580,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(5),
-      dateKey: daysAgo(5),
-      sourceGroupId: gid("c")
-    }, {
-      exercise: "Pull-Up",
-      icon: "\uD83E\uDE9D",
-      exId: "pullups",
-      sets: 3,
-      reps: 10,
-      weightLbs: null,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 290,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(5),
-      dateKey: daysAgo(5),
-      sourceGroupId: gid("c")
-    }, {
-      exercise: "Squat",
-      icon: "\uD83C\uDFCB\uFE0F",
-      exId: "squat",
-      sets: 4,
-      reps: 8,
-      weightLbs: 205,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 510,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(10),
-      dateKey: daysAgo(10),
-      sourceGroupId: gid("e")
-    }];
+    const previewLog = buildPreviewLog();
     setProfile({
       ...EMPTY_PROFILE,
       playerName: "Test Majiq",
@@ -4464,21 +4372,8 @@ function App() {
       lastCheckIn: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
       quests: {},
       customExercises: [],
-      exercisePBs: {
-        bench: {
-          weight: 185
-        },
-        squat: {
-          weight: 205
-        },
-        deadlift: {
-          weight: 225
-        },
-        run: {
-          type: "cardio",
-          value: 9.03
-        }
-      }
+      exercisePBs: PREVIEW_EXERCISE_PBS,
+      runningPB: PREVIEW_RUNNING_PB
     });
     setMyPublicId("UQHDD2");
     setMyPrivateId("mPTSbPw8vTnd");
@@ -4507,243 +4402,8 @@ function App() {
       xp: 105000,
       log: []
     }]);
-    setLbData([{
-      user_id: "f1",
-      public_id: "VK9R3M",
-      player_name: "IronValkyrie",
-      first_name: "Sarah",
-      last_name: "Chen",
-      chosen_class: "warrior",
-      total_xp: 420000,
-      level: 8,
-      streak: 31,
-      state: "NY",
-      country: "United States",
-      gym: "Gold's Gym",
-      exercise_pbs: {
-        bench: {
-          weight: 185
-        },
-        squat: {
-          weight: 275
-        },
-        deadlift: {
-          weight: 315
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f5",
-      public_id: "PH3L9F",
-      player_name: "PhantomLift",
-      first_name: "Jake",
-      last_name: "Morrison",
-      chosen_class: "phantom",
-      total_xp: 360000,
-      level: 8,
-      streak: 45,
-      state: "CO",
-      country: "United States",
-      gym: "24 Hr Fitness",
-      exercise_pbs: {
-        bench: {
-          weight: 245
-        },
-        squat: {
-          weight: 365
-        },
-        deadlift: {
-          weight: 405
-        },
-        pullups: {
-          reps: 25
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "preview",
-      public_id: "UQHDD2",
-      player_name: "Test Majiq",
-      first_name: "John",
-      last_name: "Majiq",
-      chosen_class: "tempest",
-      total_xp: 320000,
-      level: 7,
-      streak: 3,
-      state: "KS",
-      country: "United States",
-      gym: "Lifetime Fitness",
-      exercise_pbs: {
-        bench: {
-          weight: 185
-        },
-        squat: {
-          weight: 205
-        },
-        deadlift: {
-          weight: 225
-        },
-        run: {
-          type: "cardio",
-          value: 9.03
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: true
-    }, {
-      user_id: "f6",
-      public_id: "TT6B4K",
-      player_name: "TitanBreaker",
-      first_name: "Mike",
-      last_name: "OBrien",
-      chosen_class: "titan",
-      total_xp: 210000,
-      level: 6,
-      streak: 18,
-      state: "OH",
-      country: "United States",
-      gym: "YMCA",
-      exercise_pbs: {
-        bench: {
-          weight: 315
-        },
-        squat: {
-          weight: 455
-        },
-        deadlift: {
-          weight: 500
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f2",
-      public_id: "ZN4K8W",
-      player_name: "ZenMaster_X",
-      first_name: "Marcus",
-      last_name: "Rivera",
-      chosen_class: "druid",
-      total_xp: 155000,
-      level: 5,
-      streak: 14,
-      state: "CA",
-      country: "United States",
-      gym: "Equinox",
-      exercise_pbs: {
-        bench: {
-          weight: 135
-        },
-        run: {
-          type: "cardio",
-          value: 7.5
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f4",
-      public_id: "SW7A2R",
-      player_name: "SwiftArrow",
-      first_name: "Emily",
-      last_name: "Park",
-      chosen_class: "warden",
-      total_xp: 105000,
-      level: 4,
-      streak: 22,
-      state: "FL",
-      country: "United States",
-      gym: "LA Fitness",
-      exercise_pbs: {
-        run: {
-          type: "cardio",
-          value: 7.2
-        },
-        pullups: {
-          reps: 12
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f3",
-      public_id: "CR8M5T",
-      player_name: "CrushMode88",
-      first_name: "DeAndre",
-      last_name: "Williams",
-      chosen_class: "gladiator",
-      total_xp: 58000,
-      level: 3,
-      streak: 7,
-      state: "TX",
-      country: "United States",
-      gym: "Planet Fitness",
-      exercise_pbs: {
-        bench: {
-          weight: 225
-        },
-        squat: {
-          weight: 315
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f7",
-      public_id: "ST2E7X",
-      player_name: "StrikerElite",
-      first_name: "Aisha",
-      last_name: "Thompson",
-      chosen_class: "striker",
-      total_xp: 22000,
-      level: 2,
-      streak: 5,
-      state: "WA",
-      country: "United States",
-      gym: "Home Gym",
-      exercise_pbs: {
-        pushups: {
-          reps: 45
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }]);
-    setLbWorldRanks({
-      "f1": 1,
-      "f5": 2,
-      "preview": 3,
-      "f6": 4,
-      "f2": 5,
-      "f4": 6,
-      "f3": 7,
-      "f7": 8
-    });
+    setLbData(buildPreviewLeaderboard());
+    setLbWorldRanks(PREVIEW_WORLD_RANKS);
     setShowPreviewPin(false);
     setPreviewPinInput("");
     setPreviewPinError(false);
@@ -4860,18 +4520,12 @@ function App() {
             fontSize: FS.fs90
           }} onKeyDown={e => {
             if (e.key === "Enter") submitMfaChallenge();
-          }} /><button style={{
+          }} /><button className={"btn btn-gold-solid"} style={{
             width: "100%",
             padding: "11px",
             borderRadius: R.xl,
-            border: "none",
-            background: mfaChallengeLoading || mfaChallengeCode.length < 6 ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, #c49428, #8a6010)",
-            color: mfaChallengeLoading || mfaChallengeCode.length < 6 ? "#8a8478" : "#0c0c0a",
             fontFamily: "'Cinzel',serif",
-            fontSize: FS.fs62,
-            fontWeight: 700,
-            letterSpacing: ".12em",
-            cursor: "pointer"
+            fontSize: FS.fs62
           }} disabled={mfaChallengeLoading || mfaChallengeCode.length < 6} onClick={submitMfaChallenge}>{mfaChallengeLoading ? "Verifying\u2026" : "VERIFY"}</button></div>
 
         /* Recovery code input */}{mfaRecoveryMode && <div style={{
@@ -4888,18 +4542,12 @@ function App() {
             fontFamily: "monospace"
           }} onKeyDown={e => {
             if (e.key === "Enter") submitRecoveryCode();
-          }} /><button style={{
+          }} /><button className={"btn btn-gold-solid"} style={{
             width: "100%",
             padding: "11px",
             borderRadius: R.xl,
-            border: "none",
-            background: mfaChallengeLoading || !mfaRecoveryInput.trim() ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, #c49428, #8a6010)",
-            color: mfaChallengeLoading || !mfaRecoveryInput.trim() ? "#8a8478" : "#0c0c0a",
             fontFamily: "'Cinzel',serif",
-            fontSize: FS.fs62,
-            fontWeight: 700,
-            letterSpacing: ".12em",
-            cursor: "pointer"
+            fontSize: FS.fs62
           }} disabled={mfaChallengeLoading || !mfaRecoveryInput.trim()} onClick={submitRecoveryCode}>{mfaChallengeLoading ? "Verifying\u2026" : "USE RECOVERY CODE"}</button></div>}{mfaChallengeMsg && <div style={{
           fontSize: FS.fs74,
           color: mfaChallengeMsg.ok ? UI_COLORS.success : UI_COLORS.danger,
@@ -4991,7 +4639,7 @@ function App() {
 
     /* ══ INTRO ══════════════════════════════════ */}{screen === "intro" && <div className={"screen boot-screen"}><div className={"boot-title"}>{"AURISAR"}<span className={"boot-title-sub"}>{"FITNESS"}</span></div><div className={"boot-log"}><div className={"boot-bar-wrap"}><div className={"boot-bar"} style={{
             width: bootStep >= 4 ? "100%" : bootStep >= 3 ? "58%" : bootStep >= 2 ? "34%" : bootStep >= 1 ? "12%" : "2%"
-          }} /></div><div className={"boot-log-lines"}>{bootStep >= 1 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Loading combat modules..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 2 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Calibrating XP engine..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 3 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Assigning warrior class..."}{bootStep >= 4 ? <span className={"boot-check"}>{" ✓"}</span> : <span className={"boot-ellipsis"}>{" ..."}</span>}</div>}</div></div><button className={`btn btn-gold${bootStep >= 4 ? " boot-btn-ready" : ""}`} onClick={() => setScreen("onboard")}>{bootStep >= 4 ? "BEGIN" : "BOOT UP"}</button><button className={"btn btn-ghost boot-cancel-btn"} onClick={async () => {
+          }} /></div><div className={"boot-log-lines"}>{bootStep >= 1 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Loading combat modules..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 2 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Calibrating XP engine..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 3 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Assigning warrior class..."}{bootStep >= 4 ? <span className={"boot-check"}>{" ✓"}</span> : <span className={"boot-ellipsis"}>{" ..."}</span>}</div>}</div></div><button className={`btn btn-gold-solid${bootStep >= 4 ? " boot-btn-ready" : ""}`} onClick={() => setScreen("onboard")}>{bootStep >= 4 ? "BEGIN" : "BOOT UP"}</button><button className={"btn btn-ghost boot-cancel-btn"} onClick={async () => {
         await sb.auth.signOut();
         setAuthUser(null);
         setAuthIsNew(false);
@@ -5126,7 +4774,7 @@ function App() {
             color: "#8a8478",
             marginTop: S.s4,
             lineHeight: 1.4
-          }}>{c.description}</div>}</div>)}</div><button className={"btn btn-gold"} disabled={!profile.chosenClass} onClick={() => confirmClass(profile.chosenClass)}>{"Confirm Class"}</button></div>
+          }}>{c.description}</div>}</div>)}</div><button className={"btn btn-gold-solid"} disabled={!profile.chosenClass} onClick={() => confirmClass(profile.chosenClass)}>{"Confirm Class"}</button></div>
 
     /* ══ MAIN ═══════════════════════════════════ */}{screen === "main" && clsKey && <div className={"hud"} style={activeTab === "messages" && msgView === "chat" ? {
       height: "100dvh",
@@ -5298,8 +4946,8 @@ function App() {
         }
       } : null} /><StartDock profile={profile} allExById={allExById} liveWorkout={liveWorkout} stagedCount={stagedIds.length} onStartWorkout={startLiveWorkout} onQuickLogSolo={quickLogSoloEx} onSeeAll={() => guardAll(() => {
         setActiveTab("workouts");
-        workoutsRef.current?.showSubTab("oneoff");
-      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} />}{pendingLiveWorkout && <ConfirmSheet
+        workoutsRef.current?.showSubTab("scheduled");
+      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} openSignal={liveOpenSignal} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} openExEditor={openExEditor} log={profile.log} />}{pendingLiveWorkout && <ConfirmSheet
         open
         icon={"⚡"}
         title={"Replace Active Workout?"}
@@ -5845,7 +5493,7 @@ function App() {
             gap: S.s8
           }}><button className={"btn btn-ghost btn-sm"} style={{
               flex: 1
-            }} onClick={() => setSavePlanWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+            }} onClick={() => setSavePlanWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
               flex: 2
             }} onClick={confirmSavePlanWizard}>{spwMode === "existing" ? "📋 Add to Plan" : "💾 Save New Plan"}{spwMode === "new" && spwDate ? " & Schedule" : ""}</button></div></div></div></div>, document.body)
 
@@ -5894,7 +5542,7 @@ function App() {
           gap: S.s8
         }}><button className={"btn btn-ghost btn-sm"} style={{
             flex: 1
-          }} onClick={() => setSchedulePicker(null)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+          }} onClick={() => setSchedulePicker(null)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
             flex: 2
           }} onClick={confirmSchedule}>{"📅 Schedule"}</button></div></div></div>, document.body)
 
@@ -5934,7 +5582,7 @@ function App() {
             gap: S.s8
           }}><button className={"btn btn-ghost btn-sm"} style={{
               flex: 1
-            }} onClick={() => setSaveWorkoutWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+            }} onClick={() => setSaveWorkoutWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
               flex: 2
             }} onClick={confirmSaveWorkoutWizard}>{"💪 Save Workout"}</button></div></div></div></div>, document.body)}
 
@@ -6033,7 +5681,7 @@ function App() {
           gap: S.s8
         }}><button className={"btn btn-ghost btn-sm"} style={{
             flex: 1
-          }} onClick={() => setRetroCheckInModal(false)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+          }} onClick={() => setRetroCheckInModal(false)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
             flex: 2
           }} disabled={!retroDate || (profile.checkInHistory || []).includes(retroDate)} onClick={doRetroCheckIn}>{"🔥 Log Check-In"}</button></div></div></div>, document.body)
 
@@ -6086,8 +5734,8 @@ function App() {
       layer={"modal"}
       placement={"center"}
       style={{ "--mg-color": cls.color }}
-      ariaLabel={"Review battle stats"}
-      title={<span className={"stats-modal-title"}>{"📊 Review Battle Stats "}<span style={{ color: "#8a8478", fontWeight: "normal", fontSize: FS.lg }}>{"(Optional)"}</span></span>}
+      ariaLabel={"Review stats"}
+      title={<span className={"stats-modal-title"}>{"📊 Review stats "}<span style={{ color: "#8a8478", fontWeight: "normal", fontSize: FS.lg }}>{"(Optional)"}</span></span>}
       headerLeft={<button className={"btn btn-ghost btn-sm"} style={{ padding: "4px 8px", fontSize: FS.fs75, flexShrink: 0 }} onClick={() => {
         setStatsPromptModal(null);
         if (statsPromptModal.wo.soloEx && statsPromptModal.wo._soloExId) {
@@ -6329,7 +5977,7 @@ function App() {
               textTransform: "uppercase",
               letterSpacing: ".08em",
               marginBottom: S.s6
-            }}>{"💪 Re-Usable Workouts"}</div>{(profile.workouts || []).filter(w => !w.oneOff).map(wo => <button type={"button"} key={wo.id} style={{
+            }}>{"Reusable Workouts"}</div>{(profile.workouts || []).filter(w => !w.oneOff).map(wo => <button type={"button"} key={wo.id} style={{
               display: "flex",
               alignItems: "center",
               gap: S.s10,
@@ -6392,7 +6040,7 @@ function App() {
                 letterSpacing: ".08em",
                 marginBottom: S.s6,
                 marginTop: S.s10
-              }}>{"⚡ Scheduled One-Off Workouts"}</div>{scheduled.map(g => {
+              }}>{"Scheduled Workouts"}</div>{scheduled.map(g => {
                 const wo = (profile.workouts || []).find(w => w.id === g.id) || {
                   id: g.id,
                   name: g.name,
@@ -6446,7 +6094,7 @@ function App() {
                     color: "#e67e22"
                   }}>{"+ add →"}</span></button>;
               })}</>;
-          })()}{(profile.workouts || []).filter(w => !w.oneOff).length === 0 && !(profile.scheduledWorkouts || []).some(sw => sw.scheduledDate >= todayStr() && sw.sourceWorkoutId) && <div className={"empty"}>{"No workouts to add to yet."}<br />{"Create a Re-Usable Workout or schedule a One-Off first."}</div>}</div></Sheet>}{oneOffModal && createPortal(<div className={"modal-backdrop"} onClick={() => setOneOffModal(null)}><div className={"modal-sheet"} onClick={e => e.stopPropagation()} style={{
+          })()}{(profile.workouts || []).filter(w => !w.oneOff).length === 0 && !(profile.scheduledWorkouts || []).some(sw => sw.scheduledDate >= todayStr() && sw.sourceWorkoutId) && <div className={"empty"}>{"No workouts to add to yet."}<br />{"Create a reusable workout or schedule one first."}</div>}</div></Sheet>}{oneOffModal && createPortal(<div className={"modal-backdrop"} onClick={() => setOneOffModal(null)}><div className={"modal-sheet"} onClick={e => e.stopPropagation()} style={{
         borderRadius: R.r16,
         padding: S.s0
       }}><div className={"modal-body"}><div style={{
@@ -6459,7 +6107,7 @@ function App() {
               fontSize: FS.fs92,
               color: "#d4cec4",
               fontWeight: 700
-            }}>{"⚡ Name Your One-Off Workout"}</div><button className={"btn btn-ghost btn-sm"} onClick={() => setOneOffModal(null)}>{"✕"}</button></div><div className={"field"} style={{
+            }}>{"Name Your Workout"}</div><button className={"btn btn-ghost btn-sm"} onClick={() => setOneOffModal(null)}>{"✕"}</button></div><div className={"field"} style={{
             marginBottom: S.s10
           }}><label>{"Workout Name"}</label><input className={"inp"} placeholder={"e.g. Morning Push Session…"} value={oneOffModal.name} onChange={e => setOneOffModal(m => ({
               ...m,
@@ -6484,7 +6132,7 @@ function App() {
             fontSize: FS.fs65,
             color: "#8a8478",
             marginBottom: S.s14
-          }}>{oneOffModal.exercises.length}{" exercises selected · XP will be calculated on completion"}</div><button className={"btn btn-gold"} style={{
+          }}>{oneOffModal.exercises.length}{" exercises selected · XP will be calculated on completion"}</div><button className={"btn btn-gold-solid"} style={{
             width: "100%"
           }} disabled={!oneOffModal.name.trim()} onClick={() => {
             const wo = {
@@ -6791,7 +6439,7 @@ function App() {
               marginBottom: 12,
               display: "flex",
               justifyContent: "center"
-            }} />}<button className={"btn btn-gold"} style={{
+            }} />}<button className={"btn btn-gold-solid"} style={{
               width: "100%"
             }} disabled={!feedbackText.trim() || TURNSTILE_SITE_KEY && !turnstileToken} onClick={async () => {
               const msg = feedbackText.trim();
