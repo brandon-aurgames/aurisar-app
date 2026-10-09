@@ -223,6 +223,8 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
         {/* ── Search bar ── */}
         <div style={{ marginBottom: S.s8, flexShrink: 0 }}>
           <TechSearch
+            id={"wb-search"}
+            label={"Search exercises"}
             value={pickerSearch}
             onChange={setPickerSearch}
             onClear={() => setPickerSearch("")}

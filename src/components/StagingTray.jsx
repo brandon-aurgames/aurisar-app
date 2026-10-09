@@ -33,6 +33,7 @@ const StagingTray = memo(function StagingTray({
       >
         <span className={"cart-tray-count"} aria-hidden="true">{cartIds.length}</span>
         <span className={"cart-tray-label"}>{`Added (${cartIds.length})`}</span>
+        <span className={"sr-only"} aria-live={"polite"} aria-atomic={"true"}>{`${cartIds.length} added`}</span>
         <span className={"cart-tray-chevron"} aria-hidden="true">{cartOpen ? "▾" : "▴"}</span>
       </button>
 

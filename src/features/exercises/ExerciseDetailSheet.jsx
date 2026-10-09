@@ -7,6 +7,7 @@ import { ExIcon } from '../../components/ExIcon';
 import { S, R, FS, FG } from '../../utils/tokens';
 import Sheet from '../../components/ui/Sheet';
 import { planEntry } from './planEntry';
+import { detailWorkoutEntry, offersAddToWorkout, detailLogArgs } from './detailActions';
 import { diffColor } from './difficulty';
 import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
@@ -391,26 +392,17 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
             className={"btn btn-gold btn-sm"}
             style={{ flex: 1 }}
             onClick={() => {
-              openQuickLog(ex.id, { origin: { type: "detail", ex } });
+              openQuickLog(ex.id, detailLogArgs(ex));
               close();
             }}
           >{"Log"}</button>
-          {ex.id !== "rest_day" && <button
+          {offersAddToWorkout(ex) && <button
             type="button"
             className={"btn btn-gold btn-sm"}
             style={{ flex: 1 }}
             onClick={() => {
               setAddToWorkoutPicker({
-                exercises: [{
-                  exId: ex.id,
-                  sets: ex.defaultSets != null ? ex.defaultSets : 3,
-                  reps: ex.defaultReps != null ? ex.defaultReps : 10,
-                  weightLbs: null,
-                  durationMin: null,
-                  weightPct: 100,
-                  distanceMi: null,
-                  hrZone: null
-                }]
+                exercises: [detailWorkoutEntry(ex)]
               });
               close();
             }}

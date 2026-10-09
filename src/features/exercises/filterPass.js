@@ -53,10 +53,10 @@ export function filterAndCount(exercises, {
   }
 
   if (q) {
-    list.sort((a, b) => compareSearchKeys(
-      searchSortKey(a, q, favSet, recentSet),
-      searchSortKey(b, q, favSet, recentSet),
-    ));
+    const keyed = list.map(ex => ({ ex, key: searchSortKey(ex, q, favSet, recentSet) }));
+    keyed.sort((a, b) => compareSearchKeys(a.key, b.key));
+    list.length = 0;
+    for (const row of keyed) list.push(row.ex);
   }
 
   return { list, muscleCounts, typeCounts, equipCounts };

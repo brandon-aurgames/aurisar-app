@@ -36,6 +36,14 @@ const STRETCH_ROW_FILES = [
 describe('stretched-row overlay safeguard', () => {
   const css = read('src/styles/app.css');
 
+  it('kills the row press scale when a nested control is the press target', () => {
+    expect(css).toMatch(/\.picker-ex-row\.no-row-press:active\{transform:none\}/);
+  });
+
+  it('lets the muscle grid drop to two columns at narrow widths', () => {
+    expect(css).toMatch(/\.lib-muscle-grid\{display:grid;grid-template-columns:repeat\(2/);
+  });
+
   it('lifts every non-primary control above the overlay', () => {
     // Without this rule the ::after swallows clicks meant for the favourite,
     // edit and delete buttons — they become unusable by mouse and touch.

@@ -23,6 +23,7 @@ import { ExIcon } from './ExIcon';
 import FilterDropdown from '../features/exercises/FilterDropdown';
 import { TYPE_OPTS, TYPE_LABELS, MUSCLE_OPTS, EQUIP_OPTS, muscleLabel, equipLabel } from '../features/exercises/exerciseFilterOptions';
 import { SHOW_EXERCISE_PB_DISPLAY } from '../features/exercises/showExercisePbDisplay';
+import { debounce } from '../utils/debounce';
 import { matchesAll, facetCounts as countFacet, muscleKeys, typeKeys, equipKeys } from '../features/exercises/matchesFacets';
 
 const ICONS = ["⚔️","🏹","🧘","🛡️","🔥","💪","🏋️","⚡","🏃","🚴","🌅","🌙","🏔️","🗡️","🧗","🎯"];
@@ -35,7 +36,6 @@ function formatScheduledDate(dateStr) {
   } catch(e) { return dateStr; }
 }
 
-function debounce(fn, ms) { let id; return (...args) => { clearTimeout(id); id = setTimeout(() => fn(...args), ms); }; }
 
 // ── Virtualized picker row (item 4: react-window) ──────────────────────────
 // Module-level so the component identity is stable across PlanWizard renders;
@@ -480,6 +480,7 @@ function PlanWizard(props) {
 
   function closePicker() {
     setExPickerOpen(false);
+    debouncedSetSearch.cancel?.();
     setPickerSearch(""); if(pickerSearchRef.current) pickerSearchRef.current.value=""; setPickerMuscle(new Set()); setPickerTypeFilter(new Set()); setPickerEquipFilter(new Set()); setPickerOpenDrop(null);
     setPickerSelected([]);
   }

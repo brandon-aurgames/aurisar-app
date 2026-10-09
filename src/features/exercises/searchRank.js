@@ -60,10 +60,11 @@ export function compareSearchKeys(a, b) {
 export function rankSearch(exercises, query, favSet, recentSet) {
   const q = (query || "").trim();
   if (!q) return exercises;
-  return [...exercises]
-    .filter(ex => matchesSearchExpanded(ex, q))
-    .sort((a, b) => compareSearchKeys(
-      searchSortKey(a, q, favSet, recentSet),
-      searchSortKey(b, q, favSet, recentSet),
-    ));
+  const keyed = [];
+  for (const ex of exercises) {
+    if (!matchesSearchExpanded(ex, q)) continue;
+    keyed.push({ ex, key: searchSortKey(ex, q, favSet, recentSet) });
+  }
+  keyed.sort((a, b) => compareSearchKeys(a.key, b.key));
+  return keyed.map(k => k.ex);
 }

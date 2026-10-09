@@ -3,6 +3,7 @@ import { S } from '../../utils/tokens';
 import ExerciseRow from './ExerciseRow';
 import TechSearch from './TechSearch';
 import { matchesSearchExpanded } from './searchRank';
+import { resolveMatched, countMeta } from './matchedFavorites';
 import { recentExerciseIds, RECENT_COUNT } from './recentExercises';
 import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
@@ -68,8 +69,19 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
     [profile.log, allExById, recentNow]
   );
 
-  const favCount = (profile.favoriteExercises || []).length;
-  const customCount = (profile.customExercises || []).length;
+  const q = mySearch.trim();
+  const matchEx = ex => !q || matchesSearchExpanded(ex, q);
+  const { resolved: resolvedFavs, matched: matchedFavs } = useMemo(
+    () => resolveMatched(profile.favoriteExercises, allExById, q),
+    [profile.favoriteExercises, allExById, q]
+  );
+  const customAll = profile.customExercises || [];
+  const matchedCustom = q ? customAll.filter(matchEx) : customAll;
+  const matchedRecent = q ? recentExercises.filter(({ ex }) => matchEx(ex)) : recentExercises;
+  const favCount = resolvedFavs.length;
+  const customCount = customAll.length;
+  const favMeta = countMeta(matchedFavs.length, favCount, q);
+  const customMeta = countMeta(matchedCustom.length, customCount, q);
 
   const toggleFav = id => setProfile(p => ({
     ...p,
@@ -79,13 +91,13 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
   }));
 
   const pbOn = id => SHOW_EXERCISE_PB_DISPLAY && !!(profile.exercisePBs || {})[id];
-  const q = mySearch.trim();
-  const matchEx = ex => !q || matchesSearchExpanded(ex, q);
 
   return (
     <div>
       <div style={{ marginBottom: S.s10 }}>
         <TechSearch
+          id={"myex-search"}
+          label={"Search my exercises"}
           value={mySearch}
           onChange={setMySearch}
           onClear={() => setMySearch("")}
@@ -95,7 +107,7 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
       <AccordionSection
         id="favorites"
         title="Favorites"
-        meta={favCount || null}
+        meta={favMeta}
         isOpen={openSection === "favorites"}
         onToggle={toggleSection}
         headerRef={favHeaderRef}
@@ -104,32 +116,32 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
           <div className={"empty"} style={{ padding: "16px 0" }}>
             {"No favorites yet — tap the star on any exercise."}
           </div>
+        ) : matchedFavs.length === 0 ? (
+          <div className={"empty"} style={{ padding: "16px 0" }}>
+            {`No favorites match “${q}”.`}
+          </div>
         ) : (
           <div className={"lib-home-rows"}>
-            {(profile.favoriteExercises || []).filter(id => allExById[id] && matchEx(allExById[id])).slice(0, favVisibleCount).map(exId => {
-              const ex = allExById[exId];
-              if (!ex) return null;
-              return (
-                <ExerciseRow
-                  key={exId}
-                  ex={ex}
-                  selected={isInCart(exId)}
-                  showEquipment
-                  showPB={pbOn(ex.id)}
-                  isFav
-                  onToggleFav={() => toggleFav(ex.id)}
-                  onToggleSelect={toggleCart}
-                  onActivate={() => setLibDetailEx(ex)}
-                />
-              );
-            })}
-            {favCount > favVisibleCount && (
+            {matchedFavs.slice(0, favVisibleCount).map(ex => (
+              <ExerciseRow
+                key={ex.id}
+                ex={ex}
+                selected={isInCart(ex.id)}
+                showEquipment
+                showPB={pbOn(ex.id)}
+                isFav
+                onToggleFav={() => toggleFav(ex.id)}
+                onToggleSelect={toggleCart}
+                onActivate={() => setLibDetailEx(ex)}
+              />
+            ))}
+            {matchedFavs.length > favVisibleCount && (
               <button
                 type="button"
                 className={"btn btn-ghost btn-sm"}
                 onClick={() => setFavVisibleCount(c => c + FAV_PAGE)}
                 style={{ width: "100%", marginTop: S.s2 }}
-              >{`Show more (${favVisibleCount} of ${favCount})`}</button>
+              >{`Show more (${favVisibleCount} of ${matchedFavs.length})`}</button>
             )}
           </div>
         )}
@@ -138,16 +150,18 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
       <AccordionSection
         id="custom"
         title="Custom"
-        meta={customCount || null}
+        meta={customMeta}
         isOpen={openSection === "custom"}
         onToggle={toggleSection}
         headerRef={customHeaderRef}
       >
         {customCount === 0 ? (
           <div className={"empty"} style={{ padding: "12px 0" }}>{"No custom exercises yet."}</div>
+        ) : matchedCustom.length === 0 ? (
+          <div className={"empty"} style={{ padding: "12px 0" }}>{`No custom exercises match “${q}”.`}</div>
         ) : (
           <div className={"lib-home-rows"}>
-            {(profile.customExercises || []).filter(matchEx).map(ex => {
+            {matchedCustom.map(ex => {
               const isFav = (profile.favoriteExercises || []).includes(ex.id);
               return (
                 <ExerciseRow
@@ -202,9 +216,13 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
           <div className={"empty"} style={{ padding: "16px 0" }}>
             {"Nothing logged yet — your last 5 exercises will show up here."}
           </div>
+        ) : matchedRecent.length === 0 ? (
+          <div className={"empty"} style={{ padding: "16px 0" }}>
+            {`No recent exercises match “${q}”.`}
+          </div>
         ) : (
           <div className={"lib-home-rows"}>
-            {recentExercises.filter(({ ex }) => matchEx(ex)).map(({ ex }) => (
+            {matchedRecent.map(({ ex }) => (
               <ExerciseRow
                 key={ex.id}
                 ex={ex}

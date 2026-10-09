@@ -195,6 +195,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
     });
   };
   const clearAll = () => {
+    debouncedSetLibSearch.cancel?.();
     setLibTypeFilters(new Set());
     setLibMuscleFilters(new Set());
     setLibEquipFilters(new Set());
@@ -229,6 +230,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
     if (v && libBrowseMode === "home") setLibBrowseMode("filtered");
   };
   const clearSearch = () => {
+    debouncedSetLibSearch.cancel?.();
     setSearch("");
     setLibSearchDebounced("");
     if (libMuscleFilters.size === 0 && libTypeFilters.size === 0 && libEquipFilters.size === 0) {
@@ -247,6 +249,8 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
     <div className={"lib-sticky-search"}>
       <div style={{ display: "flex", gap: S.s8, alignItems: "center" }}>
         <TechSearch
+          id={"lib-search"}
+          label={"Search exercises"}
           value={search}
           onChange={applySearch}
           onClear={clearSearch}

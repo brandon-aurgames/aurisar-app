@@ -29,7 +29,8 @@ import ToastHost from './components/toast/ToastHost';
 import useNotifications from './features/notifications/useNotifications';
 import NotificationInbox from './features/notifications/NotificationInbox';
 import { useExerciseFilters } from './features/exercises/useExerciseFilters';
-import { newExDraft } from './features/exercises/exEditorDraft';
+import { newExDraft, saveCustomExercise } from './features/exercises/exEditorDraft';
+import { debounce } from './utils/debounce';
 import { recentExerciseIds } from './features/exercises/recentExercises';
 import ExerciseLibraryTab from './features/exercises/ExerciseLibraryTab';
 import MyWorkoutsSubTab from './features/exercises/MyWorkoutsSubTab';
@@ -69,16 +70,6 @@ import OrbCreateMenu from './components/OrbCreateMenu';
 import StartDock from './components/StartDock';
 import { deriveLastSession } from './utils/repeatLast';
 import { planQuickLogRows } from './utils/quickLogRows';
-
-// ── Debounce utility ──
-function debounce(fn, ms) {
-  let id;
-  return (...args) => {
-    clearTimeout(id);
-    id = setTimeout(() => fn(...args), ms);
-  };
-}
-
 
 import { ExIcon, getExIconName, getExIconColor } from './components/ExIcon';
 import { ClassIcon } from './components/ClassIcon';
@@ -3264,31 +3255,21 @@ function App() {
     setExEditorOpen(true);
   }
   function saveExEditor() {
-    const d = exEditorDraft;
-    if (!d.name.trim()) {
-      showToast("Exercise needs a name!");
+    const result = saveCustomExercise({
+      mode: exEditorMode,
+      draft: exEditorDraft,
+      list: profile.customExercises || [],
+    });
+    if (result.error) {
+      showToast(result.error);
       return;
     }
-    if (exEditorMode === "edit") {
-      const updated = (profile.customExercises || []).map(e => e.id === d.id ? {
-        ...d
-      } : e);
-      setProfile(p => ({
-        ...p,
-        customExercises: updated
-      }));
-    } else {
-      const newEx = {
-        ...d,
-        id: d.id || uid()
-      };
-      setProfile(p => ({
-        ...p,
-        customExercises: [...(p.customExercises || []), newEx]
-      }));
-    }
+    setProfile(p => ({
+      ...p,
+      customExercises: result.list
+    }));
     setExEditorOpen(false);
-    showToast(exEditorMode === "edit" ? "Exercise saved." : "Exercise created.");
+    showToast(result.toast);
   }
   function deleteCustomEx(id) {
     const ex = (profile.customExercises || []).find(e => e.id === id);
@@ -5306,7 +5287,6 @@ function App() {
         saveExEditor={saveExEditor}
         openExEditor={openExEditor}
         deleteCustomEx={deleteCustomEx}
-        newExDraft={newExDraft}
       />
       </ErrorBoundary>
     )
@@ -5331,8 +5311,10 @@ function App() {
         }}
         onAddToExisting={() => {
           if (!stagedIds.length) return;
-          setAddToWorkoutPicker({ exercises: stagedIds.map(id => cartEntry(id, allExById)) });
-          clearCart();
+          setAddToWorkoutPicker({
+            exercises: stagedIds.map(id => cartEntry(id, allExById)),
+            fromCart: true,
+          });
         }}
         onForgePlan={() => {
           if (!stagedIds.length) return;
@@ -5970,6 +5952,7 @@ function App() {
               }));
               showToast(`Added to "${wo.name}"! 💪`);
               setAddToWorkoutPicker(null);
+              if (addToWorkoutPicker.fromCart) clearCart();
             }}><span style={{
                 fontSize: "1.3rem"
               }}>{wo.icon}</span><div style={{
@@ -6045,6 +6028,7 @@ function App() {
                   }));
                   showToast(`Added to "${g.name}"! ⚡`);
                   setAddToWorkoutPicker(null);
+                  if (addToWorkoutPicker.fromCart) clearCart();
                 }}><span style={{
                     fontSize: "1.3rem"
                   }}>{g.icon}</span><div style={{

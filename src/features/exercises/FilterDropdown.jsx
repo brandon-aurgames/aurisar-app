@@ -3,7 +3,7 @@ import { S, R, FS, Z } from '../../utils/tokens';
 import Sheet from '../../components/ui/Sheet';
 
 const STEEL = "#B0A898";
-const NARROW_MQ = "(max-width: 520px)";
+export const NARROW_MQ = "(max-width: 520px)";
 
 function useNarrowFilters() {
   const [narrow, setNarrow] = useState(() => (
@@ -24,6 +24,11 @@ function useNarrowFilters() {
     return undefined;
   }, []);
   return narrow;
+}
+
+function focusListbox(listRef) {
+  const el = listRef.current;
+  if (el && typeof el.focus === "function") el.focus();
 }
 
 /**
@@ -68,12 +73,34 @@ function FilterDropdown({
     }
   }
 
+  const closeFilter = () => {
+    setOpen(null);
+    const trigger = triggerRef.current;
+    if (trigger && typeof trigger.focus === "function") {
+      // Beat the Sheet lifecycle restore so focus lands on the trigger even
+      // when closing from Done / a nested picker sheet.
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => trigger.focus());
+      } else {
+        trigger.focus();
+      }
+    }
+  };
+
+  // Focus the listbox after open AND after a 520px presentation swap so
+  // arrow/Space handling has a target. Sheet itself focuses the dialog;
+  // a trailing timeout wins that race.
   useEffect(() => {
-    if (open && !narrow) listRef.current?.focus();
+    if (!open) return undefined;
+    const run = () => focusListbox(listRef);
+    const t = typeof setTimeout === "function" ? setTimeout(run, 0) : (run(), 0);
+    return () => clearTimeout(t);
   }, [open, narrow]);
 
   useEffect(() => {
-    if (open && activeIdx >= 0) optionRefs.current[activeIdx]?.scrollIntoView({ block: 'nearest' });
+    if (!open || activeIdx < 0) return;
+    const el = optionRefs.current[activeIdx];
+    if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest" });
   }, [open, activeIdx]);
 
   const step = dir => {
@@ -104,10 +131,12 @@ function FilterDropdown({
         if (activeIdx >= 0 && enabled[activeIdx]) onToggle(options[activeIdx]);
         break;
       case 'Escape':
+        e.preventDefault();
+        e.stopPropagation();
+        closeFilter();
+        break;
       case 'Tab':
-        if (e.key === 'Escape') e.stopPropagation();
-        if (e.key === 'Escape') { e.preventDefault(); triggerRef.current?.focus(); }
-        setOpen(null);
+        if (!narrow) setOpen(null);
         break;
       default: break;
     }
@@ -115,6 +144,10 @@ function FilterDropdown({
 
   const count = selected.size;
   const triggerColor = count > 0 ? STEEL : "#8a8478";
+
+  const clearThis = () => {
+    for (const v of [...selected]) onToggle(v);
+  };
 
   const optionRow = (val, i) => {
     const sel = selected.has(val);
@@ -184,8 +217,9 @@ function FilterDropdown({
     "aria-multiselectable": "true",
     "aria-label": label,
     "aria-activedescendant": activeIdx >= 0 ? `${id}-opt-${activeIdx}` : undefined,
-    tabIndex: -1,
+    tabIndex: open ? 0 : -1,
     onKeyDown: onListKey,
+    className: "lib-filter-listbox",
   };
 
   return (
@@ -197,7 +231,7 @@ function FilterDropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={`${id}-listbox`}
-        onClick={() => setOpen(open ? null : id)}
+        onClick={() => (open ? closeFilter() : setOpen(id))}
         onKeyDown={onTriggerKey}
         style={{
           width: "100%",
@@ -229,17 +263,27 @@ function FilterDropdown({
       {open && narrow && (
         <Sheet
           open
-          onClose={() => setOpen(null)}
+          onClose={closeFilter}
           layer={"modal"}
           title={label}
           ariaLabel={label}
           footer={
-            <button type="button" className={"btn btn-gold-solid"} style={{ width: "100%" }} onClick={() => setOpen(null)}>
-              {"Done"}
-            </button>
+            <div className={"lib-filter-sheet-footer"}>
+              <span className={"lib-filter-sheet-count"}>
+                {count > 0 ? `${count} selected` : "None selected"}
+              </span>
+              {count > 0 && (
+                <button type="button" className={"btn btn-ghost btn-sm"} onClick={clearThis}>
+                  {"Clear"}
+                </button>
+              )}
+              <button type="button" className={"btn btn-gold-solid btn-sm"} onClick={closeFilter}>
+                {"Done"}
+              </button>
+            </div>
           }
         >
-          <div ref={listRef} {...listboxProps}>
+          <div ref={listRef} {...listboxProps} style={{ outline: "none" }}>
             {options.map(optionRow)}
             {footer}
           </div>

@@ -20,6 +20,21 @@ function difficultyOf(ex) {
 
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
+const TOOL_PRESS = '.ex-row-check, .picker-ex-fav, .ex-row-icon-btn';
+
+function suppressRowPress(e) {
+  if (!e.target.closest?.(TOOL_PRESS)) return;
+  const row = e.currentTarget;
+  row.classList.add('no-row-press');
+  const clear = () => {
+    row.classList.remove('no-row-press');
+    window.removeEventListener('pointerup', clear, true);
+    window.removeEventListener('pointercancel', clear, true);
+  };
+  window.addEventListener('pointerup', clear, true);
+  window.addEventListener('pointercancel', clear, true);
+}
+
 const ExerciseRow = memo(function ExerciseRow({
   ex,
   onActivate,
@@ -57,13 +72,18 @@ const ExerciseRow = memo(function ExerciseRow({
       className={`picker-ex-row stretch-row${selected ? " sel" : ""}${className ? " " + className : ""}`}
       style={{ ...style, "--mg-color": mg }}
       {...rest}
+      onPointerDown={e => {
+        rest.onPointerDown?.(e);
+        suppressRowPress(e);
+      }}
     >
       {onToggleSelect && (
         <button
           type="button"
+          role="checkbox"
           className={`ex-row-check${selected ? " on" : ""}`}
-          aria-pressed={!!selected}
-          aria-label={selected ? `Remove ${ex.name}` : `Add ${ex.name}`}
+          aria-checked={!!selected}
+          aria-label={selected ? `Remove ${ex.name} from selection` : `Add ${ex.name} to selection`}
           onClick={e => { e.stopPropagation(); onToggleSelect(ex.id); }}
         >{selected ? "✓" : ""}</button>
       )}

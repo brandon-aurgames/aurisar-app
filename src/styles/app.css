@@ -2,6 +2,10 @@
     @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
     
     *{box-sizing:border-box;margin:0;padding:0}
+    .sr-only{
+      position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+      overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0
+    }
 
     /* Visible focus rings for keyboard users only — :focus-visible matches
        only when focus arrived via keyboard, so mouse/touch focus stays
@@ -875,10 +879,16 @@
     .lib-muscle-pill{padding:2px 7px;border-radius:9px;font-size:.48rem;font-weight:600;letter-spacing:.02em;color:var(--mg-color);background:color-mix(in srgb,var(--mg-color) 12%,transparent);border:1px solid color-mix(in srgb,var(--mg-color) 15%,transparent);text-transform:capitalize}
 
     /* ── LIBRARY HOME: Muscle Tiles (Browse by Muscle) ── */
-    .lib-muscle-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+    .lib-muscle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+    @media (min-width: 480px){
+      .lib-muscle-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
     .lib-home-rows{display:flex;flex-direction:column;gap:6px}
     .lib-home-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
     .lib-filter-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;position:relative}
+    .lib-filter-sheet-footer{display:flex;align-items:center;gap:8px;width:100%}
+    .lib-filter-sheet-count{flex:1;font-size:.7rem;color:#8a8478;font-variant-numeric:tabular-nums}
+    .lib-filter-sheet-footer .btn-gold-solid{flex:0 0 auto;min-width:88px}
     .lib-filter-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
     .lib-filter-chip{
       background:rgba(45,42,36,.28);border:1px solid rgba(180,172,158,.2);color:#b4ac9e;
@@ -1012,6 +1022,12 @@
     .stretch-row select{position:relative;z-index:1}
     .picker-ex-row:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--mg-color) 30%,transparent);box-shadow:0 6px 20px rgba(0,0,0,.36),0 0 16px color-mix(in srgb,var(--mg-color) 12%,transparent),inset 0 1px 0 rgba(255,255,255,.05)}
     .picker-ex-row:active{transform:scale(.985);transition:transform var(--dur-instant) var(--ease-standard)}
+    /* Checkbox / star / edit taps must not play the row's press scale.
+       Class is set from pointerdown on those controls — :has(:active) is
+       skipped so jsdom's stylesheet parser (and the reduced-motion test
+       that aliases :active) can still read the rest of this file. */
+    .picker-ex-row.no-row-press,
+    .picker-ex-row.no-row-press:active{transform:none}
     .picker-ex-row.sel{
       background:linear-gradient(155deg,color-mix(in srgb,var(--mg-color) 24%,rgba(45,42,36,.44)),color-mix(in srgb,var(--mg-color) 10%,rgba(28,26,22,.3)));
       border-color:color-mix(in srgb,var(--mg-color) 48%,transparent);
@@ -1442,7 +1458,9 @@
       border-radius:11px;padding:13px 14px;display:flex;flex-direction:column;gap:10px;
       backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)
     }
-    .ex-editor-section-title{font-family:'Cinzel',serif;font-size:.58rem;color:color-mix(in srgb,var(--mg-color) 30%,#8a8478);letter-spacing:.2em;text-transform:uppercase}
+    .ex-editor-section-title{font-family:'Cinzel',serif;font-size:.58rem;color:color-mix(in srgb,var(--mg-color) 30%,#8a8478);letter-spacing:.2em;text-transform:uppercase;font-weight:600;margin:0}
+    .ex-editor-legend{font-size:.62rem;color:#8a8478;margin-bottom:6px}
+    .ex-editor-error{font-size:.62rem;color:#c44;margin-top:4px}
 
     /* ── Stats / Review Modal ── */
     .modal-sheet{background:linear-gradient(160deg,rgba(18,18,14,.88),rgba(12,12,10,.92));border:1px solid rgba(180,172,158,.05);border-radius:18px 18px 0 0;padding:0;width:100%;max-width:520px;max-height:calc(88vh - var(--bottom-nav-h));overflow-y:auto;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
