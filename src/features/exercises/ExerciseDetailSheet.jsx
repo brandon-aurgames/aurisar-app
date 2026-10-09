@@ -1,12 +1,14 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { getMuscleColor, getTypeColor } from '../../utils/xp';
-import { displayWt, displayPace } from '../../utils/units';
+import { displayWt } from '../../utils/units';
+import { formatPbValue } from '../../utils/formatPbValue';
 import { getExerciseHistory } from '../../utils/exerciseHistory';
 import { ExIcon } from '../../components/ExIcon';
 import { S, R, FS, FG } from '../../utils/tokens';
 import Sheet from '../../components/ui/Sheet';
 import { planEntry } from './planEntry';
 import { diffColor } from './difficulty';
+import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
 /**
  * Exercise detail bottom sheet (Forge Glass).
@@ -40,17 +42,6 @@ const GLASS_BTN = {
   fontSize: FS.fs82,
   cursor: "pointer",
 };
-
-function pbText(pb, units) {
-  if (!pb) return "—";
-  // Legacy PB shape ({weight: 185}) predates calcExercisePBs' {type, value}.
-  if (pb.weight != null) return displayWt(pb.weight, units) || String(pb.weight);
-  if (pb.value == null) return "—";
-  if (/Weight|1RM/i.test(pb.type || "")) return displayWt(pb.value, units) || String(pb.value);
-  if (/Reps/i.test(pb.type || "")) return `${pb.value} reps`;
-  if (/Pace|cardio/i.test(pb.type || "")) return displayPace(pb.value, units) || String(pb.value);
-  return String(pb.value);
-}
 
 const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
   ex,
@@ -280,7 +271,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
                 lineHeight: 1,
                 color: FG.inkBright,
               }}>{ex.name}</span>
-              {hasPB && <span style={{
+              {SHOW_EXERCISE_PB_DISPLAY && hasPB && <span style={{
                 background: "rgba(232,180,74,.14)",
                 border: "1px solid rgba(232,180,74,.3)",
                 color: FG.goldSoft,
@@ -304,11 +295,11 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           </div>
         </div>
 
-        {/* Stat chips — Base XP / Tier / Your PB. */}
+        {/* Stat chips — Base XP / Tier / Your PB (PB chip gated). */}
         <div style={{ display: "flex", gap: S.s8, marginBottom: S.s10 }}>
           {statChip("Base XP", `${ex.baseXP}`, true)}
           {statChip("Tier", ex.difficulty || "—")}
-          {statChip("Your PB", pbText(pb, profile.units))}
+          {SHOW_EXERCISE_PB_DISPLAY && statChip("Your PB", formatPbValue(pb, profile.units) ?? "—")}
         </div>
 
         {/* About | Form | History */}
@@ -339,7 +330,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
             marginBottom: S.s12
           }}>{"No description yet."}</div>}
 
-          {ex.pbType && <div style={{
+          {SHOW_EXERCISE_PB_DISPLAY && ex.pbType && <div style={{
             background: FG.glassBgSoft,
             border: `1px solid ${FG.glassBorder}`,
             borderRadius: R.lg,

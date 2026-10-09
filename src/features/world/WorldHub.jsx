@@ -25,7 +25,7 @@ import ErrorBoundary from '../../components/ErrorBoundary.jsx';
 import GraphicsSettingsPanel from './ui/GraphicsSettingsPanel.jsx';
 import { hubGraphicsStyles } from './ui/graphicsPanelStyles.js';
 import { applySafeModePreset, didLastBootFail, markBootSucceeded } from './game/graphicsSettings.js';
-import { C, FS, R, S } from '../../utils/tokens.js';
+import { BTN, C, FS, R, S } from '../../utils/tokens.js';
 
 // Lazy so that opening the World tab does not pay Babylon's module parse cost.
 // A static import would pull the whole engine in just to render a menu — which
@@ -63,9 +63,8 @@ const S_ = {
   enterBtn: {
     width: '100%', minHeight: 56, marginBottom: S.s16,
     borderRadius: R.xxl, cursor: 'pointer',
-    border: `1px solid ${C.gold}`,
-    background: 'linear-gradient(135deg,#c49428,#8a6010)',
-    color: '#fff', fontFamily: "'Cinzel', serif",
+    ...BTN.solid,
+    fontFamily: "'Cinzel', serif",
     fontSize: '1rem', fontWeight: 700, letterSpacing: '.08em',
     WebkitTapHighlightColor: 'transparent',
   },

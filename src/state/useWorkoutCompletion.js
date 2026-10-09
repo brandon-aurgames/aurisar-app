@@ -1,6 +1,6 @@
 import { startTransition } from 'react';
 import { uid, todayStr } from '../utils/helpers';
-import { calcExXP, checkQuestCompletion } from '../utils/xp';
+import { calcExXP, checkQuestCompletion, calcExercisePBs } from '../utils/xp';
 import { perkAward } from '../utils/gearPerks';
 import { formatXP } from '../utils/format';
 import { normalizeSupersetGroups } from '../features/workouts/supersetModel';
@@ -196,7 +196,8 @@ export function useWorkoutCompletion({
             log: newLog,
             quests: newQuests,
             workouts: newWorkouts,
-            scheduledWorkouts: wo.oneOff ? (p.scheduledWorkouts || []).filter(sw => sw.sourceWorkoutId !== wo.id) : p.scheduledWorkouts || []
+            scheduledWorkouts: wo.oneOff ? (p.scheduledWorkouts || []).filter(sw => sw.sourceWorkoutId !== wo.id) : p.scheduledWorkouts || [],
+            exercisePBs: calcExercisePBs(newLog, allExById),
           };
           const ci = applyAutoCheckIn(base, dateStr);
           _ciResult = ci;

@@ -152,8 +152,9 @@ const M = {
 // ── Color ────────────────────────────────────────────────────────────────────
 // The parchment/gold palette the app already uses everywhere as hex literals,
 // named once. Same philosophy as the other scales: for inline `style={{}}`;
-// CSS files keep their literals. Semantic status colors (success/danger/xp)
-// stay in UI_COLORS (src/data/constants.js) — no overlap.
+// CSS files keep their literals except button chrome, which is tokenized as
+// --btn-steel-* on :root (mirrored here). Semantic status colors
+// (success/danger/xp) stay in UI_COLORS (src/data/constants.js) — no overlap.
 const C = {
   // Parchment ink ramp — text, brightest to faintest
   inkBright: "#e8e0d0", // headline emphasis
@@ -163,9 +164,25 @@ const C = {
   inkDim:    "#8a8478", // muted text, placeholders
   inkFaint:  "#5f5a52", // disabled, decorative
 
-  // Gold accents
+  // Gold accents — earned/brand chrome (headings, XP, trophies). Not buttons.
   gold:     "#C4A044", // brand accent (matches UI_COLORS.accent usage)
   goldDeep: "#c49428", // focus rings, gradients
+
+  // Steel — sampled from .orb-btn (the Log orb). Canonical CSS vars live on
+  // :root as --btn-steel-*; these JS mirrors are for inline `style={{}}`.
+  steelHi:           "#3a3834",
+  steelMid:          "#1f1d1a",
+  steelLo:           "#141310",
+  steelText:         "#e8e0d0", // orb open-state text; ≥10:1 on steelMid
+  steelTextBody:     "#d4cec4", // orb idle text; matches C.ink
+  steelBorder:       "rgba(180,172,158,.34)",
+  steelBorderStrong: "rgba(180,172,158,.5)",
+  steelHighlight:    "rgba(255,255,255,.1)",
+  steelInset:        "rgba(0,0,0,.35)",
+  steelShadow:       "rgba(0,0,0,.45)",
+  steelGlow:         "rgba(180,172,158,.22)",
+  steelFill:         "linear-gradient(145deg,#3a3834 0%,#1f1d1a 55%,#141310 100%)",
+  steelOutlineFill:  "linear-gradient(145deg,rgba(58,56,52,.14),rgba(20,19,16,.06))",
 
   // Surfaces
   bg:        "#0c0c0a", // app background
@@ -241,6 +258,29 @@ const FG = {
   fontSerif: "'Cinzel',serif",
 };
 
-const TOKENS = { FS, R, S, M, C, Z, FG };
+// Ready-to-spread inline button chrome. Prefer .btn-gold-solid / .btn-gold /
+// .btn-glass-yellow in markup; these exist for surfaces that cannot take a class.
+const BTN = {
+  solid: {
+    background: C.steelFill,
+    color: C.steelText,
+    border: `1px solid ${C.steelBorder}`,
+    boxShadow: `0 4px 16px ${C.steelShadow}, inset 0 1px 0 ${C.steelHighlight}, inset 0 -3px 8px ${C.steelInset}`,
+  },
+  outline: {
+    background: C.steelOutlineFill,
+    color: C.steelTextBody,
+    border: `1px solid ${C.steelBorderStrong}`,
+    boxShadow: `inset 0 1px 0 ${C.steelHighlight}`,
+  },
+  // Selected / ON — orb teal, brighter than OFF ghost so toggles read clearly.
+  on: {
+    background: FG.teal,
+    color: "#0b1220",
+    border: `1px solid ${FG.teal}`,
+  },
+};
 
-export { TOKENS, FS, R, S, M, C, Z, FG };
+const TOKENS = { FS, R, S, M, C, Z, FG, BTN };
+
+export { TOKENS, FS, R, S, M, C, Z, FG, BTN };
