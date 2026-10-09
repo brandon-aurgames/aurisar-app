@@ -83,6 +83,11 @@
       --btn-steel-glow:rgba(180,172,158,.22);
       --btn-steel-fill:linear-gradient(145deg,var(--btn-steel-hi) 0%,var(--btn-steel-mid) 55%,var(--btn-steel-lo) 100%);
       --btn-steel-outline-fill:linear-gradient(145deg,rgba(58,56,52,.14),rgba(20,19,16,.06));
+
+      /* ExerciseRow: painted card + visible gap = virtual slot.
+         Keep in lockstep with src/features/exercises/exerciseRowLayout.js. */
+      --ex-row-card-h:52px;
+      --ex-row-gap:8px;
     }
     html{font-size:17.333px}
     .root{min-height:100vh;background:#0c0c0a;color:#d4cec4;font-family:var(--font-body);position:relative;overflow-x:hidden}
@@ -869,7 +874,7 @@
 
     /* Skeleton rows — same silhouette as .picker-ex-row so the list doesn't
        reflow when the real data lands. */
-    .lib-skel-row{display:flex;align-items:center;gap:8px;padding:5px 8px;min-height:56px;border-radius:10px;background:rgba(45,42,36,.16);border:1px solid rgba(180,172,158,.05);border-left:2px solid rgba(180,172,158,.09);margin-bottom:4px}
+    .lib-skel-row{display:flex;align-items:center;gap:8px;padding:4px 8px;height:var(--ex-row-card-h);min-height:0;box-sizing:border-box;overflow:hidden;border-radius:10px;background:rgba(45,42,36,.16);border:1px solid rgba(180,172,158,.05);border-left:2px solid rgba(180,172,158,.09);margin-bottom:var(--ex-row-gap)}
     .lib-skel-orb{width:24px;height:24px;border-radius:7px;flex-shrink:0}
     .lib-skel-line{height:9px;border-radius:4px}
     .lib-skel-orb,.lib-skel-line{background:linear-gradient(90deg,rgba(180,172,158,.06) 25%,rgba(180,172,158,.13) 50%,rgba(180,172,158,.06) 75%);background-size:200% 100%;animation:libSkelShimmer 1.4s ease-in-out infinite}
@@ -883,7 +888,7 @@
     @media (min-width: 480px){
       .lib-muscle-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
     }
-    .lib-home-rows{display:flex;flex-direction:column;gap:4px}
+    .lib-home-rows{display:flex;flex-direction:column;gap:var(--ex-row-gap)}
     .lib-home-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
     .lib-filter-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;position:relative}
     .lib-filter-sheet-footer{display:flex;align-items:center;gap:8px;width:100%}
@@ -904,7 +909,7 @@
     .lib-empty-actions{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
     /* 44px-wide columns so the touch ::before slop cannot spill into the
        name. Visual box is the inner 16px span; height stays ~20px so the
-       56px row does not have to grow to host the WCAG target. */
+       card does not have to grow to host the WCAG target. */
     .ex-row-check{
       flex-shrink:0;width:44px;height:20px;padding:0;margin:0;cursor:pointer;
       border:none;background:transparent;color:#d4cec4;
@@ -958,8 +963,9 @@
     /* ── EXERCISE PICKER: Themed Selection Rows (Add Exercise screens) ── */
     .picker-ex-row{
       --mg-color:#B0A090;
-      position:relative;isolation:isolate;border-radius:10px;padding:4px 8px;min-height:56px;height:100%;cursor:pointer;
-      display:flex;align-items:center;gap:6px;overflow:visible;
+      position:relative;isolation:isolate;border-radius:10px;padding:4px 8px;cursor:pointer;
+      display:flex;align-items:center;gap:6px;
+      box-sizing:border-box;min-height:0;height:100%;max-height:var(--ex-row-card-h);overflow:hidden;
       background:
         linear-gradient(158deg,
           color-mix(in srgb,var(--mg-color) 13%,rgba(26,24,20,.62)) 0%,
@@ -982,7 +988,8 @@
     }
     /* Picker cards are inset and compact so they read as slim rows, not
        full-bleed slabs. height:100% still fills the fixed virtualized slot. */
-    .picker-ex-row.wb-pcard{height:100%;padding:4px 8px;gap:6px;border-radius:10px}
+    .picker-ex-row.wb-pcard{min-height:0;height:100%;max-height:var(--ex-row-card-h);padding:4px 8px;gap:6px;border-radius:10px;overflow:hidden}
+    .lib-home-rows .picker-ex-row{height:var(--ex-row-card-h)}
     .wb-pcard .picker-ex-orb{width:24px;height:24px;border-radius:7px}
     .wb-pcard .picker-ex-xp{font-size:.64rem}
     /* These were <div>s with onClick — invisible to keyboard and announced as
@@ -1006,9 +1013,9 @@
     .picker-ex-main{
       background:none;border:none;padding:0;margin:0;font:inherit;
       color:inherit;text-align:left;cursor:pointer;
-      /* One line with ellipsis so a long name cannot overflow the 56px slot. */
+      /* One line with ellipsis so a long name cannot overflow the card. */
       display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      min-width:0;max-width:100%;flex:1;
+      min-width:0;max-width:100%;flex:1;font-size:.95rem;line-height:1.15;font-weight:600;
       -webkit-tap-highlight-color:transparent
     }
     .picker-ex-pb{flex-shrink:0;font-size:.7rem;line-height:1}
@@ -1031,7 +1038,7 @@
     .stretch-row a,
     .stretch-row input,
     .stretch-row select{position:relative;z-index:1}
-    .picker-ex-row:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--mg-color) 30%,transparent);box-shadow:0 6px 20px rgba(0,0,0,.36),0 0 16px color-mix(in srgb,var(--mg-color) 12%,transparent),inset 0 1px 0 rgba(255,255,255,.05)}
+    .picker-ex-row:hover{border-color:color-mix(in srgb,var(--mg-color) 30%,transparent);box-shadow:0 6px 20px rgba(0,0,0,.36),0 0 16px color-mix(in srgb,var(--mg-color) 12%,transparent),inset 0 1px 0 rgba(255,255,255,.05)}
     .picker-ex-row:active{transform:scale(.985);transition:transform var(--dur-instant) var(--ease-standard)}
     /* Checkbox / star / edit taps must not play the row's press scale.
        Class is set from pointerdown on those controls — :has(:active) is
@@ -1052,7 +1059,7 @@
       color:#ece6da;white-space:nowrap
     }
     .picker-ex-meta{
-      letter-spacing:.01em;opacity:.92;font-size:.62rem;color:#8a8478;line-height:1.2;
+      letter-spacing:.01em;opacity:.92;font-size:.72rem;color:#8a8478;line-height:1.15;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis
     }
     /* Collapsible muscle-section header inside the virtualized picker list.

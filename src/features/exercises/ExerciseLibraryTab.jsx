@@ -22,7 +22,7 @@ const LibExRow = React.memo(function LibExRow({
   const ex = exercises[index];
   if (!ex) return null;
   return (
-    <div style={{ ...style, paddingTop: EX_ROW_SLOT_PAD_Y, paddingBottom: EX_ROW_SLOT_PAD_Y }} {...ariaAttributes}>
+    <div style={{ ...style, boxSizing: "border-box", overflow: "hidden", paddingTop: EX_ROW_SLOT_PAD_Y, paddingBottom: EX_ROW_SLOT_PAD_Y }} {...ariaAttributes}>
       <ExerciseRow
         ex={ex}
         selected={cartSet.has(ex.id)}

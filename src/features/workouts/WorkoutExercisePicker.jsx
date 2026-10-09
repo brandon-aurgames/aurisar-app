@@ -27,9 +27,8 @@ const typeLabel = v => TYPE_LABELS[v];
  */
 
 const HEADER_H = EX_PICKER_HEADER_H;
-// Compact picker slot: matches the shared ~56px ExerciseRow. Group headers
-// stay a 44px target. Slot padding is hairline only — leftover from a taller
-// ROW_H would show as gaps, a shorter one would overlap the next card.
+// Slot = painted card + visible gap (EX_ROW_H). Padding is half the gap
+// each side so the card's height:100% / min-height:0 fills the leftover.
 const ROW_H = EX_ROW_H;
 
 // One row adapter for the virtualised list. Each item is either a collapsible
@@ -60,7 +59,7 @@ const WbPickerItem = React.memo(function WbPickerItem({
   }
   const ex = it.ex;
   return (
-    <div style={{ ...style, padding: `${EX_ROW_SLOT_PAD_Y}px 12px` }} {...ariaAttributes}>
+    <div style={{ ...style, boxSizing: "border-box", overflow: "hidden", padding: `${EX_ROW_SLOT_PAD_Y}px 12px` }} {...ariaAttributes}>
       <ExerciseRow
         ex={ex}
         selected={selIds.has(ex.id)}

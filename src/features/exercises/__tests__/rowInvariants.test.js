@@ -54,7 +54,7 @@ describe('stretched-row overlay safeguard', () => {
   it('clamps the exercise name so it cannot overflow a fixed virtualized row', () => {
     // The picker renders fixed-height react-window rows. A wrapping name on a
     // narrow phone overflowed its slot and the cards overlapped (reported on
-    // deploy-preview-362). The name is one-line ellipsis inside the 56px slot.
+    // deploy-preview-362). The name is one-line ellipsis inside the card.
     expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?white-space:\s*nowrap/);
     expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?text-overflow:\s*ellipsis/);
   });
@@ -201,7 +201,7 @@ describe('library list sizes against the visual viewport', () => {
     expect(lib).not.toMatch(/Math\.max\(\s*200/);
   });
 
-  it('virtualizes library rows at the shared 56px slot', () => {
+  it('virtualizes library rows at the shared card-plus-gap slot', () => {
     expect(lib).toMatch(/const LIB_ROW_H\s*=\s*EX_ROW_H/);
   });
 
