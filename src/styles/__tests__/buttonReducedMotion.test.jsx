@@ -3,7 +3,6 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 
 /**
  * Brandon P2: later equal-specificity :active scale rules beat the early
@@ -12,8 +11,7 @@ import { fileURLToPath } from 'node:url';
  * transform stays none — not a source-regex of rule presence.
  */
 
-const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-const APP_CSS = readFileSync(ROOT + 'src/styles/app.css', 'utf8');
+const APP_CSS = readFileSync('src/styles/app.css', 'utf8');
 
 const FAMILIES = [
   { name: 'track-toggle', className: 'track-toggle-btn', label: 'Track' },
