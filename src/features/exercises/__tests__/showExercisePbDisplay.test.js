@@ -32,6 +32,7 @@ describe('on-exercise PB display', () => {
     for (const file of DISPLAY_SITES) {
       const src = read(file);
       expect(src, `${file} must import the kill switch`).toContain('SHOW_EXERCISE_PB_DISPLAY');
+      expect(src, `${file} must AND the flag at the render/compute site`).toMatch(/SHOW_EXERCISE_PB_DISPLAY\s*&&/);
     }
   });
 

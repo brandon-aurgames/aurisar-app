@@ -5,8 +5,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import WorkoutsTabContainer from '../WorkoutsTabContainer';
 
 const dnd = vi.hoisted(() => ({ current: null }));
+const pbDisplay = vi.hoisted(() => ({ on: false }));
 vi.mock('../useBuilderPointerDnd', () => ({ useBuilderPointerDnd: props => { dnd.current = props; } }));
 vi.mock('../detailsFire', () => ({ createDetailsFire: () => ({ start() {}, stop() {}, destroy() {} }) }));
+vi.mock('../../exercises/showExercisePbDisplay', () => ({
+  get SHOW_EXERCISE_PB_DISPLAY() { return pbDisplay.on; },
+}));
 const exercises = ['a', 'b', 'c'].map(exId => ({ exId, sets: 3, reps: 10 }));
 const allExById = Object.fromEntries(exercises.map(ex => [ex.exId, { id: ex.exId, name: `Exercise ${ex.exId}`, category: 'strength', muscleGroup: 'chest' }]));
 function stubMatchMedia(reduce = false) {
@@ -17,6 +21,7 @@ function stubMatchMedia(reduce = false) {
   }));
 }
 beforeEach(() => {
+  pbDisplay.on = false;
   stubMatchMedia(false);
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
   HTMLElement.prototype.scrollIntoView = vi.fn();
@@ -167,12 +172,12 @@ it('does not warn on Cancel for an unedited new or existing workout', () => {
   fireEvent.click(screen.getByRole('button', { name: /← Cancel/ }));
   expect(screen.queryByRole('dialog', { name: /Discard draft/i })).toBeNull();
 });
-it('renders pace PBs via displayPace and legacy weight PBs', () => {
+function openPbBuilder(overrides = {}) {
   const run = { id: 'run', name: 'Running', category: 'cardio', muscleGroup: 'cardio' };
   const jog = { id: 'jog', name: 'Jog', category: 'cardio', muscleGroup: 'cardio' };
   const bench = { id: 'a', name: 'Exercise a', category: 'strength', muscleGroup: 'chest' };
   const catalog = { a: bench, run, jog };
-  const { ref, rerender, props } = setup({
+  return setup({
     allExById: catalog,
     profile: {
       workouts: [],
@@ -185,7 +190,21 @@ it('renders pace PBs via displayPace and legacy weight PBs', () => {
         a: { weight: 185 },
       },
     },
+    ...overrides,
   });
+}
+
+it('hides builder PB notation while the display flag is off', () => {
+  const { ref } = openPbBuilder();
+  act(() => ref.current.openBuilderWithExercises([{ exId: 'run', sets: 1, reps: 20 }, { exId: 'jog', sets: 1, reps: 20 }, { exId: 'a', sets: 3, reps: 10 }]));
+  expect(screen.queryByText(/6\.21 min\/km/)).toBeNull();
+  expect(screen.queryByText(/83\.9 kg/)).toBeNull();
+  expect(screen.queryByText(/1RM/)).toBeNull();
+});
+
+it('renders pace PBs via displayPace and legacy weight PBs', () => {
+  pbDisplay.on = true;
+  const { ref, rerender, props } = openPbBuilder();
   act(() => ref.current.openBuilderWithExercises([{ exId: 'run', sets: 1, reps: 20 }, { exId: 'jog', sets: 1, reps: 20 }, { exId: 'a', sets: 3, reps: 10 }]));
   expect(screen.getAllByText(/6\.21 min\/km/).length).toBeGreaterThanOrEqual(2);
   expect(screen.getByText(/83\.9 kg/)).toBeTruthy();

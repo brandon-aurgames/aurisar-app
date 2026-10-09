@@ -289,7 +289,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
                 padding: "2px 8px",
                 borderRadius: R.r4,
                 fontWeight: "700"
-              }}>{"Personal best"}</span>}
+              }}>{"🏆 PB"}</span>}
             </div>
             <div style={{ display: "flex", gap: S.s8, flexWrap: "wrap", alignItems: "baseline" }}>
               <span style={{

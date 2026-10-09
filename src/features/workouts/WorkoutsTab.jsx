@@ -278,8 +278,8 @@ const WbExCard = React.memo(function WbExCard({
   const noSetsEx = NO_SETS_EX_IDS.has(exD.id);
   const isRunningEx = exD.id === RUNNING_EX_ID;
   const age = profile.age || 30;
-  const pbDisp = displayPace(profile.runningPB || null, profile.units);
-  const exPBDisp = formatExPb((profile.exercisePBs || {})[exD.id], profile.units);
+  const pbDisp = SHOW_EXERCISE_PB_DISPLAY ? displayPace(profile.runningPB || null, profile.units) : null;
+  const exPBDisp = SHOW_EXERCISE_PB_DISPLAY ? formatExPb((profile.exercisePBs || {})[exD.id], profile.units) : null;
   function toggleSuperset(e) {
     e.stopPropagation();
     setSsChecked(prev => {
