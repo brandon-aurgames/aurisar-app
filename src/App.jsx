@@ -9,6 +9,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry';
 import { isMetric, lbsToKg, kgToLbs, miToKm, ftInToCm, cmToFtIn, weightLabel, distLabel, displayWt, displayDist, displayPace, pctToSlider, sliderToPct } from './utils/units';
 import { formatPbValue } from './utils/formatPbValue';
 import { newPbsBetweenLogs } from './utils/pbUpdates';
+import { buildPreviewLeaderboard, buildPreviewLog, PREVIEW_EXERCISE_PBS, PREVIEW_RUNNING_PB, PREVIEW_WORLD_RANKS } from './data/previewSeed';
 import { buildXPTable, XP_TABLE, xpToLevel, xpForLevel, xpForNext, calcBMI, detectClassFromAnswers, detectClass, calcExXP, calcPlanXP, calcDayXP, calcExercisePBs, calcDecisionTreeBonus, calcCharStats, checkQuestCompletion, hrRange, scaleWeight, scaleDur } from './utils/xp';
 import { perkAward, applyStoredPerk } from './utils/gearPerks';
 import { secToHMS, HMSToSec, normalizeHHMM, secToHHMMSplit, HHMMToSec, combineHHMMSec, daysUntil } from './utils/time';
@@ -3478,7 +3479,7 @@ function App() {
         });
         setTimeout(() => setXpFlash(null), 2000);
         const ciSuffix = _ciResult.checkInApplied ? ` · Checked in! +${_ciResult.checkInXP} XP · ${_ciResult.checkInStreak} day streak 🔥` : "";
-        if (newPB !== null && newPB === runPace && (!profile.runningPB || runPace < profile.runningPB)) showToast(`🏆 New Personal Best! ${displayPace(runPace, profile.units)}${ciSuffix}`);else if (isNewPB && (curPB.type === "Strength 1RM" || curPB.type === "Heaviest Weight" || curPB.type === "Assisted Weight" || curPB.type === "Max Reps Per 1 Set" || curPB.type === "Cardio Pace" || curPB.type === "Longest Hold" || curPB.type === "Fastest Time")) showToast(`🏆 New Personal Best! ${ex.name} — ${formatPbValue(curPB, profile.units)}${ciSuffix}`);else showToast((travelActive && regionBoost > 1 ? `+${finalEarned} XP (+10% travel, +7% ${myRegion.boost.label}) ⚔️` : travelActive ? `+${finalEarned} XP (+10% travel bonus) ⚔️` : regionBoost > 1 ? `+${finalEarned} XP (+7% ${myRegion.boost.label} boost) ${myRegion.icon}` : `+${finalEarned} XP earned!`) + ciSuffix);
+        if (newPB !== null && newPB === runPace && profile.runningPB && runPace < profile.runningPB) showToast(`🏆 New Personal Best! ${displayPace(runPace, profile.units)}${ciSuffix}`);else if (isNewPB && (curPB.type === "Strength 1RM" || curPB.type === "Heaviest Weight" || curPB.type === "Assisted Weight" || curPB.type === "Max Reps Per 1 Set" || curPB.type === "Cardio Pace" || curPB.type === "Longest Hold" || curPB.type === "Fastest Time")) showToast(`🏆 New Personal Best! ${ex.name} — ${formatPbValue(curPB, profile.units)}${ciSuffix}`);else showToast((travelActive && regionBoost > 1 ? `+${finalEarned} XP (+10% travel, +7% ${myRegion.boost.label}) ⚔️` : travelActive ? `+${finalEarned} XP (+10% travel bonus) ⚔️` : regionBoost > 1 ? `+${finalEarned} XP (+7% ${myRegion.boost.label} boost) ${myRegion.icon}` : `+${finalEarned} XP earned!`) + ciSuffix);
         // Clean up form state after successful completion
         setSets("");
         setReps("");
@@ -4330,107 +4331,7 @@ function App() {
   }).length;
   const CSS = "";
   function launchPreviewMode() {
-    const daysAgo = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
-    const fmtDate = n => new Date(Date.now() - n * 86400000).toLocaleDateString();
-    const fmtTime = () => "07:30 AM";
-    const gid = s => `preview-grp-${s}`;
-    const previewLog = [{
-      exercise: "Bench Press",
-      icon: "\uD83C\uDFCB\uFE0F",
-      exId: "bench",
-      sets: 4,
-      reps: 8,
-      weightLbs: 185,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 420,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(1),
-      dateKey: daysAgo(1),
-      sourceGroupId: gid("a")
-    }, {
-      exercise: "Overhead Press",
-      icon: "\uD83C\uDFCB\uFE0F",
-      exId: "ohp",
-      sets: 3,
-      reps: 10,
-      weightLbs: 115,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 310,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(1),
-      dateKey: daysAgo(1),
-      sourceGroupId: gid("a")
-    }, {
-      exercise: "Running",
-      icon: "\uD83C\uDFC3",
-      exId: "run",
-      sets: 1,
-      reps: 28,
-      weightLbs: null,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: 3.1,
-      xp: 380,
-      mult: 0.94,
-      time: fmtTime(),
-      date: fmtDate(3),
-      dateKey: daysAgo(3),
-      sourceGroupId: gid("b")
-    }, {
-      exercise: "Deadlift",
-      icon: "\uD83C\uDFCB\uFE0F",
-      exId: "deadlift",
-      sets: 4,
-      reps: 6,
-      weightLbs: 225,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 580,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(5),
-      dateKey: daysAgo(5),
-      sourceGroupId: gid("c")
-    }, {
-      exercise: "Pull-Up",
-      icon: "\uD83E\uDE9D",
-      exId: "pullups",
-      sets: 3,
-      reps: 10,
-      weightLbs: null,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 290,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(5),
-      dateKey: daysAgo(5),
-      sourceGroupId: gid("c")
-    }, {
-      exercise: "Squat",
-      icon: "\uD83C\uDFCB\uFE0F",
-      exId: "squat",
-      sets: 4,
-      reps: 8,
-      weightLbs: 205,
-      weightPct: 100,
-      hrZone: null,
-      distanceMi: null,
-      xp: 510,
-      mult: 1.12,
-      time: fmtTime(),
-      date: fmtDate(10),
-      dateKey: daysAgo(10),
-      sourceGroupId: gid("e")
-    }];
+    const previewLog = buildPreviewLog();
     setProfile({
       ...EMPTY_PROFILE,
       playerName: "Test Majiq",
@@ -4471,25 +4372,8 @@ function App() {
       lastCheckIn: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
       quests: {},
       customExercises: [],
-      exercisePBs: {
-        bench: {
-          type: "Strength 1RM",
-          value: 185
-        },
-        squat: {
-          type: "Strength 1RM",
-          value: 205
-        },
-        deadlift: {
-          type: "Strength 1RM",
-          value: 225
-        },
-        run: {
-          type: "Cardio Pace",
-          value: 9.03
-        }
-      },
-      runningPB: 9.03
+      exercisePBs: PREVIEW_EXERCISE_PBS,
+      runningPB: PREVIEW_RUNNING_PB
     });
     setMyPublicId("UQHDD2");
     setMyPrivateId("mPTSbPw8vTnd");
@@ -4518,243 +4402,8 @@ function App() {
       xp: 105000,
       log: []
     }]);
-    setLbData([{
-      user_id: "f1",
-      public_id: "VK9R3M",
-      player_name: "IronValkyrie",
-      first_name: "Sarah",
-      last_name: "Chen",
-      chosen_class: "warrior",
-      total_xp: 420000,
-      level: 8,
-      streak: 31,
-      state: "NY",
-      country: "United States",
-      gym: "Gold's Gym",
-      exercise_pbs: {
-        bench: {
-          weight: 185
-        },
-        squat: {
-          weight: 275
-        },
-        deadlift: {
-          weight: 315
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f5",
-      public_id: "PH3L9F",
-      player_name: "PhantomLift",
-      first_name: "Jake",
-      last_name: "Morrison",
-      chosen_class: "phantom",
-      total_xp: 360000,
-      level: 8,
-      streak: 45,
-      state: "CO",
-      country: "United States",
-      gym: "24 Hr Fitness",
-      exercise_pbs: {
-        bench: {
-          weight: 245
-        },
-        squat: {
-          weight: 365
-        },
-        deadlift: {
-          weight: 405
-        },
-        pullups: {
-          reps: 25
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "preview",
-      public_id: "UQHDD2",
-      player_name: "Test Majiq",
-      first_name: "John",
-      last_name: "Majiq",
-      chosen_class: "tempest",
-      total_xp: 320000,
-      level: 7,
-      streak: 3,
-      state: "KS",
-      country: "United States",
-      gym: "Lifetime Fitness",
-      exercise_pbs: {
-        bench: {
-          weight: 185
-        },
-        squat: {
-          weight: 205
-        },
-        deadlift: {
-          weight: 225
-        },
-        run: {
-          type: "cardio",
-          value: 9.03
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: true
-    }, {
-      user_id: "f6",
-      public_id: "TT6B4K",
-      player_name: "TitanBreaker",
-      first_name: "Mike",
-      last_name: "OBrien",
-      chosen_class: "titan",
-      total_xp: 210000,
-      level: 6,
-      streak: 18,
-      state: "OH",
-      country: "United States",
-      gym: "YMCA",
-      exercise_pbs: {
-        bench: {
-          weight: 315
-        },
-        squat: {
-          weight: 455
-        },
-        deadlift: {
-          weight: 500
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f2",
-      public_id: "ZN4K8W",
-      player_name: "ZenMaster_X",
-      first_name: "Marcus",
-      last_name: "Rivera",
-      chosen_class: "druid",
-      total_xp: 155000,
-      level: 5,
-      streak: 14,
-      state: "CA",
-      country: "United States",
-      gym: "Equinox",
-      exercise_pbs: {
-        bench: {
-          weight: 135
-        },
-        run: {
-          type: "cardio",
-          value: 7.5
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f4",
-      public_id: "SW7A2R",
-      player_name: "SwiftArrow",
-      first_name: "Emily",
-      last_name: "Park",
-      chosen_class: "warden",
-      total_xp: 105000,
-      level: 4,
-      streak: 22,
-      state: "FL",
-      country: "United States",
-      gym: "LA Fitness",
-      exercise_pbs: {
-        run: {
-          type: "cardio",
-          value: 7.2
-        },
-        pullups: {
-          reps: 12
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f3",
-      public_id: "CR8M5T",
-      player_name: "CrushMode88",
-      first_name: "DeAndre",
-      last_name: "Williams",
-      chosen_class: "gladiator",
-      total_xp: 58000,
-      level: 3,
-      streak: 7,
-      state: "TX",
-      country: "United States",
-      gym: "Planet Fitness",
-      exercise_pbs: {
-        bench: {
-          weight: 225
-        },
-        squat: {
-          weight: 315
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }, {
-      user_id: "f7",
-      public_id: "ST2E7X",
-      player_name: "StrikerElite",
-      first_name: "Aisha",
-      last_name: "Thompson",
-      chosen_class: "striker",
-      total_xp: 22000,
-      level: 2,
-      streak: 5,
-      state: "WA",
-      country: "United States",
-      gym: "Home Gym",
-      exercise_pbs: {
-        pushups: {
-          reps: 45
-        }
-      },
-      name_visibility: {
-        displayName: ["app", "game"],
-        realName: ["hide"]
-      },
-      is_me: false
-    }]);
-    setLbWorldRanks({
-      "f1": 1,
-      "f5": 2,
-      "preview": 3,
-      "f6": 4,
-      "f2": 5,
-      "f4": 6,
-      "f3": 7,
-      "f7": 8
-    });
+    setLbData(buildPreviewLeaderboard());
+    setLbWorldRanks(PREVIEW_WORLD_RANKS);
     setShowPreviewPin(false);
     setPreviewPinInput("");
     setPreviewPinError(false);

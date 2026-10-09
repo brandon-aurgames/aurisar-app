@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useWorkoutCompletion } from '../useWorkoutCompletion';
+import { buildPreviewLog, PREVIEW_EXERCISE_PBS, PREVIEW_SEED_EX_LOOKUP } from '../../data/previewSeed';
 
 /**
  * PR #294 follow-up review: finishing a Repeat Last cardio/timed session
@@ -21,14 +22,14 @@ const ALL_EX_BY_ID = {
   bench: { id: 'bench', name: 'Bench', icon: '🏋️', category: 'strength', muscleGroup: 'chest' },
 };
 
-function setup(workout) {
+function setup(workout, profileOverrides = {}, allExById = ALL_EX_BY_ID) {
   let updater = null;
   const setProfile = vi.fn(fn => { updater = fn; });
-  const profile = { xp: 0, log: [], quests: {}, workouts: [], scheduledWorkouts: [], chosenClass: null, equipPerks: null };
+  const profile = { xp: 0, log: [], quests: {}, workouts: [], scheduledWorkouts: [], chosenClass: null, equipPerks: null, ...profileOverrides };
   const { confirmWorkoutComplete } = useWorkoutCompletion({
     profile,
     setProfile,
-    allExById: ALL_EX_BY_ID,
+    allExById,
     applyAutoCheckIn: p => ({ profile: p, checkInApplied: false, checkInXP: 0, checkInStreak: 0 }),
     getMult: () => 1,
     showToast: vi.fn(),
@@ -134,5 +135,15 @@ describe('useWorkoutCompletion — exercise PBs', () => {
     });
     await vi.runAllTimersAsync();
     expect(done.getProfile().exercisePBs.bench).toEqual({ type: 'Strength 1RM', value: 225 });
+  });
+
+  it('keeps the seeded bench PB after completing a workout in the Preview Mode seed', async () => {
+    const done = setup(
+      { id: 'w2', name: 'Easy Run', icon: '🏃', oneOff: true, exercises: [{ exId: 'run', sets: 1, reps: null, seconds: 1200, distanceMi: 1 }] },
+      { log: buildPreviewLog(), exercisePBs: { ...PREVIEW_EXERCISE_PBS } },
+      { ...ALL_EX_BY_ID, ...PREVIEW_SEED_EX_LOOKUP },
+    );
+    await vi.runAllTimersAsync();
+    expect(done.getProfile().exercisePBs.bench).toEqual({ type: 'Strength 1RM', value: 185 });
   });
 });

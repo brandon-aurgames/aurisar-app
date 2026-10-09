@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { calcExercisePBs } from '../xp';
 import { newPbsBetweenLogs } from '../pbUpdates';
 
 const EX = {
@@ -9,7 +10,12 @@ const bench225 = { exId: 'bench', sets: 1, reps: 1, weightLbs: 225 };
 const bench185 = { exId: 'bench', sets: 1, reps: 1, weightLbs: 185 };
 
 describe('newPbsBetweenLogs', () => {
-  it('emits a new PB when the new log beats the old log', () => {
+  it('does not announce the first-ever log of an exercise, but that log is still stored as the PB', () => {
+    expect(newPbsBetweenLogs([], [bench225], EX)).toEqual({});
+    expect(calcExercisePBs([bench225], EX).bench).toEqual({ type: 'Strength 1RM', value: 225 });
+  });
+
+  it('emits a new PB when a second, better log beats the earlier result', () => {
     const updates = newPbsBetweenLogs([bench185], [bench225, bench185], EX);
     expect(updates.bench).toEqual({ type: 'Strength 1RM', value: 225 });
   });
