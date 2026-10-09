@@ -110,6 +110,11 @@ import { clampMoveToMaxSpeed } from './world/moveGuard.js';
 import { contentPosToPx, resolveZone, WORLD_ORIGIN_PX } from './world/zones.js';
 import { resolveGateTravel } from './world/travel.js';
 import {
+  lastSeamCrossAtFor,
+  resolveSeamCrossing,
+  stampSeamCrossing,
+} from './world/layout.js';
+import {
   hasDiscoveredWaypoint,
   lastFastTravelAtFor,
   playerWithinWaypointRange,
@@ -668,6 +673,23 @@ const spacetimedb = schema({
     {
       identity:         t.identity().primaryKey(),
       lastFastTravelAt: t.u64(),  // micros since epoch of the last accepted fastTravel (60 s cooldown anchor)
+    }
+  ),
+
+  /**
+   * M14-1 (D233) — the crossZone rate floor: one accepted seam crossing per
+   * identity per second, so a player stepping back and forth on the seam
+   * cannot churn their row between zones. A NEW table, so maincloud
+   * auto-migrates it (no column on any existing table). Private (no
+   * `public: true`): server bookkeeping no client reads, so the generated
+   * client bindings gain no table handle for it — only its row type, as
+   * playerProgress's already is.
+   */
+  seamCrossing: table(
+    {},
+    {
+      identity:    t.identity().primaryKey(),
+      lastCrossAt: t.u64(),        // micros since epoch of the last accepted crossZone
     }
   ),
 
@@ -1313,6 +1335,61 @@ export const travelToZone = spacetimedb.reducer(
       // must still restart its clock — see enterDungeon/leaveDungeon.
       lastMoveAt: now,
     });
+  }
+);
+
+/**
+ * M14-1 (D233) — walk across an overworld seam into `destZoneId`. The client
+ * renders zones 1 and 2 as one continuous overworld (content
+ * `ZoneDef.layout`, D232) while the server keeps them 3000 m apart, so this
+ * moves the row to the destination's px for the SAME layout point: on screen
+ * nothing moves, and the zone changes.
+ *
+ * Guards (world/layout.ts resolveSeamCrossing, in order): alive, not
+ * stunned/rooted (movementRestriction, as movePlayer/travelToZone), outdoors
+ * (dungeonInstanceId == 0); a different zone and both in the overworld; the
+ * stored row within 6 m of the destination's ground (the base zone's ground
+ * is everything no region claims); level ≥ the destination's levelBand[0]
+ * (D246, travelToZone's floor); and at most one accepted crossing per second
+ * (the private seamCrossing table). Like every reducer, a rejection writes
+ * nothing.
+ *
+ * Unlike travelToZone, `isMoving` is left as it is — the player is walking
+ * through, not arriving — and the position is the caller's own, carried over,
+ * never a client claim. travelToZone stays for clients that predate the seam.
+ */
+export const crossZone = spacetimedb.reducer(
+  { destZoneId: t.u8() },
+  (ctx, { destZoneId }) => {
+    const identity = ctx.sender;
+    const player = ctx.db.player.identity.find(identity);
+    if (!player) return;
+
+    const now = ctx.timestamp.microsSinceUnixEpoch;
+    const outcome = resolveSeamCrossing(
+      player,
+      player.zoneId,
+      destZoneId,
+      getPlayerLevel(ctx, identity),
+      player.dungeonInstanceId !== 0n,
+      movementRestriction(playerAuraRows(ctx, identity), now).blocked,
+      lastSeamCrossAtFor(ctx.db.seamCrossing, identity),
+      now,
+    );
+    if (!outcome.ok) return;
+
+    ctx.db.player.identity.update({
+      ...player,
+      x: outcome.x,
+      y: outcome.y,
+      // From resolveZone, like every other zoneId write; resolveSeamCrossing
+      // refused the call unless this is the destination zone.
+      zoneId: resolveZone(outcome.x, outcome.y).zoneId,
+      // A crossing skips the speed guard (the px jump is the zone offset, not
+      // movement) but restarts its clock, as every teleport does.
+      lastMoveAt: now,
+    });
+    stampSeamCrossing(ctx.db.seamCrossing, identity, now);
   }
 );
 
@@ -2770,8 +2847,8 @@ export const turnInQuest = spacetimedb.reducer(
 
 /**
  * Complete a 'find' objective: the client reports arrival, the server
- * validates the player actually stands inside the waypoint radius (+2 m
- * tolerance for interpolation slop).
+ * validates the player actually stands, outdoors and in the waypoint's own
+ * zone, inside the waypoint radius (+2 m tolerance for interpolation slop).
  */
 export const reachWaypoint = spacetimedb.reducer(
   { questId: t.string(), objectiveIdx: t.u32() },
@@ -2791,6 +2868,10 @@ export const reachWaypoint = spacetimedb.reducer(
 
     const wp = WAYPOINTS[obj.targetId];
     if (!wp) return;
+    // In the waypoint's own zone and outdoors, as discoverWaypoint requires
+    // (M13-3 review, M14-1). The range check alone compares px, and dungeon
+    // interiors are laid out at world coordinates over the overworld (D65).
+    if (player.zoneId !== wp.zoneId || player.dungeonInstanceId !== 0n) return;
     // radiusM + 2 m, shared with discoverWaypoint (world/fastTravel.ts).
     if (!playerWithinWaypointRange(player, wp)) return;
 

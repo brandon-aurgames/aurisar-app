@@ -169,8 +169,10 @@ test('zone1 and zone2 both have terrain baked (M10-7a); the exporter emits both,
   // pre-dates that and used to assert an empty list here (a stale
   // assumption this suite's own lack of a CI wiring let survive past M11-2
   // and M11-4; fixed as part of M11-6's own gate diligence).
-  assert.equal(zones.realized['1'].chests.length, 25);
-  assert.equal(zones.realized['2'].chests.length, 12);
+  // M14-1 (D233): 8 + 4 chests on the wrong side of the overworld seam are
+  // excluded, leaving 17 + 8.
+  assert.equal(zones.realized['1'].chests.length, 17);
+  assert.equal(zones.realized['2'].chests.length, 8);
   for (const chest of [...zones.realized['1'].chests, ...zones.realized['2'].chests]) {
     assert.equal(typeof chest.id, 'number');
     assert.equal(typeof chest.seed, 'number');

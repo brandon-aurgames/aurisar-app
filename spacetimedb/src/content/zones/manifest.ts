@@ -15,6 +15,11 @@
  * zone's playable px box from `originOffsetM` + `boundsHalfExtentM` (D156), and
  * `validateContent` rejects two boxes that overlap. Moving a zone's origin or
  * extent therefore changes what `movePlayer` accepts — it is not cosmetic data.
+ *
+ * `layout` is the other half (D232): where each zone sits in the one overworld
+ * the client renders. It is what `crossZone` (world/layout.ts) accepts
+ * crossings against, so a region edit moves the seam a player can walk
+ * through — not cosmetic either.
  */
 import type { ZoneDef } from '../types';
 import { LANDMARKS as L } from './zone1/landmarks.generated';
@@ -32,6 +37,10 @@ export const ZONES: ZoneDef[] = [
     // exactly the global clamp zone 1 shipped with, so its accept region is
     // unchanged by the move to per-zone bounds (pinned by zoneBounds.test.js).
     originOffsetM: { x: 0, z: 0 },
+    // The overworld's base (D232): no region, so it owns every point of its
+    // server box that zone 2's region does not claim — including the north
+    // woods past z=170 that zone 1 cedes to zone 2 (D247).
+    layout: { offsetM: { x: 0, z: 0 } },
     worldConfig: 'zone1_world.json',
     // NOTE: neither of these is read by anything yet — the server hardcodes
     // the spawn at STDB (1600,1600) and respawn snaps to the origin. They are
@@ -40,8 +49,10 @@ export const ZONES: ZoneDef[] = [
     spawnPos: { x: L.hub.x, z: L.hub.z },
     graveyardPos: { x: L.graveyard.x, z: L.graveyard.z },
     gates: [
-      // Zone 2 begins past z=180; the pass placement follows the reference
-      // northern ridge road.
+      // The two passes coincide at layout (0,170) (validateContent checks
+      // they stay within 0.01 m). Between overworld zones a gate is a map
+      // marker, not a trigger: a walk across the seam is a crossZone call.
+      // travelToZone still resolves it, for clients that predate the seam.
       { id: 'z1_north_pass', pos: { x: 0, z: 170 }, toZoneId: 2, toGateId: 'z2_south_pass' },
     ],
   },
@@ -59,6 +70,16 @@ export const ZONES: ZoneDef[] = [
     // region on the same px plane, not a contiguous extension of zone 1 (D155).
     // 3000 m → STDB px 97600, the number zoneBounds.test.js pins.
     originOffsetM: { x: 3000, z: 0 },
+    // D232: laid out 340 m north of zone 1, so z2_south_pass (0,-170) lands on
+    // z1_north_pass (0,170) and both zones' authored roads meet there. The
+    // region is the box's full 499 m reach except south of the pass, which
+    // stays zone 1's: layout x -499..499, z 170..839. It contains every
+    // authored zone-2 item (z2_bulls touches the seam at 0 m margin) and the
+    // Barrowdeep interior (local 386..474 x -32..32).
+    layout: {
+      offsetM: { x: 0, z: 340 },
+      regionM: { minX: -499, maxX: 499, minZ: -170, maxZ: 499 },
+    },
     // Zone 2 is a smaller region than zone 1 (a 360 m playable disc against
     // zone 1's 520 m), so it claims a smaller box rather than inheriting the
     // 1000 m default, leaving a wide unclaimed gap between the two zones which
@@ -90,9 +111,9 @@ export const ZONES: ZoneDef[] = [
     spawnPos: { x: 0, z: -120 },
     graveyardPos: { x: -26, z: -150 },
     gates: [
-      // The other half of z1_north_pass. The two gates are each other's only
-      // link, and validateContent now checks the back-link for real rather
-      // than tolerating it as dangling.
+      // The other half of z1_north_pass, at the same layout point. The two
+      // gates are each other's only link, and validateContent checks the
+      // back-link for real rather than tolerating it as dangling.
       { id: 'z2_south_pass', pos: { x: 0, z: -170 }, toZoneId: 1, toGateId: 'z1_north_pass' },
     ],
   },
