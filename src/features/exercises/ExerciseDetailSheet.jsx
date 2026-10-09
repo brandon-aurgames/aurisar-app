@@ -10,38 +10,7 @@ import { planEntry } from './planEntry';
 import { diffColor } from './difficulty';
 import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
-/**
- * Exercise detail bottom sheet (Forge Glass).
- *
- * Previously rendered inline inside ExerciseLibraryTab, which meant no
- * background inert, no Escape dismiss, and no way to open it from another
- * tab. It now lives at the App root as a portal so any surface can open it
- * by setting `libDetailEx` — the Plans tab's ℹ button used to open a second,
- * divergent image modal for the same data; that modal is gone and both
- * entry points land here.
- *
- * `siblings` is the list the sheet can page through (the current filtered
- * library list). When it contains the open exercise, left/right swipe and
- * the ←/→ keys move to the neighbouring exercise without closing the sheet.
- * Callers that have no meaningful list (e.g. Plans) just omit it.
- *
- * Content is split across About | Form | History subtabs; History derives
- * from profile.log on the fly (no persisted state).
- */
-
-const SWIPE_THRESHOLD = 56; // px of horizontal travel before a page turn commits
-
-const GLASS_BTN = {
-  width: "100%",
-  background: FG.glassBgSoft,
-  border: `1px solid ${FG.glassBorder}`,
-  color: "#b4ac9e",
-  padding: "11px",
-  borderRadius: R.xxl,
-  fontWeight: "700",
-  fontSize: FS.fs82,
-  cursor: "pointer",
-};
+const SWIPE_THRESHOLD = 56;
 
 const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
   ex,
@@ -57,7 +26,6 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
 }) {
   const close = () => setLibDetailEx(null);
 
-  // "enter-left" / "enter-right" drive the one-shot page-turn animation.
   const [turn, setTurn] = useState(null);
   const [subtab, setSubtab] = useState("about");
   const touchStart = useRef(null);
@@ -73,10 +41,6 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
     setLibDetailEx(target);
   };
 
-  // Arrow keys page through siblings. Escape is already handled by
-  // useModalLifecycle. Keyed on the three ids the handler actually closes
-  // over — without a dependency array this detached and re-attached a
-  // document-level listener on every render of the sheet.
   useEffect(() => {
     if (!ex) return undefined;
     const onKey = e => {
@@ -88,12 +52,6 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ex && ex.id, prev && prev.id, next && next.id]);
 
-  // Move focus into the sheet on open so a keyboard user lands inside the
-  // dialog rather than wherever the trigger left them. Keyed on open/closed,
-  // not on the exercise: paging with Prev/Next changes ex.id, and refocusing
-  // there yanked focus off the very button the user had just pressed.
-  // Fresh opens also reset to the About subtab; paging keeps the active tab
-  // so neighbouring exercises can be compared on the same dimension.
   const wasOpen = useRef(false);
   useEffect(() => {
     const open = ex != null;
@@ -104,12 +62,16 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
     wasOpen.current = open;
   }, [ex]);
 
+  const hasTips = !!(ex && Array.isArray(ex.tips) && ex.tips.some(t => String(t || "").trim()));
+  useEffect(() => {
+    if (ex && !hasTips && subtab === "form") setSubtab("about");
+  }, [ex, hasTips, subtab]);
+
   if (!ex) return null;
 
   const isFav = (profile.favoriteExercises || []).includes(ex.id);
   const pb = (profile.exercisePBs || {})[ex.id];
   const hasPB = !!pb;
-  const staged = isInCart ? isInCart(ex.id) : false;
   const mgColor = getMuscleColor(ex.muscleGroup);
   const history = getExerciseHistory(profile.log, ex.id);
 
@@ -124,7 +86,6 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
     const t = e.changedTouches[0];
     const dx = t.clientX - start.x;
     const dy = t.clientY - start.y;
-    // Ignore mostly-vertical drags so scrolling the sheet never pages it.
     if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
     goTo(dx < 0 ? next : prev, dx < 0 ? 'next' : 'prev');
   };
@@ -199,7 +160,6 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
     );
   };
 
-  // History chart geometry: weight when logged, else XP, scaled 14→54px.
   const histVals = history.map(h => (h.weightLbs != null ? h.weightLbs : h.xp));
   const histMax = Math.max(...histVals, 1);
   const histMin = Math.min(...histVals, histMax);
@@ -227,7 +187,6 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
       className={turn ? `sheet-${turn}` : ""}
     >
       <div>
-        {/* Pager — only rendered when there is a list to page through. */}
         {(prev || next) && <div style={{
           display: "flex",
           alignItems: "center",
@@ -241,7 +200,6 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           {pagerBtn("Next ›", next, "next", "Next exercise")}
         </div>}
 
-        {/* Hero — muscle-washed glass panel. */}
         <div style={{
           position: "relative",
           overflow: "hidden",
@@ -267,8 +225,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
                 fontSize: "1.16rem",
                 fontWeight: 600,
                 letterSpacing: ".02em",
-                textTransform: "uppercase",
-                lineHeight: 1,
+                lineHeight: 1.15,
                 color: FG.inkBright,
               }}>{ex.name}</span>
               {SHOW_EXERCISE_PB_DISPLAY && hasPB && <span style={{
@@ -295,14 +252,12 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           </div>
         </div>
 
-        {/* Stat chips — Base XP / Tier / Your PB (PB chip gated). */}
         <div style={{ display: "flex", gap: S.s8, marginBottom: S.s10 }}>
-          {statChip("Base XP", `${ex.baseXP}`, true)}
+          {statChip("Base XP", `${ex.baseXP}`, false)}
           {statChip("Tier", ex.difficulty || "—")}
-          {SHOW_EXERCISE_PB_DISPLAY && statChip("Your PB", formatPbValue(pb, profile.units) ?? "—")}
+          {SHOW_EXERCISE_PB_DISPLAY && statChip("Your PB", formatPbValue(pb, profile.units) ?? "—", true)}
         </div>
 
-        {/* About | Form | History */}
         <div style={{
           display: "flex",
           gap: 3,
@@ -313,7 +268,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           marginBottom: S.s12,
         }}>
           {subtabBtn("about", "About")}
-          {subtabBtn("form", "Form")}
+          {hasTips && subtabBtn("form", "Form")}
           {subtabBtn("history", "History")}
         </div>
 
@@ -348,8 +303,8 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           </div>}
         </div>}
 
-        {subtab === "form" && <div style={{ marginBottom: S.s12 }}>
-          {Array.isArray(ex.tips) && ex.tips.length > 0 ? ex.tips.map((tip, i) => <div key={i} style={{
+        {subtab === "form" && hasTips && <div style={{ marginBottom: S.s12 }}>
+          {ex.tips.filter(t => String(t || "").trim()).map((tip, i) => <div key={i} style={{
             display: "flex",
             gap: S.s10,
             padding: "10px 12px",
@@ -373,15 +328,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
               background: `color-mix(in srgb,${mgColor} 80%,#fff)`,
             }}>{i + 1}</span>
             <span style={{ fontSize: FS.lg, lineHeight: 1.5, color: "rgba(228,222,211,.7)" }}>{tip}</span>
-          </div>) : <div style={{
-            padding: "18px 12px",
-            borderRadius: R.xxl,
-            border: "1px dashed rgba(255,255,255,.15)",
-            textAlign: "center",
-            fontSize: FS.lg,
-            color: "#8a8478",
-            fontStyle: "italic",
-          }}>{"No form guide for this exercise yet."}</div>}
+          </div>)}
         </div>}
 
         {subtab === "history" && <div style={{ marginBottom: S.s12 }}>
@@ -392,8 +339,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
             textAlign: "center",
             fontSize: FS.lg,
             color: "#8a8478",
-            fontStyle: "italic",
-          }}>{"No logged sessions yet — Configure below to forge the first."}</div> : <>
+          }}>{"No logs yet."}</div> : <>
             <div style={{
               display: "flex",
               alignItems: "flex-end",
@@ -439,112 +385,61 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           </>}
         </div>}
 
-        <button onClick={() => setProfile(p => ({
-          ...p,
-          favoriteExercises: (p.favoriteExercises || []).includes(ex.id)
-            ? (p.favoriteExercises || []).filter(i => i !== ex.id)
-            : [...(p.favoriteExercises || []), ex.id]
-        }))} style={{
-          ...GLASS_BTN,
-          background: isFav ? "rgba(232,180,74,.12)" : FG.glassBgSoft,
-          border: `1px solid ${isFav ? "rgba(232,180,74,.35)" : FG.glassBorder}`,
-          color: isFav ? FG.goldSoft : "#b4ac9e",
-        }}>{isFav ? "⭐ Saved to Favorites" : "☆ Save to Favorites"}</button>
-
-        {/* Staging was reachable only from a list in select mode, so the sheet
-            — the one place showing enough detail to actually decide — couldn't
-            add to the basket it was deciding for. */}
-        {ex.id !== "rest_day" && toggleCart && (
+        <div className={"wo-card-actions"} style={{ display: "flex", gap: S.s8, marginTop: S.s4 }}>
           <button
             type="button"
-            aria-pressed={!!staged}
-            onClick={() => toggleCart(ex.id)}
-            style={{
-              ...GLASS_BTN,
-              marginTop: S.s8,
-              background: staged ? "rgba(196,148,40,.16)" : FG.glassBgSoft,
-              border: `1px solid ${staged ? "rgba(196,148,40,.42)" : FG.glassBorder}`,
-              color: staged ? "#e8d08a" : "#b4ac9e",
+            className={"btn btn-gold btn-sm"}
+            style={{ flex: 1 }}
+            onClick={() => {
+              openQuickLog(ex.id, { origin: { type: "detail", ex } });
+              close();
             }}
-          >{staged ? "⊟ Staged — tap to remove" : "⊞ Stage for later"}</button>
-        )}
-        {/* The tray sits at z-index 780 and the sheet at 9400, so staging from
-            here updates a bar the user cannot see. Report the count inline
-            rather than leaving the button's own state as the only signal. */}
-        {ex.id !== "rest_day" && toggleCart && stagedCount > 0 && (
-          <div role="status" style={{
-            fontSize: FS.fs62,
-            color: "#8a8478",
-            textAlign: "center",
-            marginTop: S.s4
-          }}>{`In staging tray · ${stagedCount}`}</div>
-        )}
-
-        <div style={{ display: "flex", gap: S.s8, marginTop: S.s8 }}>
-          {ex.id !== "rest_day" && <button onClick={() => {
-            setAddToWorkoutPicker({
-              exercises: [{
-                exId: ex.id,
-                sets: ex.defaultSets != null ? ex.defaultSets : 3,
-                reps: ex.defaultReps != null ? ex.defaultReps : 10,
-                weightLbs: null,
-                durationMin: null,
-                weightPct: 100,
-                distanceMi: null,
-                hrZone: null
-              }]
-            });
-            close();
-          }} style={{
-            ...GLASS_BTN,
-            flex: 1,
-            width: "auto",
-            padding: "10px",
-            fontWeight: "600",
-            fontSize: FS.lg,
-            textAlign: "center",
-          }}>{"💪 Add to Workout"}</button>}
-
-          <button onClick={() => {
-            // Via the shared opener, which also seeds spwSelected — opening
-            // the wizard without it left Save refusing with "Select at least
-            // one exercise", or worse, silently reusing a previous run's
-            // selection.
-            openSavePlanWizard([planEntry(ex, profile.chosenClass, allExById)], ex.name, ex.name);
-            close();
-          }} style={{
-            ...GLASS_BTN,
-            flex: 1,
-            width: "auto",
-            padding: "10px",
-            fontWeight: "600",
-            fontSize: FS.lg,
-            textAlign: "center",
-          }}>{"📋 Add to Plan"}</button>
+          >{"Log"}</button>
+          {ex.id !== "rest_day" && <button
+            type="button"
+            className={"btn btn-gold btn-sm"}
+            style={{ flex: 1 }}
+            onClick={() => {
+              setAddToWorkoutPicker({
+                exercises: [{
+                  exId: ex.id,
+                  sets: ex.defaultSets != null ? ex.defaultSets : 3,
+                  reps: ex.defaultReps != null ? ex.defaultReps : 10,
+                  weightLbs: null,
+                  durationMin: null,
+                  weightPct: 100,
+                  distanceMi: null,
+                  hrZone: null
+                }]
+              });
+              close();
+            }}
+          >{"Add to Workout"}</button>}
         </div>
 
-        {/* Opens the quick-log sheet in place — the log form is a root portal
-            with no tab dependency, so the user stays on whatever tab they
-            came from and "← Back" (origin-aware) returns to this sheet. */}
-        <button onClick={() => {
-          openQuickLog(ex.id, { origin: { type: "detail", ex } });
-          close();
-        }} style={{
-          width: "100%",
-          marginTop: S.s8,
-          background: "linear-gradient(160deg,rgba(143,227,210,.28),rgba(143,227,210,.1))",
-          border: "1px solid rgba(143,227,210,.42)",
-          color: "#D6F7EF",
-          padding: "12px",
-          borderRadius: R.xxl,
-          fontFamily: FG.fontCond,
-          fontWeight: "600",
-          fontSize: FS.xxl,
-          letterSpacing: ".12em",
-          textTransform: "uppercase",
-          cursor: "pointer",
-          textAlign: "center"
-        }}>{"⚙ Configure"}</button>
+        <div style={{ display: "flex", gap: S.s8, marginTop: S.s8 }}>
+          <button
+            type="button"
+            className={"btn btn-ghost btn-sm"}
+            style={{ flex: 1 }}
+            onClick={() => {
+              openSavePlanWizard([planEntry(ex, profile.chosenClass, allExById)], ex.name, ex.name);
+              close();
+            }}
+          >{"Add to Plan"}</button>
+          <button
+            type="button"
+            className={"btn btn-ghost btn-sm"}
+            style={{ flex: 1 }}
+            aria-pressed={isFav}
+            onClick={() => setProfile(p => ({
+              ...p,
+              favoriteExercises: (p.favoriteExercises || []).includes(ex.id)
+                ? (p.favoriteExercises || []).filter(i => i !== ex.id)
+                : [...(p.favoriteExercises || []), ex.id]
+            }))}
+          >{isFav ? "Favorited" : "Favorite"}</button>
+        </div>
       </div>
     </Sheet>
   );

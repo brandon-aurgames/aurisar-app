@@ -1,16 +1,15 @@
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { List } from 'react-window';
-import { UI_COLORS } from '../../data/constants';
 import { getMuscleColor, getTypeColor } from '../../utils/xp';
-import { ExIcon } from '../../components/ExIcon';
 import { S, FS } from '../../utils/tokens';
 import Sheet from '../../components/ui/Sheet';
 import ExerciseRow from '../exercises/ExerciseRow';
 import FilterDropdown from '../exercises/FilterDropdown';
-import { matchesAll, facetCounts as countFacet, NO_FACET, muscleKeys, typeKeys, equipKeys } from '../exercises/matchesFacets';
+import { filterAndCount } from '../exercises/filterPass';
 import {
   TYPE_OPTS, TYPE_LABELS, MUSCLE_OPTS, EQUIP_OPTS, muscleLabel, equipLabel,
 } from '../exercises/exerciseFilterOptions';
+import TechSearch from '../exercises/TechSearch';
 import { buildGroupedItems, muscleKey } from './pickerGrouping';
 
 // Module scope so the memo'd FilterDropdown sees a stable optionLabel identity.
@@ -126,16 +125,21 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
   // blocks on three facet passes plus the filter pass over ~1,500 exercises.
   const deferredQ = useDeferredValue(pickerSearch);
 
-  const facetCounts = useMemo(() => ({
-    muscle: countFacet(allExercises, muscleKeys, e => matchesAll(e, deferredQ, NO_FACET, pickerTypeFilter, pickerEquipFilter)),
-    type: countFacet(allExercises, typeKeys, e => matchesAll(e, deferredQ, pickerMuscle, NO_FACET, pickerEquipFilter)),
-    equip: countFacet(allExercises, equipKeys, e => matchesAll(e, deferredQ, pickerMuscle, pickerTypeFilter, NO_FACET)),
-  }), [allExercises, deferredQ, pickerMuscle, pickerTypeFilter, pickerEquipFilter]);
-
-  const filtered = useMemo(
-    () => allExercises.filter(e => matchesAll(e, deferredQ, pickerMuscle, pickerTypeFilter, pickerEquipFilter)),
+  const pass = useMemo(
+    () => filterAndCount(allExercises, {
+      query: deferredQ,
+      muscleSet: pickerMuscle,
+      typeSet: pickerTypeFilter,
+      equipSet: pickerEquipFilter,
+    }),
     [allExercises, deferredQ, pickerMuscle, pickerTypeFilter, pickerEquipFilter]
   );
+  const facetCounts = useMemo(() => ({
+    muscle: pass.muscleCounts,
+    type: pass.typeCounts,
+    equip: pass.equipCounts,
+  }), [pass]);
+  const filtered = pass.list;
   const selIds = useMemo(() => new Set(pickerSelected.map(e => e.exId)), [pickerSelected]);
 
   // ── Muscle grouping (collapsible sections) ──
@@ -218,13 +222,12 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
     >
         {/* ── Search bar ── */}
         <div style={{ marginBottom: S.s8, flexShrink: 0 }}>
-          <input
-            className={"inp"}
-            style={{ width: "100%", padding: "8px 12px", fontSize: FS.fs82 }}
-            placeholder={"Search exercises…"}
+          <TechSearch
             value={pickerSearch}
-            onChange={e => setPickerSearch(e.target.value)}
-            autoFocus={true}
+            onChange={setPickerSearch}
+            onClear={() => setPickerSearch("")}
+            placeholder={"Search exercises…"}
+            autoFocus
           />
         </div>
 
@@ -248,9 +251,8 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
               onToggle={toggleMuscle}
               open={pickerOpenDrop === "wb-muscle"}
               setOpen={setPickerOpenDrop}
-              accent="#7A8F8B"
+              accent="#B0A898"
               optionAccent={getMuscleColor}
-              panelBorder="rgba(122,143,139,.25)"
             />
             <FilterDropdown
               id="wb-type"
@@ -263,9 +265,8 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
               onToggle={toggleType}
               open={pickerOpenDrop === "wb-type"}
               setOpen={setPickerOpenDrop}
-              accent="#C4A044"
+              accent="#B0A898"
               optionAccent={getTypeColor}
-              panelBorder="rgba(180,172,158,.07)"
             />
             <FilterDropdown
               id="wb-equip"
@@ -278,8 +279,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
               onToggle={toggleEquip}
               open={pickerOpenDrop === "wb-equip"}
               setOpen={setPickerOpenDrop}
-              accent={UI_COLORS.accent}
-              panelBorder="rgba(196,148,40,0.25)"
+              accent="#B0A898"
             />
           </div>
         </div>
@@ -323,6 +323,7 @@ const WorkoutExercisePicker = memo(function WorkoutExercisePicker({
                 style={{
                   position: "absolute",
                   inset: 0,
+                  bottom: pickerSelected.length > 0 ? 72 : 0,
                   width: "100%",
                   overscrollBehavior: "contain",
                 }}

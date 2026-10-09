@@ -29,7 +29,8 @@ import ToastHost from './components/toast/ToastHost';
 import useNotifications from './features/notifications/useNotifications';
 import NotificationInbox from './features/notifications/NotificationInbox';
 import { useExerciseFilters } from './features/exercises/useExerciseFilters';
-import { DEFAULT_DISCOVER_PICKS } from './features/exercises/discoverCategories';
+import { newExDraft } from './features/exercises/exEditorDraft';
+import { recentExerciseIds } from './features/exercises/recentExercises';
 import ExerciseLibraryTab from './features/exercises/ExerciseLibraryTab';
 import MyWorkoutsSubTab from './features/exercises/MyWorkoutsSubTab';
 import MessagesTab from './features/social/MessagesTab';
@@ -512,7 +513,6 @@ function App() {
     setSelEx(exId);
   }, []);
   const [exSubTab, setExSubTab] = useState("library"); // "library" | "myworkouts"
-  const [favSelectMode, setFavSelectMode] = useState(false);
   // Only the DEBOUNCED search value stays in App — it feeds useExerciseFilters,
   // whose libFiltered output App also uses for the detail-sheet sibling list.
   // The raw keystroke value lives inside ExerciseLibraryTab so typing no longer
@@ -523,9 +523,7 @@ function App() {
   const [libMuscleFilters, setLibMuscleFilters] = useState(() => new Set());
   const [libEquipFilters, setLibEquipFilters] = useState(() => new Set());
   const [libDetailEx, setLibDetailEx] = useState(null);
-  const [libSelectMode, setLibSelectMode] = useState(false);
   const [orbMenuOpen, setOrbMenuOpen] = useState(false);
-  const setLibDiscoverPicks = useCallback(picks => setProfile(p => ({ ...p, libDiscoverPicks: picks })), []);
   // One shared, persisted basket replaces the three throwaway selection Sets
   // the library, favourites list and builder picker each used to keep.
   const {
@@ -2968,22 +2966,23 @@ function App() {
   // Memoized derivations the library tab consumes. The hook keeps the heavy
   // allExercises scans off the App-render hot path (Finding #5 + #6 from
   // docs/performance-audit.md).
+  const libRecentIds = useMemo(
+    () => recentExerciseIds(profile.log, allExById).map(({ ex }) => ex.id),
+    [profile.log, allExById]
+  );
   const {
     libFiltered,
-    libAvailableTypes,
     libTypeCounts,
     libMuscleCounts,
     libEquipCounts,
     libMuscleCardData,
-    libDiscoverRows,
-    libDiscoverCategoryCounts,
     libMuscleOpts,
     libEquipOpts,
   } = useExerciseFilters({
     allExercises,
-    _exReady,
-    discoverPicks: profile.libDiscoverPicks || DEFAULT_DISCOVER_PICKS,
     libSearchDebounced, libTypeFilters, libMuscleFilters, libEquipFilters,
+    favIds: profile.favoriteExercises,
+    recentIds: libRecentIds,
   });
 
   // Auto-update quest completion state when log or streak changes
@@ -3259,28 +3258,9 @@ function App() {
   }
 
   // ── Exercise editor ─────────────────────────────────────────
-  function newExDraft(base) {
-    return {
-      id: uid(),
-      name: base ? base.name + " (Copy)" : "",
-      icon: base ? base.icon : "💪",
-      category: base ? base.category : "strength",
-      muscleGroup: base ? base.muscleGroup : "chest",
-      baseXP: base ? base.baseXP : 40,
-      muscles: base ? base.muscles : "",
-      desc: base ? base.desc : "",
-      tips: base ? [...base.tips] : ["", "", ""],
-      custom: true,
-      defaultSets: base ? base.defaultSets != null ? base.defaultSets : null : 3,
-      defaultReps: base ? base.defaultReps != null ? base.defaultReps : null : 10,
-      defaultWeightLbs: base ? base.defaultWeightLbs || "" : "",
-      defaultWeightPct: base ? base.defaultWeightPct || 100 : 100,
-      defaultHrZone: base ? base.defaultHrZone || null : null
-    };
-  }
   function openExEditor(mode, baseEx) {
     setExEditorMode(mode);
-    setExEditorDraft(newExDraft(mode === "create" ? null : baseEx));
+    setExEditorDraft(newExDraft(mode === "create" ? null : baseEx, mode));
     setExEditorOpen(true);
   }
   function saveExEditor() {
@@ -3300,7 +3280,7 @@ function App() {
     } else {
       const newEx = {
         ...d,
-        id: uid()
+        id: d.id || uid()
       };
       setProfile(p => ({
         ...p,
@@ -3308,7 +3288,7 @@ function App() {
       }));
     }
     setExEditorOpen(false);
-    showToast(exEditorMode === "edit" ? "Exercise patched! ⚡" : "New exercise uploaded! ⚡");
+    showToast(exEditorMode === "edit" ? "Exercise saved." : "Exercise created.");
   }
   function deleteCustomEx(id) {
     const ex = (profile.customExercises || []).find(e => e.id === id);
@@ -4972,20 +4952,16 @@ function App() {
             /* ══ EXERCISES SUB-TAB BAR ══ */
           }<div className={"log-subtab-bar"} style={{
             marginBottom: S.s14
-          }}>{[["library", "📖 Library"], ["myworkouts", "💪 My Exercises"]].map(([t, l]) => <button key={t} className={`log-subtab-btn ${exSubTab === t ? "on" : ""}`} onClick={() => setExSubTab(t)}>{l}</button>)}</div>
+          }}>{[["library", "Library"], ["myworkouts", "My Exercises"]].map(([t, l]) => <button key={t} className={`log-subtab-btn ${exSubTab === t ? "on" : ""}`} onClick={() => setExSubTab(t)}>{l}</button>)}</div>
 
           {/* ══ LIBRARY SUB-TAB ══ */}{exSubTab === "library" && <ExerciseLibraryTab
             libFiltered={libFiltered}
-            libDiscoverPicks={profile.libDiscoverPicks || DEFAULT_DISCOVER_PICKS}
-            setLibDiscoverPicks={setLibDiscoverPicks}
             _exReady={_exReady}
             _exLoadError={_exLoadError}
             libTypeCounts={libTypeCounts}
             libMuscleCounts={libMuscleCounts}
             libEquipCounts={libEquipCounts}
             libMuscleCardData={libMuscleCardData}
-            libDiscoverRows={libDiscoverRows}
-            libDiscoverCategoryCounts={libDiscoverCategoryCounts}
             libMuscleOpts={libMuscleOpts}
             libEquipOpts={libEquipOpts}
             setLibSearchDebounced={setLibSearchDebounced}
@@ -4997,25 +4973,23 @@ function App() {
             setLibEquipFilters={setLibEquipFilters}
             debouncedSetLibSearch={debouncedSetLibSearch}
             setLibDetailEx={setLibDetailEx}
-            libSelectMode={libSelectMode}
             cartIds={stagedIds}
             isInCart={isInCart}
             toggleCart={toggleCart}
-            setLibSelectMode={setLibSelectMode}
             profile={profile}
             setProfile={setProfile}
             allExercises={allExercises}
             allExById={allExById}
+            openExEditor={openExEditor}
+            onSeeAllFavorites={() => setExSubTab("myworkouts")}
           />
           /* ══ MY WORKOUTS SUB-TAB ══ */}{exSubTab === "myworkouts" && (
             <MyWorkoutsSubTab
               profile={profile}
               setProfile={setProfile}
               allExById={allExById}
-              favSelectMode={favSelectMode}
               isInCart={isInCart}
               toggleCart={toggleCart}
-              setFavSelectMode={setFavSelectMode}
               setLibDetailEx={setLibDetailEx}
               openExEditor={openExEditor}
               deleteCustomEx={deleteCustomEx}

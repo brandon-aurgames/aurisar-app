@@ -7,29 +7,16 @@ import { DIFF_FG, DIFF_BG } from './difficulty';
 import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
 /**
- * The exercise list row, shared by the library tab and the workout-builder
- * picker.
+ * Shared exercise row — Library, My Exercises, and the workout-builder picker.
  *
- * These were two hand-written copies that had already drifted — the library
- * showed equipment and a favourite star, the picker a "custom" badge — and
- * both were a plain `<div>` with an `onClick`, so the entire exercise list was
- * unreachable by keyboard and announced as nothing in particular.
- *
- * Accessibility approach: the row stays a layout container and the primary
- * action is a real `<button>` wrapping the name, stretched over the whole row
- * by an absolutely-positioned `::after`. That gives correct semantics and a
- * focus ring without nesting the favourite button inside another button (which
- * is invalid, and hides the inner control from assistive tech), and without
- * changing a single box in the layout — the overlay is out of flow.
+ * Library / My Exercises pass onToggleSelect for a always-on checkbox; the
+ * row body still opens detail. The picker keeps tap-to-select via selectable
+ * + onActivate and does not show a checkbox.
  */
 
-// Prefer the stored difficulty, fall back to XP tiers. Was duplicated verbatim
-// in both call sites.
 function difficultyOf(ex) {
   return ex.difficulty || (ex.baseXP >= 60 ? "Advanced" : ex.baseXP >= 45 ? "Intermediate" : "Beginner");
 }
-// Difficulty colors live in ./difficulty (shared with the detail sheet and
-// My Exercises rows).
 
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -37,17 +24,14 @@ const ExerciseRow = memo(function ExerciseRow({
   ex,
   onActivate,
   selected = false,
-  // Selection semantics: when the row toggles membership rather than opening
-  // something, it reports pressed state instead of acting as a plain button.
   selectable = false,
-  // Optional trimmings — the two call sites want different subsets.
+  onToggleSelect,
   showEquipment = false,
   showPB = false,
   showCustomBadge = false,
   isFav,
   onToggleFav,
-  // react-window hands the virtualised picker a positioning style plus its own
-  // aria wiring; the library list passes a scroll-reveal ref instead.
+  trailing,
   style,
   rowRef,
   className = "",
@@ -55,13 +39,8 @@ const ExerciseRow = memo(function ExerciseRow({
 }) {
   const diffLabel = difficultyOf(ex);
   const mg = getMuscleColor(ex.muscleGroup);
-  // Callers still pass showPB; the kill switch drops the trophy (and the
-  // matching screen-reader label) without touching PB storage.
   const showPbBadge = SHOW_EXERCISE_PB_DISPLAY && showPB;
 
-  // What a screen reader hears instead of an undifferentiated "button". The
-  // trophy is aria-hidden, so the personal best has to be said here or it is
-  // invisible to anyone not looking at the icon.
   const label = [
     ex.name,
     showPbBadge ? 'personal best' : null,
@@ -79,6 +58,16 @@ const ExerciseRow = memo(function ExerciseRow({
       style={{ ...style, "--mg-color": mg }}
       {...rest}
     >
+      {onToggleSelect && (
+        <button
+          type="button"
+          className={`ex-row-check${selected ? " on" : ""}`}
+          aria-pressed={!!selected}
+          aria-label={selected ? `Remove ${ex.name}` : `Add ${ex.name}`}
+          onClick={e => { e.stopPropagation(); onToggleSelect(ex.id); }}
+        >{selected ? "✓" : ""}</button>
+      )}
+
       <div className={"picker-ex-orb"}><ExIcon ex={ex} size={"1.15rem"} color={"#e8e2d6"} /></div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -140,6 +129,8 @@ const ExerciseRow = memo(function ExerciseRow({
           background: DIFF_BG[diffLabel] || DIFF_BG.Intermediate
         }}>{diffLabel}</span>
 
+        {trailing}
+
         {onToggleFav && (
           <button
             type="button"
@@ -147,15 +138,6 @@ const ExerciseRow = memo(function ExerciseRow({
             aria-pressed={!!isFav}
             aria-label={isFav ? `Remove ${ex.name} from favourites` : `Add ${ex.name} to favourites`}
             onClick={e => { e.stopPropagation(); onToggleFav(ex.id); }}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: isFav ? "#d4cec4" : "#8a8478",
-              fontSize: FS.fs90,
-              cursor: "pointer",
-              padding: S.s0,
-              lineHeight: 1
-            }}
           >{isFav ? "⭐" : "☆"}</button>
         )}
       </div>

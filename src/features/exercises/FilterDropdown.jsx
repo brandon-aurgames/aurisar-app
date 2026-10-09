@@ -1,52 +1,62 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { S, R, FS, Z } from '../../utils/tokens';
+import Sheet from '../../components/ui/Sheet';
+
+const STEEL = "#B0A898";
+const NARROW_MQ = "(max-width: 520px)";
+
+function useNarrowFilters() {
+  const [narrow, setNarrow] = useState(() => (
+    typeof window !== "undefined" && !!window.matchMedia?.(NARROW_MQ)?.matches
+  ));
+  useEffect(() => {
+    const mq = window.matchMedia?.(NARROW_MQ);
+    if (!mq) return undefined;
+    const on = () => setNarrow(mq.matches);
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", on);
+      return () => mq.removeEventListener("change", on);
+    }
+    if (typeof mq.addListener === "function") {
+      mq.addListener(on);
+      return () => mq.removeListener(on);
+    }
+    return undefined;
+  }, []);
+  return narrow;
+}
 
 /**
- * Multi-select filter dropdown for the exercise library.
- *
- * Replaces three near-identical hand-rolled dropdowns that were plain divs
- * with onClick handlers — no roles, no aria-expanded, no keyboard path. This
- * one is a real listbox: arrows move the active option, Enter/Space toggles,
- * Escape closes and returns focus to the trigger, Home/End jump.
- *
- * Each option carries its faceted count — how many exercises selecting it
- * would leave, given the search and the other two dimensions. Options that
- * would empty the list are disabled rather than silently returning nothing,
- * which is the failure that used to read as "the catalog is broken".
+ * Multi-select filter. Desktop: dropdown listbox. Narrow viewports: bottom
+ * Sheet so the options sit in the thumb zone instead of a clipped panel.
  */
-
 function FilterDropdown({
   id,
-  label,          // "Type" — shown when nothing is selected
-  shortLabel,     // "Type" — shown with a count when something is
-  options,        // [value, ...]
-  optionLabel,    // value => display string
-  selected,       // Set
-  counts,         // Map<value, number>
-  onToggle,       // value => void
+  label,
+  shortLabel,
+  options,
+  optionLabel,
+  selected,
+  counts,
+  onToggle,
   open,
-  setOpen,        // (openOrNull) => void — null closes
-  accent,         // colour for the selected state
-  optionAccent,   // optional value => colour, for per-option tinting
-  panelBorder,
-  footer,         // optional slot rendered below the options (e.g. an
-                  // add-new-value row); clicks inside it must not toggle
-                  // options, so it manages its own handlers
+  setOpen,
+  accent = STEEL,
+  optionAccent,
+  panelBorder = "rgba(180,172,158,.14)",
+  footer,
 }) {
   const [activeIdx, setActiveIdx] = useState(-1);
   const triggerRef = useRef(null);
   const listRef = useRef(null);
   const optionRefs = useRef([]);
+  const narrow = useNarrowFilters();
 
   const enabled = useMemo(
     () => options.map(v => selected.has(v) || (counts.get(v) || 0) > 0),
     [options, selected, counts]
   );
 
-  // Opening lands the active option on the first selected entry, or the first
-  // selectable one, so keyboard users don't start from nowhere. Adjusted
-  // during render rather than in an effect — setting state from an effect here
-  // would render the list once at the wrong index and then again to correct it.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
@@ -58,11 +68,9 @@ function FilterDropdown({
     }
   }
 
-  // Focus is a DOM side effect, so it does belong in an effect. React's
-  // autoFocus is unreliable on a conditionally-rendered tabIndex={-1} node.
   useEffect(() => {
-    if (open) listRef.current?.focus();
-  }, [open]);
+    if (open && !narrow) listRef.current?.focus();
+  }, [open, narrow]);
 
   useEffect(() => {
     if (open && activeIdx >= 0) optionRefs.current[activeIdx]?.scrollIntoView({ block: 'nearest' });
@@ -97,12 +105,7 @@ function FilterDropdown({
         break;
       case 'Escape':
       case 'Tab':
-        // Escape must close only the innermost layer. Inside the workout
-        // picker the surrounding modal has its own document-level Escape
-        // handler (useModalLifecycle), so without stopping propagation one
-        // press dismissed the panel *and* the whole picker.
         if (e.key === 'Escape') e.stopPropagation();
-        // Escape closes in place; Tab closes and lets focus move on.
         if (e.key === 'Escape') { e.preventDefault(); triggerRef.current?.focus(); }
         setOpen(null);
         break;
@@ -111,13 +114,86 @@ function FilterDropdown({
   };
 
   const count = selected.size;
-  const triggerColor = count > 0 ? accent : "#8a8478";
+  const triggerColor = count > 0 ? STEEL : "#8a8478";
+
+  const optionRow = (val, i) => {
+    const sel = selected.has(val);
+    const isEnabled = enabled[i];
+    const n = counts.get(val) || 0;
+    const tint = optionAccent ? optionAccent(val) : accent;
+    const isActive = i === activeIdx;
+    return (
+      <div
+        key={val}
+        id={`${id}-opt-${i}`}
+        ref={el => { optionRefs.current[i] = el; }}
+        role="option"
+        tabIndex={-1}
+        aria-selected={sel}
+        aria-disabled={!isEnabled}
+        onClick={() => isEnabled && onToggle(val)}
+        onMouseEnter={() => isEnabled && setActiveIdx(i)}
+        className={"lib-filter-opt"}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: S.s8,
+          padding: narrow ? "12px 10px" : "6px 10px",
+          minHeight: 44,
+          borderRadius: R.md,
+          cursor: isEnabled ? "pointer" : "default",
+          opacity: isEnabled ? 1 : 0.35,
+          background: sel
+            ? `color-mix(in srgb, ${tint} 14%, transparent)`
+            : isActive ? "rgba(45,42,36,.28)" : "transparent",
+          boxShadow: isActive ? `inset 0 0 0 1px color-mix(in srgb, ${tint} 30%, transparent)` : "none",
+        }}
+      >
+        <div aria-hidden="true" style={{
+          width: 14,
+          height: 14,
+          borderRadius: R.r3,
+          flexShrink: 0,
+          border: "1.5px solid " + (sel ? tint : "rgba(180,172,158,.18)"),
+          background: sel ? `color-mix(in srgb, ${tint} 25%, transparent)` : "transparent",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          {sel && <span style={{ fontSize: FS.sm, color: tint, lineHeight: 1 }}>{"✓"}</span>}
+        </div>
+        <span style={{
+          fontSize: FS.lg,
+          color: sel ? tint : isEnabled ? "#b4ac9e" : "#8a8478",
+          whiteSpace: "nowrap",
+          flex: 1
+        }}>{optionLabel(val)}</span>
+        <span style={{
+          fontSize: FS.fs60,
+          color: isEnabled ? "#6f6a62" : "#4a463f",
+          fontVariantNumeric: "tabular-nums",
+          flexShrink: 0
+        }}>{n}</span>
+      </div>
+    );
+  };
+
+  const listboxProps = {
+    id: `${id}-listbox`,
+    role: "listbox",
+    "aria-multiselectable": "true",
+    "aria-label": label,
+    "aria-activedescendant": activeIdx >= 0 ? `${id}-opt-${activeIdx}` : undefined,
+    tabIndex: -1,
+    onKeyDown: onListKey,
+  };
 
   return (
     <div style={{ position: "relative", flex: "1 1 110px", zIndex: Z.dropdown }}>
       <button
         ref={triggerRef}
         type="button"
+        className={"lib-filter-trigger"}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={`${id}-listbox`}
@@ -125,9 +201,10 @@ function FilterDropdown({
         onKeyDown={onTriggerKey}
         style={{
           width: "100%",
+          minHeight: 44,
           padding: "8px 28px 8px 10px",
           borderRadius: R.xl,
-          border: "1px solid " + (count > 0 ? accent : "rgba(45,42,36,.3)"),
+          border: "1px solid " + (count > 0 ? "rgba(180,172,158,.35)" : "rgba(45,42,36,.3)"),
           background: "rgba(14,14,12,.95)",
           color: triggerColor,
           fontSize: FS.lg,
@@ -149,18 +226,29 @@ function FilterDropdown({
         }}>{"▼"}</span>
       </button>
 
-      {open && <div
+      {open && narrow && (
+        <Sheet
+          open
+          onClose={() => setOpen(null)}
+          layer={"modal"}
+          title={label}
+          ariaLabel={label}
+          footer={
+            <button type="button" className={"btn btn-gold-solid"} style={{ width: "100%" }} onClick={() => setOpen(null)}>
+              {"Done"}
+            </button>
+          }
+        >
+          <div ref={listRef} {...listboxProps}>
+            {options.map(optionRow)}
+            {footer}
+          </div>
+        </Sheet>
+      )}
+
+      {open && !narrow && <div
         ref={listRef}
-        id={`${id}-listbox`}
-        role="listbox"
-        aria-multiselectable="true"
-        aria-label={label}
-        // Focus stays on the listbox and the "current" option is announced via
-        // activedescendant, which is what lets one keydown handler drive the
-        // whole list instead of roving tabindex across every option.
-        aria-activedescendant={activeIdx >= 0 ? `${id}-opt-${activeIdx}` : undefined}
-        tabIndex={-1}
-        onKeyDown={onListKey}
+        {...listboxProps}
         style={{
           position: "absolute",
           top: "calc(100% + 4px)",
@@ -172,70 +260,12 @@ function FilterDropdown({
           border: `1px solid ${panelBorder}`,
           borderRadius: R.xl,
           padding: "6px 4px",
-          zIndex: Z.dropdown + 1, // listbox sits one above its dropdown container; no exact Z token
+          zIndex: Z.dropdown + 1,
           boxShadow: "0 8px 24px rgba(0,0,0,.6)",
           outline: "none"
         }}
       >
-        {options.map((val, i) => {
-          const sel = selected.has(val);
-          const isEnabled = enabled[i];
-          const n = counts.get(val) || 0;
-          const tint = optionAccent ? optionAccent(val) : accent;
-          const isActive = i === activeIdx;
-          return (
-            <div
-              key={val}
-              id={`${id}-opt-${i}`}
-              ref={el => { optionRefs.current[i] = el; }}
-              role="option"
-              tabIndex={-1}
-              aria-selected={sel}
-              aria-disabled={!isEnabled}
-              onClick={() => isEnabled && onToggle(val)}
-              onMouseEnter={() => isEnabled && setActiveIdx(i)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: S.s8,
-                padding: "6px 10px",
-                borderRadius: R.md,
-                cursor: isEnabled ? "pointer" : "default",
-                opacity: isEnabled ? 1 : 0.35,
-                background: sel
-                  ? `color-mix(in srgb, ${tint} 14%, transparent)`
-                  : isActive ? "rgba(45,42,36,.28)" : "transparent",
-                boxShadow: isActive ? `inset 0 0 0 1px color-mix(in srgb, ${tint} 30%, transparent)` : "none",
-              }}
-            >
-              <div aria-hidden="true" style={{
-                width: 14,
-                height: 14,
-                borderRadius: R.r3,
-                flexShrink: 0,
-                border: "1.5px solid " + (sel ? tint : "rgba(180,172,158,.18)"),
-                background: sel ? `color-mix(in srgb, ${tint} 25%, transparent)` : "transparent",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}>
-                {sel && <span style={{ fontSize: FS.sm, color: tint, lineHeight: 1 }}>{"✓"}</span>}
-              </div>
-              <span style={{
-                fontSize: FS.lg,
-                color: sel ? tint : isEnabled ? "#b4ac9e" : "#8a8478",
-                whiteSpace: "nowrap",
-                flex: 1
-              }}>{optionLabel(val)}</span>
-              <span style={{
-                fontSize: FS.fs60,
-                color: isEnabled ? "#6f6a62" : "#4a463f",
-                fontVariantNumeric: "tabular-nums",
-                flexShrink: 0
-              }}>{n}</span>
-            </div>
-          );
-        })}
+        {options.map(optionRow)}
         {footer}
       </div>}
     </div>
