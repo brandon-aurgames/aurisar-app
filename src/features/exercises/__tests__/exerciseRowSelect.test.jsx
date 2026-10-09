@@ -2,13 +2,14 @@
 import React from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import ExerciseRow from '../ExerciseRow';
+import ExerciseRow, { exerciseRowLabel } from '../ExerciseRow';
 
 const ex = {
   id: 'bench',
   name: 'Bench Press',
   category: 'strength',
   muscleGroup: 'chest',
+  equipment: 'barbell',
   baseXP: 50,
   difficulty: 'Advanced',
 };
@@ -69,4 +70,28 @@ it('row body still opens detail', () => {
   );
   fireEvent.click(screen.getByRole('button', { name: /Bench Press, Strength/ }));
   expect(onActivate).toHaveBeenCalledTimes(1);
+});
+
+it('keeps difficulty, muscle, and equipment in the accessible label', () => {
+  expect(exerciseRowLabel(ex)).toBe('Bench Press, Strength, Chest, Barbell, Advanced');
+  expect(exerciseRowLabel({
+    name: 'Jog',
+    category: 'cardio',
+    muscleGroup: 'cardio',
+    equipment: 'bodyweight',
+    baseXP: 20,
+  })).toBe('Jog, Cardio, Cardio, Bodyweight, Beginner');
+  render(
+    <ExerciseRow
+      ex={ex}
+      onActivate={() => {}}
+      onToggleSelect={() => {}}
+    />
+  );
+  const nameBtn = screen.getByRole('button', { name: 'Bench Press, Strength, Chest, Barbell, Advanced' });
+  expect(nameBtn.textContent).toBe('Bench Press');
+  expect(nameBtn.getAttribute('aria-label')).toContain('Advanced');
+  expect(document.querySelector('.picker-ex-meta').textContent).toMatch(/Chest/);
+  expect(document.querySelector('.picker-ex-meta').textContent).toMatch(/Barbell/);
+  expect(document.querySelector('.picker-ex-xp')).toBeNull();
 });

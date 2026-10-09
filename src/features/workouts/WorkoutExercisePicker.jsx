@@ -11,6 +11,7 @@ import {
 } from '../exercises/exerciseFilterOptions';
 import TechSearch from '../exercises/TechSearch';
 import { buildGroupedItems, muscleKey } from './pickerGrouping';
+import { EX_ROW_H, EX_ROW_SLOT_PAD_Y, EX_PICKER_HEADER_H } from '../exercises/exerciseRowLayout';
 
 // Module scope so the memo'd FilterDropdown sees a stable optionLabel identity.
 const typeLabel = v => TYPE_LABELS[v];
@@ -25,11 +26,11 @@ const typeLabel = v => TYPE_LABELS[v];
  * Uses createPortal to render into document.body.
  */
 
-const HEADER_H = 44;
-// Compact picker slot: 12px horizontal inset + 6px vertical padding inside
-// the card. Tall enough for a two-line clamped name plus its meta line —
-// 60 used to clip and overlap on phones. The library list stays at 88.
-const ROW_H = 72;
+const HEADER_H = EX_PICKER_HEADER_H;
+// Compact picker slot: matches the shared ~56px ExerciseRow. Group headers
+// stay a 44px target. Slot padding is hairline only — leftover from a taller
+// ROW_H would show as gaps, a shorter one would overlap the next card.
+const ROW_H = EX_ROW_H;
 
 // One row adapter for the virtualised list. Each item is either a collapsible
 // muscle-group header or an exercise row (the shared ExerciseRow) — react-window
@@ -59,7 +60,7 @@ const WbPickerItem = React.memo(function WbPickerItem({
   }
   const ex = it.ex;
   return (
-    <div style={{ ...style, padding: "3px 12px" }} {...ariaAttributes}>
+    <div style={{ ...style, padding: `${EX_ROW_SLOT_PAD_Y}px 12px` }} {...ariaAttributes}>
       <ExerciseRow
         ex={ex}
         selected={selIds.has(ex.id)}

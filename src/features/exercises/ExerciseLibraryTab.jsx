@@ -11,6 +11,7 @@ import { TYPE_OPTS, TYPE_LABELS, muscleLabel, equipLabel } from './exerciseFilte
 import { measureVisibleListHeight } from './visibleListHeight';
 import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 import { recentExerciseIds, resolveFavoriteExercises, HOME_ROW_COUNT } from './recentExercises';
+import { EX_ROW_H, EX_ROW_SLOT_PAD_Y } from './exerciseRowLayout';
 
 const STEEL = "#B0A898";
 
@@ -21,7 +22,7 @@ const LibExRow = React.memo(function LibExRow({
   const ex = exercises[index];
   if (!ex) return null;
   return (
-    <div style={{ ...style, paddingTop: 4, paddingBottom: 4 }} {...ariaAttributes}>
+    <div style={{ ...style, paddingTop: EX_ROW_SLOT_PAD_Y, paddingBottom: EX_ROW_SLOT_PAD_Y }} {...ariaAttributes}>
       <ExerciseRow
         ex={ex}
         selected={cartSet.has(ex.id)}
@@ -88,7 +89,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
   const listRef = useRef(null);
   const vlistWrapRef = useRef(null);
   const listSaveTimer = useRef(null);
-  const LIB_ROW_H = 88;
+  const LIB_ROW_H = EX_ROW_H;
   const LIST_SCROLL_KEY = 'aurisar-scroll:lib-filtered-list';
 
   const cartSet = useMemo(() => new Set(cartIds), [cartIds]);
@@ -296,21 +297,6 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
         >{"✕"}</button>
       </div>}
 
-      {recentHome.length > 0 && <div className={"lib-home-section lib-home-section--compact"}>
-        <div className={"lib-section-hdr"}>{"Recent"}</div>
-        <HomeExList items={recentHome} {...homeRowProps} />
-      </div>}
-
-      {favHome.length > 0 && <div className={"lib-home-section lib-home-section--compact"}>
-        <div className={"lib-home-section-head"}>
-          <span className={"lib-section-hdr"} style={{ marginBottom: 0 }}>{"Favorites"}</span>
-          {onSeeAllFavorites && (profile.favoriteExercises || []).length > HOME_ROW_COUNT && (
-            <button type="button" className={"lib-see-all btn-sm"} onClick={onSeeAllFavorites}>{"See All"}</button>
-          )}
-        </div>
-        <HomeExList items={favHome} {...homeRowProps} />
-      </div>}
-
       <div className={"lib-home-section"}>
         <div className={"lib-section-hdr"}>{"Browse by muscle"}</div>
         <div className={"lib-muscle-grid"}>
@@ -337,6 +323,21 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
           ))}
         </div>
       </div>
+
+      {recentHome.length > 0 && <div className={"lib-home-section lib-home-section--compact"}>
+        <div className={"lib-section-hdr"}>{"Recent"}</div>
+        <HomeExList items={recentHome} {...homeRowProps} />
+      </div>}
+
+      {favHome.length > 0 && <div className={"lib-home-section lib-home-section--compact"}>
+        <div className={"lib-home-section-head"}>
+          <span className={"lib-section-hdr"} style={{ marginBottom: 0 }}>{"Favorites"}</span>
+          {onSeeAllFavorites && (profile.favoriteExercises || []).length > HOME_ROW_COUNT && (
+            <button type="button" className={"lib-see-all btn-sm"} onClick={onSeeAllFavorites}>{"See All"}</button>
+          )}
+        </div>
+        <HomeExList items={favHome} {...homeRowProps} />
+      </div>}
     </div>}
 
     {libBrowseMode === "filtered" && <div className={"lib-filtered-view"}>
