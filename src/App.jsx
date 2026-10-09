@@ -42,6 +42,7 @@ import { useAvatarConfig } from './features/avatar/useAvatarConfig.js';
 import MapOverlay from './features/character/MapOverlay';
 import WorkoutsTabContainer from './features/workouts/WorkoutsTabContainer';
 import { normalizeSupersetGroups } from './features/workouts/supersetModel';
+import { liveStartAction } from './features/workouts/liveSession';
 import CompletionModal from './features/workouts/CompletionModal';
 import CalendarTab from './features/calendar/CalendarTab';
 import LeaderboardTab from './features/leaderboard/LeaderboardTab';
@@ -625,6 +626,7 @@ function App() {
     try { return JSON.parse(localStorage.getItem('aurisar-live-workout') || 'null'); } catch { return null; }
   });
   const [pendingLiveWorkout, setPendingLiveWorkout] = useState(null);
+  const [liveOpenSignal, setLiveOpenSignal] = useState(0);
   // Set only by Repeat Last just before it opens the replace-confirm, so
   // confirmReplaceLiveWorkout knows to toast — a plain Start-triggered
   // replace (Workouts tab, StartDock) has nothing to say beyond the confirm
@@ -3832,16 +3834,23 @@ function App() {
   }
 
   function startLiveWorkout(wo) {
-    if (liveWorkout && liveWorkout.workoutId !== wo.id) {
+    const action = liveStartAction(liveWorkout, wo);
+    if (action === "resume") {
+      setLiveOpenSignal(n => n + 1);
+      return;
+    }
+    if (action === "replace") {
       setPendingLiveWorkout(wo);
       return;
     }
     setLiveWorkout({ workoutId: wo.id, name: wo.name, icon: wo.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(wo), userId: authUser?.id || null });
+    setLiveOpenSignal(n => n + 1);
   }
 
   function confirmReplaceLiveWorkout() {
     setLiveWorkout({ workoutId: pendingLiveWorkout.id, name: pendingLiveWorkout.name, icon: pendingLiveWorkout.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(pendingLiveWorkout), userId: authUser?.id || null });
     setPendingLiveWorkout(null);
+    setLiveOpenSignal(n => n + 1);
     // Only Repeat Last's replace-confirm stamps this — a plain "Start"
     // replace (Workouts tab, StartDock) confirms silently, same as before.
     if (pendingLiveWorkoutToastRef.current) {
@@ -3898,12 +3907,18 @@ function App() {
   }
 
   function handleAddLiveEx(exId, sets, reps, weightLbs) {
-    const exData = allExById[exId];
-    const cat = (exData?.category || 'strength').toLowerCase();
+    const entries = Array.isArray(exId) ? exId : [{ exId, sets, reps, weightLbs }];
     setLiveWorkout(lw => {
       if (!lw) return null;
-      const newEx = { exId, name: exData?.name || exId, category: cat, noSets: NO_SETS_EX_IDS.has(exId), sets, reps, weightLbs: weightLbs || null, extraRows: [], setsDesc: `${sets}×${reps}`, supersetWith: null, done: false };
-      return { ...lw, exercises: [...lw.exercises, newEx] };
+      const added = entries.map(e => {
+        const id = e.exId;
+        const exData = allExById[id];
+        const cat = (exData?.category || 'strength').toLowerCase();
+        const s = e.sets || '3';
+        const r = e.reps || '10';
+        return { exId: id, name: exData?.name || id, category: cat, noSets: NO_SETS_EX_IDS.has(id), sets: s, reps: r, weightLbs: e.weightLbs || null, extraRows: [], setsDesc: `${s}×${r}`, supersetWith: null, done: false };
+      });
+      return { ...lw, exercises: [...lw.exercises, ...added] };
     });
   }
 
@@ -4203,7 +4218,7 @@ function App() {
         showToast(p.icon + " " + p.name + " scheduled for " + formatScheduledDate(spDate) + " \u2726");
       }
       setActiveTab("workouts");
-      workoutsRef.current?.showSubTab("oneoff");
+      workoutsRef.current?.showSubTab("scheduled");
     }
     setSchedulePicker(null);
   }
@@ -5298,8 +5313,8 @@ function App() {
         }
       } : null} /><StartDock profile={profile} allExById={allExById} liveWorkout={liveWorkout} stagedCount={stagedIds.length} onStartWorkout={startLiveWorkout} onQuickLogSolo={quickLogSoloEx} onSeeAll={() => guardAll(() => {
         setActiveTab("workouts");
-        workoutsRef.current?.showSubTab("oneoff");
-      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} />}{pendingLiveWorkout && <ConfirmSheet
+        workoutsRef.current?.showSubTab("scheduled");
+      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} openSignal={liveOpenSignal} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} openExEditor={openExEditor} log={profile.log} />}{pendingLiveWorkout && <ConfirmSheet
         open
         icon={"⚡"}
         title={"Replace Active Workout?"}
@@ -6086,8 +6101,8 @@ function App() {
       layer={"modal"}
       placement={"center"}
       style={{ "--mg-color": cls.color }}
-      ariaLabel={"Review battle stats"}
-      title={<span className={"stats-modal-title"}>{"📊 Review Battle Stats "}<span style={{ color: "#8a8478", fontWeight: "normal", fontSize: FS.lg }}>{"(Optional)"}</span></span>}
+      ariaLabel={"Review stats"}
+      title={<span className={"stats-modal-title"}>{"📊 Review stats "}<span style={{ color: "#8a8478", fontWeight: "normal", fontSize: FS.lg }}>{"(Optional)"}</span></span>}
       headerLeft={<button className={"btn btn-ghost btn-sm"} style={{ padding: "4px 8px", fontSize: FS.fs75, flexShrink: 0 }} onClick={() => {
         setStatsPromptModal(null);
         if (statsPromptModal.wo.soloEx && statsPromptModal.wo._soloExId) {
@@ -6329,7 +6344,7 @@ function App() {
               textTransform: "uppercase",
               letterSpacing: ".08em",
               marginBottom: S.s6
-            }}>{"💪 Re-Usable Workouts"}</div>{(profile.workouts || []).filter(w => !w.oneOff).map(wo => <button type={"button"} key={wo.id} style={{
+            }}>{"Reusable Workouts"}</div>{(profile.workouts || []).filter(w => !w.oneOff).map(wo => <button type={"button"} key={wo.id} style={{
               display: "flex",
               alignItems: "center",
               gap: S.s10,
@@ -6392,7 +6407,7 @@ function App() {
                 letterSpacing: ".08em",
                 marginBottom: S.s6,
                 marginTop: S.s10
-              }}>{"⚡ Scheduled One-Off Workouts"}</div>{scheduled.map(g => {
+              }}>{"Scheduled Workouts"}</div>{scheduled.map(g => {
                 const wo = (profile.workouts || []).find(w => w.id === g.id) || {
                   id: g.id,
                   name: g.name,
@@ -6446,7 +6461,7 @@ function App() {
                     color: "#e67e22"
                   }}>{"+ add →"}</span></button>;
               })}</>;
-          })()}{(profile.workouts || []).filter(w => !w.oneOff).length === 0 && !(profile.scheduledWorkouts || []).some(sw => sw.scheduledDate >= todayStr() && sw.sourceWorkoutId) && <div className={"empty"}>{"No workouts to add to yet."}<br />{"Create a Re-Usable Workout or schedule a One-Off first."}</div>}</div></Sheet>}{oneOffModal && createPortal(<div className={"modal-backdrop"} onClick={() => setOneOffModal(null)}><div className={"modal-sheet"} onClick={e => e.stopPropagation()} style={{
+          })()}{(profile.workouts || []).filter(w => !w.oneOff).length === 0 && !(profile.scheduledWorkouts || []).some(sw => sw.scheduledDate >= todayStr() && sw.sourceWorkoutId) && <div className={"empty"}>{"No workouts to add to yet."}<br />{"Create a reusable workout or schedule one first."}</div>}</div></Sheet>}{oneOffModal && createPortal(<div className={"modal-backdrop"} onClick={() => setOneOffModal(null)}><div className={"modal-sheet"} onClick={e => e.stopPropagation()} style={{
         borderRadius: R.r16,
         padding: S.s0
       }}><div className={"modal-body"}><div style={{
@@ -6459,7 +6474,7 @@ function App() {
               fontSize: FS.fs92,
               color: "#d4cec4",
               fontWeight: 700
-            }}>{"⚡ Name Your One-Off Workout"}</div><button className={"btn btn-ghost btn-sm"} onClick={() => setOneOffModal(null)}>{"✕"}</button></div><div className={"field"} style={{
+            }}>{"Name Your Workout"}</div><button className={"btn btn-ghost btn-sm"} onClick={() => setOneOffModal(null)}>{"✕"}</button></div><div className={"field"} style={{
             marginBottom: S.s10
           }}><label>{"Workout Name"}</label><input className={"inp"} placeholder={"e.g. Morning Push Session…"} value={oneOffModal.name} onChange={e => setOneOffModal(m => ({
               ...m,

@@ -1937,7 +1937,7 @@ return (
     }, {
       key: "reviewBattleStats",
       icon: "📊",
-      label: "Review Battle Stats",
+      label: "Review stats",
       desc: "Remind me to input Duration, Total Calories & Active Calories for each completed Workout or Exercise"
     }];
     return <div style={{

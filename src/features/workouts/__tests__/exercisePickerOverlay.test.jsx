@@ -45,9 +45,9 @@ function setup() {
   return view;
 }
 
-it('keeps the builder Add Exercise control in the techniques header', () => {
+it('keeps the builder Add exercise control in the exercises header', () => {
   const { container } = setup();
-  const add = screen.getByRole('button', { name: '＋ Add Exercise' });
+  const add = screen.getByRole('button', { name: 'Add exercise' });
   expect(add.closest('.wb-footer')).toBeNull();
   expect(add.closest('.wb-add-ex-overlay')).toBeNull();
   expect(container.querySelector('.wb-section-hdr, .wo-section-hdr')).toBeTruthy();
@@ -55,7 +55,7 @@ it('keeps the builder Add Exercise control in the techniques header', () => {
 
 it('opens a glass swipe-dismiss picker and overlays a shrink-wrapped Add N control', () => {
   setup();
-  fireEvent.click(screen.getByRole('button', { name: '＋ Add Exercise' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add exercise' }));
   const dialog = screen.getByRole('dialog', { name: 'Add exercises to workout' });
   expect(dialog.classList.contains('ui-sheet--glass')).toBe(true);
   expect(dialog.classList.contains('ui-sheet--swipe')).toBe(true);
@@ -74,4 +74,8 @@ it('opens a glass swipe-dismiss picker and overlays a shrink-wrapped Add N contr
   expect(btnRule).not.toMatch(/width:\s*100%/);
   expect(css).toMatch(/\.wb-picker-sheet\{[^}]*height:\s*100%/);
   expect(css).toMatch(/\.ui-sheet-backdrop:has\(\.wb-picker-sheet\)\{[^}]*align-items:\s*stretch/);
+});
+
+it('keeps wide builder tools in a header row above 480px', () => {
+  expect(css).toMatch(/\.wb-ex-tools-wide\{display:flex;align-items:center;/);
 });
