@@ -142,7 +142,6 @@ const QuickLogModal = memo(function QuickLogModal({
   const pbDisp = SHOW_EXERCISE_PB_DISPLAY ? displayPace(pbPaceMi, profile.units) : null;
   const exPB4 = SHOW_EXERCISE_PB_DISPLAY ? (profile.exercisePBs || {})[ex.id] || null : null;
   const exPBDisp4 = formatPbValue(exPB4, profile.units);
-    : null;
 
   const durationMin = parseFloat(reps || 0);
   const runPace = isRunning && distMi > 0 && durationMin > 0 ? durationMin / distMi : null;
