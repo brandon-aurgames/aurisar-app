@@ -1,17 +1,20 @@
-import React, { memo, useMemo, useRef } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ExIcon } from '../../components/ExIcon';
 import { getMuscleColor, getTypeColor, calcExXP, calcExEntryXP, calcWorkoutXP } from '../../utils/xp';
-import { lbsToKg, isMetric, displayWt } from '../../utils/units';
+import { lbsToKg, isMetric, displayWt, displayPace } from '../../utils/units';
 import { formatXP } from '../../utils/format';
 import { todayStr } from '../../utils/helpers';
-import { combineHHMMSec, daysUntil } from '../../utils/time';
+import { combineHHMMSec, daysUntil, formatLastDone } from '../../utils/time';
 import { S, R, FS, Z } from '../../utils/tokens';
 import SetsEditor from '../../components/ui/SetsEditor';
 import FilterDropdown from '../exercises/FilterDropdown';
 import IconButton from '../../components/ui/IconButton';
 import Sheet from '../../components/ui/Sheet';
+import ConfirmSheet from '../../components/ui/ConfirmSheet';
 import WorkoutDetails from './WorkoutDetails';
 import { buildWorkoutObject } from './workoutModel';
+import { formatExPb } from './formatExPb';
+import { builderDraftIsDirty, serializeBuilderDraft } from './builderDraft';
 import {
   SS_MAX,
   adjacentGroupId,
@@ -118,9 +121,110 @@ function getWorkoutMgColor(wo, exById, mgColors) {
   return top && mgColors[top] || "#B0A090";
 }
 
+function lastDoneLabel(dateKey) {
+  return formatLastDone(dateKey);
+}
+
+function isLiveWorkout(liveWorkout, wo) {
+  return !!(liveWorkout && wo && liveWorkout.workoutId === wo.id);
+}
+
 function IntensityChip({ value }) {
   const label = { low: 'Low', moderate: 'Moderate', high: 'High' }[value];
   return label ? <span className="workout-intensity">{label} intensity</span> : null;
+}
+
+function prefersReducedMotion() {
+  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function WbExOverflowMenu({
+  exName,
+  index,
+  canMoveUp,
+  canMoveDown,
+  grouped,
+  exCount,
+  ssOn,
+  onMove,
+  onToggleSuperset,
+  onRemove,
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const menuId = `wb-ex-menu-${index}`;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const menu = menuRef.current;
+    const items = () => [...(menu?.querySelectorAll('[role="menuitem"]:not(:disabled)') ?? [])];
+    items()[0]?.focus();
+    function onKey(e) {
+      if (!open) return;
+      const enabled = items();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      if (!enabled.length) return;
+      const i = Math.max(0, enabled.indexOf(document.activeElement));
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const dir = e.key === "ArrowDown" ? 1 : -1;
+        enabled[(i + dir + enabled.length) % enabled.length]?.focus();
+        return;
+      }
+      if (e.key === "Home") {
+        e.preventDefault();
+        enabled[0]?.focus();
+        return;
+      }
+      if (e.key === "End") {
+        e.preventDefault();
+        enabled.at(-1)?.focus();
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const dir = e.shiftKey ? -1 : 1;
+        enabled[(i + dir + enabled.length) % enabled.length]?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [open]);
+
+  function close({ restore = false } = {}) {
+    setOpen(false);
+    if (restore) triggerRef.current?.focus();
+  }
+
+  return <div className={"wb-ex-overflow"}><button ref={triggerRef} type={"button"} className={"wb-ex-overflow-btn"} aria-label={`More actions for ${exName}`} aria-haspopup={"menu"} aria-expanded={open} aria-controls={menuId} onClick={e => {
+        e.stopPropagation();
+        setOpen(v => !v);
+      }}>{"···"}</button>{open && <><div className={"wb-ex-menu-scrim"} onClick={e => {
+        e.stopPropagation();
+        close({ restore: true });
+      }} /><div ref={menuRef} id={menuId} className={"wb-ex-menu"} role={"menu"}><button type={"button"} role={"menuitem"} disabled={!canMoveUp} onClick={e => {
+        e.stopPropagation();
+        onMove(-1);
+        close();
+      }}>{"Move up"}</button><button type={"button"} role={"menuitem"} disabled={!canMoveDown} onClick={e => {
+        e.stopPropagation();
+        onMove(1);
+        close();
+      }}>{"Move down"}</button>{!grouped && exCount >= 2 && <button type={"button"} role={"menuitem"} onClick={e => {
+        onToggleSuperset(e);
+        close();
+      }}>{ssOn ? "Unmark superset" : "Mark as superset"}</button>}<button type={"button"} role={"menuitem"} className={"danger"} onClick={e => {
+        e.stopPropagation();
+        onRemove();
+        close();
+      }}>{"Remove"}</button></div></>}</div>;
 }
 
 function SsStagingBar({ count, joinLetter, onGroup, onCancel }) {
@@ -140,7 +244,6 @@ const WbExCard = React.memo(function WbExCard({
   collapsed,
   profile,
   allExById,
-  metric,
   setWbExercises,
   setCollapsedWbEx,
   setSsChecked,
@@ -175,47 +278,46 @@ const WbExCard = React.memo(function WbExCard({
   const noSetsEx = NO_SETS_EX_IDS.has(exD.id);
   const isRunningEx = exD.id === RUNNING_EX_ID;
   const age = profile.age || 30;
-  const pbPaceMi = profile.runningPB || null;
-  const pbDisp = pbPaceMi ? metric ? parseFloat((pbPaceMi * 1.60934).toFixed(2)) + " min/km" : parseFloat(pbPaceMi.toFixed(2)) + " min/mi" : null;
-  const exPB = (profile.exercisePBs || {})[exD.id] || null;
-  const exPBDisp = exPB ? exPB.type === "cardio" ? metric ? parseFloat((exPB.value * 1.60934).toFixed(2)) + " min/km" : parseFloat(exPB.value.toFixed(2)) + " min/mi" : exPB.type === "assisted" ? "🏆 1RM: " + exPB.value + (metric ? " kg" : " lbs") + " (Assisted)" : "🏆 1RM: " + exPB.value + (metric ? " kg" : " lbs") : null;
+  const pbDisp = displayPace(profile.runningPB || null, profile.units);
+  const exPBDisp = formatExPb((profile.exercisePBs || {})[exD.id], profile.units);
+  function toggleSuperset(e) {
+    e.stopPropagation();
+    setSsChecked(prev => {
+      const n = new Set(prev);
+      if (n.has(i)) n.delete(i); else {
+        if (n.size >= SS_MAX) {
+          const oldest = [...n][0];
+          n.delete(oldest);
+        }
+        n.add(i);
+      }
+      return n;
+    });
+  }
   const durationMin = parseFloat(ex.reps || 0);
   const distMiVal = ex.distanceMi ? parseFloat(ex.distanceMi) : 0;
   const runPace = isRunningEx && distMiVal > 0 && durationMin > 0 ? durationMin / distMiVal : null;
   const runBoostPct = runPace ? runPace <= 8 ? 20 : 5 : 0;
   const mgColor = getMuscleColor(exD.muscleGroup);
-  return <><div className={"wb-ex-hdr"} onClick={() => toggleCollapse()}><div className={"wb-reorder"}><IconButton label={`Move ${exD.name} up`} size={20} disabled={!canMoveUp} onClick={e => {
+  const reorderBtns = <div className={"wb-reorder"}><IconButton label={`Move ${exD.name} up`} size={20} disabled={!canMoveUp} onClick={e => {
           e.stopPropagation();
           reorder(-1);
         }}>{"▲"}</IconButton><IconButton label={`Move ${exD.name} down`} size={20} disabled={!canMoveDown} onClick={e => {
           e.stopPropagation();
           reorder(1);
-        }}>{"▼"}</IconButton></div>{!grouped && exCount >= 2 && <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: S.s4,
-        cursor: "pointer",
-        flexShrink: 0
-      }} title={"Select for superset"} onClick={e => {
-        e.stopPropagation();
-        setSsChecked(prev => {
-          const n = new Set(prev);
-          if (n.has(i)) n.delete(i);else {
-            if (n.size >= SS_MAX) {
-              const oldest = [...n][0];
-              n.delete(oldest);
-            }
-            n.add(i);
-          }
-          return n;
-        });
-      }}><div className={`ss-cb ${ssChecked.has(i) ? "on" : ""}`} /><span style={{
+        }}>{"▼"}</IconButton></div>;
+  const supersetBtn = !grouped && exCount >= 2 ? <button type={"button"} className={"ss-cb-hit"} title={"Select for superset"} aria-pressed={ssChecked.has(i)} aria-label={`Toggle superset for ${exD.name}`} onClick={toggleSuperset}><div className={`ss-cb ${ssChecked.has(i) ? "on" : ""}`} /><span style={{
           fontSize: FS.fs55,
           color: ssChecked.has(i) ? "#b0b8c0" : "#8a8f96",
           fontWeight: 600,
           letterSpacing: ".03em",
           userSelect: "none"
-        }}>{"Superset"}</span></div>}<span data-drag-handle={"true"} className={"drag-handle"} aria-hidden={"true"} title={"Drag to reorder"}>{"⠿"}</span><div className={"builder-ex-orb"} style={{
+        }}>{"Superset"}</span></button> : null;
+  const removeBtn = <button type={"button"} aria-label={`Remove ${exD.name}`} title={"Remove"} className={"btn btn-danger btn-xs"} onClick={e => {
+        e.stopPropagation();
+        removeEx();
+      }}>{"✕"}</button>;
+  return <><div className={"wb-ex-hdr"} onClick={() => toggleCollapse()}><div className={"wb-ex-tools-wide"}>{reorderBtns}{supersetBtn}</div><span data-drag-handle={"true"} className={"drag-handle"} aria-hidden={"true"} title={"Drag to reorder"}>{"⠿"}</span><div className={"builder-ex-orb"} style={{
         "--mg-color": mgColor
       }}><ExIcon ex={exD} size={".95rem"} color={"#d4cec4"} /></div><div className={"builder-ex-name-styled"}>{exD.name}{exD.custom && <span className={"custom-ex-badge"} style={{
           marginLeft: S.s4
@@ -249,10 +351,7 @@ const WbExCard = React.memo(function WbExCard({
         transform: collapsed ? "rotate(0deg)" : "rotate(180deg)",
         flexShrink: 0,
         lineHeight: 1
-      }}>{"▼"}</span><button type={"button"} aria-label={`Remove ${exD.name}`} title={"Remove"} className={"btn btn-danger btn-xs"} onClick={e => {
-        e.stopPropagation();
-        removeEx();
-      }}>{"✕"}</button></div>{!collapsed && exD.id !== "rest_day" && <div className={"wb-ex-body"}>
+      }}>{"▼"}</span><div className={"wb-ex-tools-wide"}>{removeBtn}</div><WbExOverflowMenu exName={exD.name} index={i} canMoveUp={canMoveUp} canMoveDown={canMoveDown} grouped={grouped} exCount={exCount} ssOn={ssChecked.has(i)} onMove={reorder} onToggleSuperset={toggleSuperset} onRemove={removeEx} /></div>{!collapsed && exD.id !== "rest_day" && <div className={"wb-ex-body"}>
     <SetsEditor exD={exD} value={ex} onField={updateField} units={profile.units} age={age} variant={"builder"} />
   </div>}</>;
 });
@@ -268,7 +367,6 @@ const WorkoutsTab = memo(function WorkoutsTab({
   newLabelInput, setNewLabelInput,
   // Active workout
   activeWorkout, setActiveWorkout,
-  collapsedWo, setCollapsedWo,
   // Live workout tracker
   liveWorkout, startLiveWorkout,
   // Profile
@@ -293,12 +391,10 @@ const WorkoutsTab = memo(function WorkoutsTab({
   wbTotalCal, setWbTotalCal,
   wbCopySource, setWbCopySource,
   wbIconPickerOpen, setWbIconPickerOpen,
-  wbExPickerOpen, setWbExPickerOpen,
+  setWbExPickerOpen,
   wbTotalXP,
   collapsedWbEx, setCollapsedWbEx,
   ssChecked, setSsChecked,
-  ssAccordion, setSsAccordion,
-  dragWbExIdx, setDragWbExIdx,
   // Callbacks (defined in App)
   initWorkoutBuilder,
   copyWorkout,
@@ -323,6 +419,92 @@ const WorkoutsTab = memo(function WorkoutsTab({
 }) {
 const metric = isMetric(profile.units);
 const allW = useMemo(() => profile.workouts || [], [profile.workouts]);
+const [woSearch, setWoSearch] = useState("");
+const [woSort, setWoSort] = useState("recent");
+const [helpOpen, setHelpOpen] = useState(false);
+const [wbNameError, setWbNameError] = useState("");
+const [confirmCancel, setConfirmCancel] = useState(false);
+const wbNameRef = useRef(null);
+const builderBaselineRef = useRef(null);
+const builderFieldsRef = useRef(null);
+builderFieldsRef.current = {
+  name: wbName,
+  icon: wbIcon,
+  desc: wbDesc,
+  intensity: wbIntensity,
+  exercises: wbExercises,
+  duration: wbDuration,
+  durationSec: wbDurSec,
+  activeCal: wbActiveCal,
+  totalCal: wbTotalCal,
+  labels: wbLabels,
+};
+useEffect(() => {
+  if (workoutView !== "builder") {
+    builderBaselineRef.current = null;
+    return;
+  }
+  builderBaselineRef.current = serializeBuilderDraft(builderFieldsRef.current);
+}, [workoutView]);
+const lastDoneMap = useMemo(() => {
+  const m = new Map();
+  for (const e of profile.log || []) {
+    if (!e.sourceWorkoutId || !e.dateKey) continue;
+    const prev = m.get(e.sourceWorkoutId);
+    if (!prev || e.dateKey > prev) m.set(e.sourceWorkoutId, e.dateKey);
+  }
+  return m;
+}, [profile.log]);
+const reusableFiltered = useMemo(() => {
+  const q = woSearch.trim().toLowerCase();
+  let list = allW.filter(w => !w.oneOff);
+  if (woLabelFilters.size > 0) list = list.filter(w => (w.labels || []).some(l => woLabelFilters.has(l)));
+  if (q) list = list.filter(w => (w.name || "").toLowerCase().includes(q));
+  return [...list].sort((a, b) => {
+    if (woSort === "name") return (a.name || "").localeCompare(b.name || "");
+    const da = lastDoneMap.get(a.id) || "";
+    const db = lastDoneMap.get(b.id) || "";
+    if (da !== db) return db.localeCompare(da);
+    return (a.name || "").localeCompare(b.name || "");
+  });
+}, [allW, woLabelFilters, woSearch, woSort, lastDoneMap]);
+function guardWbName() {
+  if (!wbName.trim()) {
+    setWbNameError("Name your workout first.");
+    const el = wbNameRef.current;
+    if (el) {
+      el.scrollIntoView({
+        block: "center",
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
+      el.focus();
+    }
+    return false;
+  }
+  setWbNameError("");
+  return true;
+}
+function leaveBuilder() {
+  setWorkoutView("list");
+  setWbCopySource(null);
+  setWbIsOneOff(false);
+  setWbEditId(null);
+  setWbDuration("");
+  setWbDurSec("");
+  setWbActiveCal("");
+  setWbTotalCal("");
+  setWbLabels([]);
+  setNewLabelInput("");
+  setWbNameError("");
+  setConfirmCancel(false);
+}
+function requestLeaveBuilder() {
+  if (builderDraftIsDirty(builderBaselineRef.current, builderFieldsRef.current)) {
+    setConfirmCancel(true);
+    return;
+  }
+  leaveBuilder();
+}
 // Per-workout XP + accent, computed once per relevant-input change rather
 // than per card on every render. Keyed on the workout list, the class
 // (multiplier) and the catalog.
@@ -335,7 +517,6 @@ const woMeta = useMemo(() => {
     });
   }
   return m;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [allW, profile.chosenClass, allExById]);
 const woLabelCounts = useMemo(() => {
   const c = new Map();
@@ -359,28 +540,12 @@ useBuilderPointerDnd({
 // ── LIST ───────────────────────────────
 if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div style={{
       marginBottom: S.s8
-    }}><div className={"rpg-sec-header rpg-sec-header-center"}><div className={"rpg-sec-line rpg-sec-line-l"} /><span className={"rpg-sec-title"}>{"✦ Arsenal ✦"}<span className={"info-icon"} style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 16,
-            height: 16,
-            borderRadius: "50%",
-            border: "1px solid rgba(180,172,158,.15)",
-            fontSize: FS.fs48,
-            fontWeight: 700,
-            color: "#8a8478",
-            fontStyle: "normal",
-            marginLeft: S.s6,
-            verticalAlign: "middle",
-            cursor: "pointer",
-            position: "relative"
-          }}>{"?"}<span className={"info-tooltip"}>{"Pre-defined groups of exercises. Build once, reuse anytime in plans or as one-off sessions."}</span></span></span><div className={"rpg-sec-line rpg-sec-line-r"} /></div></div>
+    }}><div className={"rpg-sec-header rpg-sec-header-center"}><div className={"rpg-sec-line rpg-sec-line-l"} /><span className={"rpg-sec-title"}>{"✦ Workouts ✦"}<button type={"button"} className={`info-icon${helpOpen ? " open" : ""}`} aria-label={"About workouts"} aria-expanded={helpOpen} onClick={() => setHelpOpen(v => !v)}>{"?"}<span className={"info-tooltip"}>{"Saved workouts you can start at the gym or log after. Build once, reuse anytime."}</span></button></span><div className={"rpg-sec-line rpg-sec-line-r"} /></div></div>
     {
       /* Subtabs */
     }<div className={"log-subtab-bar"} style={{
       marginBottom: S.s0
-    }}>{[["reusable", "⚔ Re-Usable"], ["oneoff", "⚡ One-Off"]].map(([t, l]) => <button key={t} className={`log-subtab-btn ${workoutSubTab === t ? "on" : ""}`} onClick={() => setWorkoutSubTab(t)}>{l}</button>)}</div></div>
+    }}>{[["reusable", "Reusable"], ["scheduled", "Scheduled"]].map(([t, l]) => <button key={t} className={`log-subtab-btn ${workoutSubTab === t ? "on" : ""}`} onClick={() => setWorkoutSubTab(t)}>{l}</button>)}</div></div>
   {
     /* Label filter dropdown */
   }{(profile.workoutLabels || []).length > 0 && <div style={{
@@ -438,24 +603,24 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
       }}>{"+"}</button></div>}
     />{woLabelFilters.size > 0 && <button className={"btn btn-ghost btn-xs"} style={{
       fontSize: FS.sm,
-      color: "#8a8478",
+      color: "#b4ac9e",
       alignSelf: "center"
     }} onClick={() => setWoLabelFilters(new Set())}>{"Clear"}</button>}</div>}{workoutSubTab === "reusable" && <><div style={{
       display: "flex",
       gap: S.s8,
       marginBottom: S.s14
-    }}><button className={"btn btn-gold btn-sm"} onClick={() => initWorkoutBuilder(null)}>{"＋ New Workout"}</button><button className={"btn btn-ghost btn-sm"} onClick={() => setWorkoutView("recipes")}>{"📋 Recipes"}</button></div>{(() => {
+    }}><button className={"btn btn-gold-solid btn-sm"} onClick={() => initWorkoutBuilder(null)}>{"＋ New Workout"}</button><button className={"btn btn-ghost btn-sm"} onClick={() => setWorkoutView("recipes")}>{"📋 Recipes"}</button></div>{allW.filter(w => !w.oneOff).length > 0 && <div className={"wo-search-sort"}><input className={"inp"} type={"search"} value={woSearch} onChange={e => setWoSearch(e.target.value)} placeholder={"Search workouts…"} aria-label={"Search workouts"} /><select className={"wo-sort"} value={woSort} onChange={e => setWoSort(e.target.value)} aria-label={"Sort workouts"}><option value={"recent"}>{"Recent"}</option><option value={"name"}>{"Name"}</option></select></div>}{(() => {
       const reusableWo = allW.filter(w => !w.oneOff);
-      const filtered = reusableWo.filter(w => woLabelFilters.size === 0 || (w.labels || []).some(l => woLabelFilters.has(l)));
-      if (reusableWo.length === 0) return <div className={"empty"}>{"No reusable workouts yet."}<br />{"Create your first custom workout or start from a template."}</div>;
-      if (filtered.length === 0 && woLabelFilters.size > 0) return <div className={"empty"}>{"No workouts match the selected labels."}</div>;
+      if (reusableWo.length === 0) return <div className={"empty"} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: S.s12 }}><div>{"No reusable workouts yet."}<br />{"Create your first workout or start from a recipe."}</div><button className={"btn btn-gold-solid btn-sm"} onClick={() => initWorkoutBuilder(null)}>{"＋ New Workout"}</button></div>;
+      if (reusableFiltered.length === 0) return <div className={"empty"}>{woSearch.trim() ? "No workouts match that search." : "No workouts match the selected labels."}</div>;
       return null;
-    })()}{allW.filter(w => !w.oneOff).filter(w => woLabelFilters.size === 0 || (w.labels || []).some(l => woLabelFilters.has(l))).map(wo => {
+    })()}{reusableFiltered.map(wo => {
       const exCount = wo.exercises.length;
       const _meta = woMeta.get(wo.id) || { xp: calcWorkoutXP(wo, profile.chosenClass, allExById), mgColor: getWorkoutMgColor(wo, allExById, MUSCLE_COLORS) };
       const xp = _meta.xp;
       const woMgColor = _meta.mgColor;
-      return <div key={wo.id} className={"workout-card"} style={{
+      const live = isLiveWorkout(liveWorkout, wo);
+      return <div key={wo.id} className={`workout-card${live ? " live" : ""}`} style={{
         "--mg-color": woMgColor
       }}><div className={"workout-card-top"} style={{
           cursor: "pointer"
@@ -470,8 +635,8 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
                 })}</span><IntensityChip value={wo.intensity} />{(wo.labels || []).map(l => <span key={l} className={"wo-label-chip"} style={{
                 pointerEvents: "none",
                 marginLeft: S.s2
-              }}>{l}</span>)}</div></div><button className={`track-toggle-btn${liveWorkout?.workoutId === wo.id ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{"Track"}</button></div></div>;
-    })}</>}{workoutSubTab === "oneoff" && <>{(() => {
+              }}>{l}</span>)}</div><div className={"wo-last-done"}>{lastDoneLabel(lastDoneMap.get(wo.id))}</div></div></div><div className={"wo-card-actions"}><button className={`btn btn-gold btn-sm${live ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{live ? "Resume" : "Start"}</button><button className={"btn btn-gold btn-sm"} onClick={e => { e.stopPropagation(); openCompletionFlow(wo); }}>{"Log"}</button></div></div>;
+    })}</>}{workoutSubTab === "scheduled" && <>{(() => {
       const _now = new Date();
       const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
       const grouped = {};
@@ -494,8 +659,8 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
         return (wo && wo.labels || []).some(l => woLabelFilters.has(l));
       }).sort((a, b) => a.date.localeCompare(b.date));
       const hasSoloExs = (profile.scheduledWorkouts || []).some(sw => !sw.sourceWorkoutId && sw.exId && sw.scheduledDate >= today);
-      if (scheduled.length === 0 && !hasSoloExs && woLabelFilters.size === 0) return <div className={"empty"} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: S.s12 }}><div>{"No upcoming one-off workouts."}<br />{"Stage exercises from the Library, or build one now."}</div><button className={"btn btn-gold-solid btn-sm"} onClick={() => { initWorkoutBuilder(null); setWbIsOneOff(true); }}>{"＋ Build One-Off"}</button></div>;
-      if (scheduled.length === 0 && !hasSoloExs && woLabelFilters.size > 0) return <div className={"empty"}>{"No one-off workouts match the selected labels."}</div>;
+      if (scheduled.length === 0 && !hasSoloExs && woLabelFilters.size === 0) return <div className={"empty"} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: S.s12 }}><div>{"Nothing scheduled yet."}<br />{"Log a workout and pick a future date, or start from a saved one."}</div><button className={"btn btn-gold-solid btn-sm"} onClick={() => setWorkoutSubTab("reusable")}>{"Browse reusable workouts"}</button></div>;
+      if (scheduled.length === 0 && !hasSoloExs && woLabelFilters.size > 0) return <div className={"empty"}>{"No scheduled workouts match the selected labels."}</div>;
       if (scheduled.length === 0) return null;
       return scheduled.map(g => {
         const days = daysUntil(g.date);
@@ -522,7 +687,8 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
         };
         const xp = calcWorkoutXP(wo, profile.chosenClass, allExById);
         const woMgColor = getWorkoutMgColor(wo, allExById, MUSCLE_COLORS);
-        return <div key={g.id} className={"workout-card"} style={{
+        const live = isLiveWorkout(liveWorkout, wo);
+        return <div key={g.id} className={`workout-card${live ? " live" : ""}`} style={{
           "--mg-color": woMgColor
         }}><div className={"workout-card-top"} style={{
             cursor: "pointer"
@@ -539,18 +705,15 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
                 }}>{badgeTxt}</span><IntensityChip value={wo.intensity} />{(wo.labels || []).map(l => <span key={l} className={"wo-label-chip"} style={{
                   pointerEvents: "none",
                   marginLeft: S.s2
-                }}>{l}</span>)}</div></div><button className={`track-toggle-btn${liveWorkout?.workoutId === wo.id ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{"Track"}</button></div>
-          {
-            /* Action row */
-          }<div style={{
+                }}>{l}</span>)}</div></div></div>
+          <div className={"wo-card-actions"}><button className={`btn btn-gold btn-sm${live ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{live ? "Resume" : "Start"}</button><button className={"btn btn-gold btn-sm"} onClick={e => { e.stopPropagation(); openCompletionFlow({ ...wo, oneOff: true }); }}>{"Log"}</button></div>
+          <div style={{
             display: "flex",
             gap: S.s6,
-            marginTop: S.s6,
-            paddingTop: 6,
-            borderTop: "1px solid rgba(180,172,158,.04)"
+            marginTop: S.s6
           }}><button className={"btn btn-ghost btn-xs"} style={{
               fontSize: FS.fs62,
-              color: "#8a8478"
+              color: "#b4ac9e"
             }} onClick={() => {
               const reusable = {
                 ...wo,
@@ -563,12 +726,8 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
                 scheduledWorkouts: (p.scheduledWorkouts || []).filter(sw => sw.sourceWorkoutId !== g.id)
               }));
               setWorkoutSubTab("reusable");
-              showToast(`\uD83D\uDCAA "${wo.name}" added to Re-Usable Workouts!`);
-            }}>{"💪 Make Reusable"}</button><div style={{
-              flex: 1
-            }} /><button className={"btn btn-gold btn-sm"} onClick={() => {
-openCompletionFlow({ ...wo, oneOff: true });
-            }}>{"✓ Complete"}</button></div></div>;
+              showToast(`\uD83D\uDCAA "${wo.name}" saved as a reusable workout.`);
+            }}>{"Make reusable"}</button></div></div>;
       });
     })()}{(() => {
       const _now2 = new Date();
@@ -600,14 +759,18 @@ openCompletionFlow({ ...wo, oneOff: true });
               }}><button className={"btn btn-ghost btn-sm"} style={{
                   fontSize: FS.fs65,
                   color: "#b4ac9e",
-                  padding: "4px 6px"
-                }} onClick={e => {
+                  padding: "4px 6px",
+                  minHeight: 44,
+                  minWidth: 44
+                }} aria-label={`Log ${ex.name}`} onClick={e => {
                   e.stopPropagation();
                   openQuickLog(sw.exId);
                   setPendingSoloRemoveId(sw.id);
                 }}>{"✎"}</button><button className={"btn btn-ghost btn-sm"} style={{
-                  color: UI_COLORS.danger
-                }} onClick={() => {
+                  color: UI_COLORS.danger,
+                  minHeight: 44,
+                  minWidth: 44
+                }} aria-label={`Remove ${ex.name} from schedule`} onClick={() => {
                   // Confirm before removing, matching workout deletion — the
                   // ✕ used to delete instantly with only a toast.
                   setConfirmDelete({
@@ -733,25 +896,11 @@ if (workoutView === "recipes") {
           position: "relative",
           marginBottom: descExpanded ? 10 : 4,
           marginTop: S.s6
-        }}><div className={descExpanded ? "" : "recipe-desc-collapsed"} style={{
-            fontSize: FS.lg,
-            color: "#8a8478",
-            fontStyle: "italic",
-            lineHeight: 1.5,
-            whiteSpace: "pre-line",
-            paddingRight: 20
-          }}>{tpl.desc}</div><span className={`ex-collapse-btn ${descExpanded ? "open" : ""}`} style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            fontSize: FS.md,
-            padding: "0 4px",
-            cursor: "pointer"
-          }} onClick={() => setExpandedRecipeDesc(s => {
+        }}><div className={`recipe-desc-text${descExpanded ? "" : " recipe-desc-collapsed"}`}>{tpl.desc}</div><button type={"button"} className={`ex-collapse-btn ${descExpanded ? "open" : ""}`} aria-label={descExpanded ? `Collapse ${tpl.name} description` : `Expand ${tpl.name} description`} onClick={() => setExpandedRecipeDesc(s => {
             const n = new Set(s);
             n.has(tpl.id) ? n.delete(tpl.id) : n.add(tpl.id);
             return n;
-          })}>{"▼"}</span></div>
+          })}>{"▼"}</button></div>
         /* Exercise breakdown — collapsible, collapsed by default */}<div style={{
           background: "rgba(45,42,36,.12)",
           border: "1px solid rgba(45,42,36,.18)",
@@ -852,7 +1001,7 @@ if (workoutView === "recipes") {
             }))));
             setWbEditId(null);
             setWorkoutView("builder");
-          }}>{"✎ Customize First"}</button></div></div>;
+          }}>{"Customize"}</button></div></div>;
     })}</>;
 }
 
@@ -882,7 +1031,7 @@ if (workoutView === "detail" && activeWorkout) {
         display: "flex",
         gap: S.s6,
         flexShrink: 0
-      }}><button className={"btn btn-ghost btn-sm"} title={"Copy workout"} onClick={() => copyWorkout(wo)}>{"⎘ Copy"}</button><button className={"btn btn-ghost btn-sm"} onClick={() => initWorkoutBuilder(wo)}>{"✎ Edit"}</button></div></div>{wo.desc && <div style={{
+      }}><button className={"btn btn-ghost btn-sm"} title={"Duplicate workout"} onClick={() => copyWorkout(wo)}>{"Duplicate"}</button><button className={"btn btn-ghost btn-sm"} onClick={() => initWorkoutBuilder(wo)}>{"✎ Edit"}</button></div></div>{wo.desc && <div style={{
       fontSize: FS.fs75,
       color: "#8a8478",
       fontStyle: "italic",
@@ -920,46 +1069,35 @@ if (workoutView === "detail" && activeWorkout) {
           display: "flex",
           alignItems: "center",
           gap: S.s8
-        }}>{exD.custom && <button className={"btn btn-ghost btn-xs"} title={"Edit custom exercise"} onClick={() => openExEditor("edit", exD)}>{"✎"}</button>}<div className={"workout-detail-ex-xp"}>{"+"}{calcExXP(ex.exId, ex.sets || 3, ex.reps || 10, profile.chosenClass, allExById)}{" XP"}</div></div></div>;
+        }}>{exD.custom && <button className={"btn btn-ghost btn-xs"} title={"Edit custom exercise"} aria-label={`Edit ${exD.name}`} onClick={() => openExEditor("edit", exD)}>{"✎"}</button>}<div className={"workout-detail-ex-xp"}>{"+"}{calcExXP(ex.exId, ex.sets || 3, ex.reps || 10, profile.chosenClass, allExById)}{" XP"}</div></div></div>;
     })}<div className={"div"} /><div style={{
       display: "flex",
       gap: S.s8,
       flexWrap: "wrap"
-    }}><button className={"btn btn-glass-yellow"} style={{
-        flex: 2,
-        fontSize: FS.sm
-      }} onClick={() => {
-openCompletionFlow(wo);
-      }}>{"✓ Mark Complete or Schedule"}</button><button className={"btn btn-gold btn-sm"} style={{
+    }}><button className={`btn btn-gold${isLiveWorkout(liveWorkout, wo) ? " on" : ""}`} style={{
+        flex: 1,
+        minHeight: 44
+      }} onClick={() => startLiveWorkout(wo)}>{isLiveWorkout(liveWorkout, wo) ? "Resume" : "Start"}</button><button className={"btn btn-gold"} style={{
+        flex: 1,
+        minHeight: 44
+      }} onClick={() => openCompletionFlow(wo)}>{"Log"}</button><button className={"btn btn-ghost btn-sm"} style={{
         flex: 1
       }} onClick={() => setAddToPlanPicker({
         workout: wo
-      })}>{"📋 Add to Plan"}</button><button className={"btn btn-danger btn-sm"} style={{
+      })}>{"Add to Plan"}</button><button className={"btn btn-danger btn-sm"} style={{
         flex: 0,
         paddingLeft: 10,
-        paddingRight: 10
-      }} onClick={() => deleteWorkout(wo.id)}>{"🗑"}</button></div></>;
+        paddingRight: 10,
+        minHeight: 44,
+        minWidth: 44
+      }} aria-label={"Delete workout"} onClick={() => deleteWorkout(wo.id)}>{"🗑"}</button></div></>;
 }
 
 // ── BUILDER ────────────────────────────
-if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><button className={"btn btn-ghost btn-sm"} onClick={() => {
-      setWorkoutView("list");
-      setWbCopySource(null);
-      setWbIsOneOff(false);
-      setWbEditId(null);
-      setWbDuration("");
-      setWbDurSec("");
-      setWbActiveCal("");
-      setWbTotalCal("");
-      setWbLabels([]);
-      setNewLabelInput("");
-    }}>{"← Cancel"}</button><div style={{
+if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><button className={"btn btn-ghost btn-sm"} onClick={requestLeaveBuilder}>{"← Cancel"}</button><div style={{
       flex: 1,
       minWidth: 0
-    }}><div className={"builder-nav-title"}>{wbIsOneOff ? wbEditId ? "✎ Edit One-Off" : "⚡ New One-Off Workout" : wbEditId ? "✎ Edit Workout" : wbCopySource ? "⎘ Copy Workout" : "⚔ New Workout"}</div>{wbCopySource && <div className={"builder-nav-sub"}>{"Forging from: "}{wbCopySource}</div>}</div></div>
-  {
-    /* Name stays on the canvas. Optional session fields live in Workout Details. */
-  }{isActive && <WorkoutDetails name={wbName} notes={wbDesc} intensity={wbIntensity}
+    }}><div className={"builder-nav-title"}>{wbEditId ? "✎ Edit Workout" : wbCopySource ? "Duplicate Workout" : "New Workout"}</div>{wbCopySource && <div className={"builder-nav-sub"}>{"From: "}{wbCopySource}</div>}</div>{isActive && <WorkoutDetails name={wbName} notes={wbDesc} intensity={wbIntensity}
     availableLabels={profile.workoutLabels || []}
     session={{ labels: wbLabels, duration: wbDuration, durationSec: wbDurSec, activeCal: wbActiveCal, totalCal: wbTotalCal }}
     onSave={draft => {
@@ -971,27 +1109,14 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
         for (const label of draft.session.labels) if (!labels.some(l => l.toLowerCase() === label.toLowerCase())) labels.push(label);
         return labels.length === (p.workoutLabels || []).length ? p : { ...p, workoutLabels: labels };
       });
-    }} />}<div className={"wb-section wb-details-identity"}><div className={"field"}><label>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input className={"inp"} value={wbName} onChange={e => setWbName(e.target.value)} placeholder={"e.g. Morning Push Day…"} /></div></div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
+    }} />}</div><div className={"wb-section wb-details-identity"}><div className={"field"}><label htmlFor={"wb-name"}>{"Name "}<span className={"req-star"}>{"*"}</span></label><div className={"wb-identity-row"}><button type={"button"} className={"wb-icon-btn"} title={"Change icon"} aria-label={"Change workout icon"} aria-haspopup={"dialog"} aria-expanded={wbIconPickerOpen} onClick={() => setWbIconPickerOpen(v => !v)}>{wbIcon}<span className={"wb-icon-btn-caret"} aria-hidden={"true"}>{"▾"}</span></button><input ref={wbNameRef} id={"wb-name"} className={"inp"} value={wbName} onChange={e => { setWbName(e.target.value); if (wbNameError) setWbNameError(""); }} placeholder={"e.g. Morning Push Day…"} required aria-required={"true"} aria-invalid={!!wbNameError} aria-describedby={wbNameError ? "wb-name-error" : undefined} /></div>{wbNameError && <div id={"wb-name-error"} className={"wb-name-error"} role={"alert"}>{wbNameError}</div>}</div></div><Sheet open={wbIconPickerOpen} onClose={() => setWbIconPickerOpen(false)} layer={"modal"} placement={"center"} maxWidth={360} title={"Choose an icon"} ariaLabel={"Choose a workout icon"}><div className={"wb-icon-picker"} role={"group"} aria-label={"Workout icons"}>{["💪","🏋️","🔥","⚔️","🏃","🚴","🧘","⚡","🎯","🛡️","🏆","🌟","💥","🗡️","🥊","🤸","🏊","🎽","🦵","🦾","🏅","🥇","⛹️","🤼","🧗","🤾","🎿","🏄","⛷️","🚣","🏹","🏇","🌿","🫀","🦴","💨","🌊","🏔️","🌄","🐉","🦅","🔱","☀️","🌙","🌪️","💫","🎖️","⚒️","🧱","🥋"].map(ic => <button type={"button"} key={ic} aria-label={`Icon ${ic}`} aria-pressed={wbIcon === ic} className={`icon-opt ${wbIcon === ic ? "sel" : ""}`} onClick={() => { setWbIcon(ic); setWbIconPickerOpen(false); }}>{ic}</button>)}</div></Sheet>  {
     /* Exercise list */
   }<div className={"wo-section-hdr"} style={{
     marginTop: S.s18,
     marginBottom: S.s10
-  }}><span className={"wo-section-hdr-text"}>{"⚔ Techniques"}</span></div><div style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: S.s8
-  }}><label>{"("}{wbExercises.length}{" exercise"}{wbExercises.length !== 1 ? "s" : ""}{")"}{wbExercises.length > 0 && <span style={{
-        marginLeft: S.s8,
-        fontSize: FS.fs65,
-        color: "#b4ac9e",
-        fontFamily: "'Inter',sans-serif"
-      }}>{"⚡ "}{formatXP(wbTotalXP)}{" total"}</span>}</label><div style={{
-      display: "flex",
-      gap: S.s6
-    }}><button className={"btn btn-ghost btn-xs"} onClick={() => setWbExPickerOpen(true)}>{"＋ Add Exercise"}</button><button className={"btn btn-ghost btn-xs"} onClick={() => openExEditor("create", null)}>{"⚔ Forge Custom"}</button></div></div>{wbExercises.length === 0 && <div className={"empty"} style={{
+  }}><span className={"wo-section-hdr-text"}>{"Exercises"}</span></div><div className={"wb-ex-toolbar"}><div className={"wb-ex-meta"}>{wbExercises.length}{" exercise"}{wbExercises.length !== 1 ? "s" : ""}{wbExercises.length > 0 ? ` · ${formatXP(wbTotalXP)} total` : ""}</div><div className={"wb-ex-actions"}><button className={"btn btn-ghost btn-sm"} onClick={() => setWbExPickerOpen(true)}>{"Add exercise"}</button><button className={"btn btn-ghost btn-sm"} onClick={() => openExEditor("create", null)}>{"Custom exercise"}</button></div></div>{wbExercises.length === 0 && <div className={"empty"} style={{
     padding: "16px 0"
-  }}>{"No techniques yet. Add from the arsenal or forge a custom one."}</div>}<div className={"wb-ex-list"} ref={wbListRef}><div className={"wb-drop-line"} aria-hidden={"true"}><div className={"dl-bar"} /><span className={"dl-plus"}>{"+"}</span></div>{(() => {
+  }}>{"No exercises yet. Add from the list or create a custom one."}</div>}<div className={"wb-ex-list"} ref={wbListRef}><div className={"wb-drop-line"} aria-hidden={"true"}><div className={"dl-bar"} /><span className={"dl-plus"}>{"+"}</span></div>{(() => {
     const minSsChecked = ssChecked.size > 0 ? Math.min(...ssChecked) : -1;
     const joinGid = adjacentGroupId(wbExercises, [...ssChecked]);
     const joinLetter = joinGid ? groupLetter(wbExercises, joinGid) : "";
@@ -1011,7 +1136,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
         gap: S.s0,
         "--cat-color": getTypeColor(exD.category),
         "--mg-color": getMuscleColor(exD.muscleGroup)
-      }}><WbExCard ex={ex} i={i} exD={exD} collapsed={!!collapsedWbEx[i]} profile={profile} allExById={allExById} metric={metric} setWbExercises={setWbExercises} setCollapsedWbEx={setCollapsedWbEx} setSsChecked={setSsChecked} ssChecked={ssChecked} exCount={wbExercises.length} openExEditor={openExEditor} canMoveUp={canMoveUp} canMoveDown={canMoveDown} grouped={grouped} orderBadge={grouped ? memberBadge(wbExercises, i) : null} /></div>;
+      }}><WbExCard ex={ex} i={i} exD={exD} collapsed={!!collapsedWbEx[i]} profile={profile} allExById={allExById} setWbExercises={setWbExercises} setCollapsedWbEx={setCollapsedWbEx} setSsChecked={setSsChecked} ssChecked={ssChecked} exCount={wbExercises.length} openExEditor={openExEditor} canMoveUp={canMoveUp} canMoveDown={canMoveDown} grouped={grouped} orderBadge={grouped ? memberBadge(wbExercises, i) : null} /></div>;
     };
     const nodes = [];
     eachRun(wbExercises, (run, gid, start) => {
@@ -1036,10 +1161,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
   <button className={"btn btn-gold"} style={{
     flex: 1
   }} onClick={() => {
-    if (!wbName.trim()) {
-      showToast("Name your workout first!");
-      return;
-    }
+    if (!guardWbName()) return;
     if (wbExercises.length === 0) {
       showToast("Add at least one exercise.");
       return;
@@ -1076,10 +1198,7 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
   <button className={"btn btn-gold"} style={{
     flex: 1
   }} onClick={() => {
-    if (!wbName.trim()) {
-      showToast("Name your workout first!");
-      return;
-    }
+    if (!guardWbName()) return;
     if (wbExercises.length === 0) {
       showToast("Add at least one exercise.");
       return;
@@ -1099,18 +1218,15 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
     });
     openCompletionFlow(wo);
     setWorkoutView("list");
-  }}>{"Next: Log or Schedule →"}</button> : wbEditId ? <>
-  <button className={"btn btn-gold-solid"} style={{ flex: 1 }} onClick={saveBuiltWorkout}>{"💾 Update Workout"}</button>
-  <button className={"btn btn-ghost"} style={{ flex: 1 }} onClick={saveAsNewWorkout}>{"📋 Save As New"}</button>
+  }}>{"Log / Schedule"}</button> : wbEditId ? <>
+  <button className={"btn btn-gold-solid"} style={{ flex: 1 }} onClick={() => { if (!guardWbName()) return; saveBuiltWorkout(); }}>{"Save Workout"}</button>
+  <button className={"btn btn-ghost"} style={{ flex: 1 }} onClick={() => { if (!guardWbName()) return; saveAsNewWorkout(); }}>{"Save as copy"}</button>
   </> : <>
-  <button className={"btn btn-gold-solid"} style={{ flex: 1 }} onClick={saveBuiltWorkout}>{"💾 Save Workout"}</button>
-  <button className={"btn btn-glass-yellow"} style={{
+  <button className={"btn btn-gold-solid"} style={{ flex: 1 }} onClick={() => { if (!guardWbName()) return; saveBuiltWorkout(); }}>{"Save Workout"}</button>
+  <button className={"btn btn-gold"} style={{
     flex: 1
   }} onClick={() => {
-    if (!wbName.trim()) {
-      showToast("Name your workout first!");
-      return;
-    }
+    if (!guardWbName()) return;
     if (wbExercises.length === 0) {
       showToast("Add at least one exercise.");
       return;
@@ -1130,8 +1246,17 @@ if (workoutView === "builder") return <><div className={"builder-nav-hdr"}><butt
     });
     openCompletionFlow(wo);
     setWorkoutView("list");
-  }}>{"✓ Complete / Schedule"}</button>
-  </>}</div></>;
+  }}>{"Log / Schedule"}</button>
+  </>}</div><ConfirmSheet
+    open={confirmCancel}
+    icon={"📝"}
+    title={"Discard draft?"}
+    body={"You have unsaved changes. Cancel anyway and lose the draft?"}
+    confirmLabel={"Discard"}
+    danger
+    onConfirm={leaveBuilder}
+    onCancel={() => setConfirmCancel(false)}
+  /></>;
 return null;
 });
 

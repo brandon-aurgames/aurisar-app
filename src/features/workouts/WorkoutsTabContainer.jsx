@@ -26,7 +26,7 @@ import { secToHHMMSplit, combineHHMMSec } from '../../utils/time';
  * Ref API (the ONLY external write surface):
  *   showList()                    tab-bar press resets to the list view
  *   showBuilder()                 stats-prompt "← Back" (draft still intact)
- *   showSubTab(t)                 land on "reusable" | "oneoff"
+ *   showSubTab(t)                 land on "reusable" | "scheduled" ("oneoff" aliases to scheduled)
  *   openBuilderWithExercises(xs)  StagingTray "Forge Workout"
  *   doDeleteWorkout(id)           ConfirmDeleteModal's workout branch
  */
@@ -52,9 +52,8 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
 }, ref) {
   // ── View ──
   const [workoutView, setWorkoutView] = useState("list"); // "list"|"detail"|"builder"|"recipes"
-  const [workoutSubTab, setWorkoutSubTab] = useState("reusable"); // "reusable"|"oneoff"
+  const [workoutSubTab, setWorkoutSubTab] = useState("reusable"); // "reusable"|"scheduled"
   const [activeWorkout, setActiveWorkout] = useState(null);
-  const [collapsedWo, setCollapsedWo] = useState(() => new Set());
 
   // ── Builder ──
   const [wbName, setWbName] = useState("");
@@ -74,13 +73,11 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
   const [newLabelInput, setNewLabelInput] = useState("");
   const [collapsedWbEx, setCollapsedWbEx] = useState({});
   const [ssChecked, setSsChecked] = useState(() => new Set());
-  const [ssAccordion, setSsAccordion] = useState({});
-  const [dragWbExIdx, setDragWbExIdx] = useState(null);
 
   // ── List / recipes ──
   const [woLabelFilters, setWoLabelFilters] = useState(() => new Set());
   const [woLabelDropOpen, setWoLabelDropOpen] = useState(false);
-  const [recipeFilter, setRecipeFilter] = useState(() => new Set(["Bodyweight"]));
+  const [recipeFilter, setRecipeFilter] = useState(() => new Set());
   const [recipeCatDrop, setRecipeCatDrop] = useState(false);
   const [expandedRecipeDesc, setExpandedRecipeDesc] = useState(() => new Set());
   const [expandedRecipeEx, setExpandedRecipeEx] = useState(() => new Set());
@@ -119,8 +116,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     setNewLabelInput("");
     setCollapsedWbEx({});
     setSsChecked(new Set());
-    setSsAccordion({});
-    setDragWbExIdx(null);
   }
 
   function initWorkoutBuilder(base) {
@@ -322,7 +317,7 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
     showBuilder: () => setWorkoutView("builder"),
     showSubTab: t => {
       setWorkoutView("list");
-      setWorkoutSubTab(t);
+      setWorkoutSubTab(t === "oneoff" ? "scheduled" : t);
     },
     openBuilderWithExercises: entries => {
       // Full reset first (keep-alive container may hold an abandoned draft's
@@ -354,8 +349,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         setActiveWorkout={setActiveWorkout}
         liveWorkout={liveWorkout}
         startLiveWorkout={startLiveWorkout}
-        collapsedWo={collapsedWo}
-        setCollapsedWo={setCollapsedWo}
         profile={profile}
         setProfile={setProfile}
         recipeFilter={recipeFilter}
@@ -401,10 +394,6 @@ const WorkoutsTabContainer = React.memo(React.forwardRef(function WorkoutsTabCon
         setCollapsedWbEx={setCollapsedWbEx}
         ssChecked={ssChecked}
         setSsChecked={setSsChecked}
-        ssAccordion={ssAccordion}
-        setSsAccordion={setSsAccordion}
-        dragWbExIdx={dragWbExIdx}
-        setDragWbExIdx={setDragWbExIdx}
         initWorkoutBuilder={initWorkoutBuilder}
         copyWorkout={copyWorkout}
         openCompletionFlow={openStatsPrompt}

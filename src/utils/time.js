@@ -73,6 +73,45 @@ function daysUntil(dateStr) {
   }
 }
 
+function parseDayStamp(dateStr) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr || "");
+  if (!m) return null;
+  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+function daysBetween(fromKey, toKey) {
+  const from = parseDayStamp(fromKey);
+  const to = parseDayStamp(toKey);
+  if (from == null || to == null) return null;
+  return Math.round((to - from) / 86400000);
+}
+
+function shortDayLabel(dateKey, todayKey) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey || "");
+  if (!m) return dateKey;
+  const year = Number(m[1]);
+  const month = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  const dt = new Date(year, month, day);
+  const thisYear = todayKey ? Number(todayKey.slice(0, 4)) : new Date().getFullYear();
+  return dt.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(year !== thisYear ? { year: "numeric" } : {}),
+  });
+}
+
+function formatLastDone(dateKey, today = null) {
+  if (!dateKey) return "Not logged yet";
+  const todayKey = today || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`;
+  const daysAgo = daysBetween(dateKey, todayKey);
+  if (daysAgo == null) return "Last done " + dateKey;
+  if (daysAgo === 0) return "Last done today";
+  if (daysAgo === 1) return "Last done yesterday";
+  if (daysAgo >= 2 && daysAgo < 7) return `Last done ${daysAgo} days ago`;
+  return "Last done " + shortDayLabel(dateKey, todayKey);
+}
+
 export {
   secToHMS,
   HMSToSec,
@@ -80,5 +119,6 @@ export {
   secToHHMMSplit,
   HHMMToSec,
   combineHHMMSec,
-  daysUntil
+  daysUntil,
+  formatLastDone
 };

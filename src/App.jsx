@@ -42,6 +42,7 @@ import { useAvatarConfig } from './features/avatar/useAvatarConfig.js';
 import MapOverlay from './features/character/MapOverlay';
 import WorkoutsTabContainer from './features/workouts/WorkoutsTabContainer';
 import { normalizeSupersetGroups } from './features/workouts/supersetModel';
+import { liveStartAction } from './features/workouts/liveSession';
 import CompletionModal from './features/workouts/CompletionModal';
 import CalendarTab from './features/calendar/CalendarTab';
 import LeaderboardTab from './features/leaderboard/LeaderboardTab';
@@ -625,6 +626,7 @@ function App() {
     try { return JSON.parse(localStorage.getItem('aurisar-live-workout') || 'null'); } catch { return null; }
   });
   const [pendingLiveWorkout, setPendingLiveWorkout] = useState(null);
+  const [liveOpenSignal, setLiveOpenSignal] = useState(0);
   // Set only by Repeat Last just before it opens the replace-confirm, so
   // confirmReplaceLiveWorkout knows to toast — a plain Start-triggered
   // replace (Workouts tab, StartDock) has nothing to say beyond the confirm
@@ -3832,16 +3834,23 @@ function App() {
   }
 
   function startLiveWorkout(wo) {
-    if (liveWorkout && liveWorkout.workoutId !== wo.id) {
+    const action = liveStartAction(liveWorkout, wo);
+    if (action === "resume") {
+      setLiveOpenSignal(n => n + 1);
+      return;
+    }
+    if (action === "replace") {
       setPendingLiveWorkout(wo);
       return;
     }
     setLiveWorkout({ workoutId: wo.id, name: wo.name, icon: wo.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(wo), userId: authUser?.id || null });
+    setLiveOpenSignal(n => n + 1);
   }
 
   function confirmReplaceLiveWorkout() {
     setLiveWorkout({ workoutId: pendingLiveWorkout.id, name: pendingLiveWorkout.name, icon: pendingLiveWorkout.icon, startedAt: new Date().toISOString(), exercises: _buildLiveExercises(pendingLiveWorkout), userId: authUser?.id || null });
     setPendingLiveWorkout(null);
+    setLiveOpenSignal(n => n + 1);
     // Only Repeat Last's replace-confirm stamps this — a plain "Start"
     // replace (Workouts tab, StartDock) confirms silently, same as before.
     if (pendingLiveWorkoutToastRef.current) {
@@ -3898,12 +3907,18 @@ function App() {
   }
 
   function handleAddLiveEx(exId, sets, reps, weightLbs) {
-    const exData = allExById[exId];
-    const cat = (exData?.category || 'strength').toLowerCase();
+    const entries = Array.isArray(exId) ? exId : [{ exId, sets, reps, weightLbs }];
     setLiveWorkout(lw => {
       if (!lw) return null;
-      const newEx = { exId, name: exData?.name || exId, category: cat, noSets: NO_SETS_EX_IDS.has(exId), sets, reps, weightLbs: weightLbs || null, extraRows: [], setsDesc: `${sets}×${reps}`, supersetWith: null, done: false };
-      return { ...lw, exercises: [...lw.exercises, newEx] };
+      const added = entries.map(e => {
+        const id = e.exId;
+        const exData = allExById[id];
+        const cat = (exData?.category || 'strength').toLowerCase();
+        const s = e.sets || '3';
+        const r = e.reps || '10';
+        return { exId: id, name: exData?.name || id, category: cat, noSets: NO_SETS_EX_IDS.has(id), sets: s, reps: r, weightLbs: e.weightLbs || null, extraRows: [], setsDesc: `${s}×${r}`, supersetWith: null, done: false };
+      });
+      return { ...lw, exercises: [...lw.exercises, ...added] };
     });
   }
 
@@ -4203,7 +4218,7 @@ function App() {
         showToast(p.icon + " " + p.name + " scheduled for " + formatScheduledDate(spDate) + " \u2726");
       }
       setActiveTab("workouts");
-      workoutsRef.current?.showSubTab("oneoff");
+      workoutsRef.current?.showSubTab("scheduled");
     }
     setSchedulePicker(null);
   }
@@ -4860,18 +4875,12 @@ function App() {
             fontSize: FS.fs90
           }} onKeyDown={e => {
             if (e.key === "Enter") submitMfaChallenge();
-          }} /><button style={{
+          }} /><button className={"btn btn-gold-solid"} style={{
             width: "100%",
             padding: "11px",
             borderRadius: R.xl,
-            border: "none",
-            background: mfaChallengeLoading || mfaChallengeCode.length < 6 ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, #c49428, #8a6010)",
-            color: mfaChallengeLoading || mfaChallengeCode.length < 6 ? "#8a8478" : "#0c0c0a",
             fontFamily: "'Cinzel',serif",
-            fontSize: FS.fs62,
-            fontWeight: 700,
-            letterSpacing: ".12em",
-            cursor: "pointer"
+            fontSize: FS.fs62
           }} disabled={mfaChallengeLoading || mfaChallengeCode.length < 6} onClick={submitMfaChallenge}>{mfaChallengeLoading ? "Verifying\u2026" : "VERIFY"}</button></div>
 
         /* Recovery code input */}{mfaRecoveryMode && <div style={{
@@ -4888,18 +4897,12 @@ function App() {
             fontFamily: "monospace"
           }} onKeyDown={e => {
             if (e.key === "Enter") submitRecoveryCode();
-          }} /><button style={{
+          }} /><button className={"btn btn-gold-solid"} style={{
             width: "100%",
             padding: "11px",
             borderRadius: R.xl,
-            border: "none",
-            background: mfaChallengeLoading || !mfaRecoveryInput.trim() ? "rgba(45,42,36,.3)" : "linear-gradient(135deg, #c49428, #8a6010)",
-            color: mfaChallengeLoading || !mfaRecoveryInput.trim() ? "#8a8478" : "#0c0c0a",
             fontFamily: "'Cinzel',serif",
-            fontSize: FS.fs62,
-            fontWeight: 700,
-            letterSpacing: ".12em",
-            cursor: "pointer"
+            fontSize: FS.fs62
           }} disabled={mfaChallengeLoading || !mfaRecoveryInput.trim()} onClick={submitRecoveryCode}>{mfaChallengeLoading ? "Verifying\u2026" : "USE RECOVERY CODE"}</button></div>}{mfaChallengeMsg && <div style={{
           fontSize: FS.fs74,
           color: mfaChallengeMsg.ok ? UI_COLORS.success : UI_COLORS.danger,
@@ -4991,7 +4994,7 @@ function App() {
 
     /* ══ INTRO ══════════════════════════════════ */}{screen === "intro" && <div className={"screen boot-screen"}><div className={"boot-title"}>{"AURISAR"}<span className={"boot-title-sub"}>{"FITNESS"}</span></div><div className={"boot-log"}><div className={"boot-bar-wrap"}><div className={"boot-bar"} style={{
             width: bootStep >= 4 ? "100%" : bootStep >= 3 ? "58%" : bootStep >= 2 ? "34%" : bootStep >= 1 ? "12%" : "2%"
-          }} /></div><div className={"boot-log-lines"}>{bootStep >= 1 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Loading combat modules..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 2 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Calibrating XP engine..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 3 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Assigning warrior class..."}{bootStep >= 4 ? <span className={"boot-check"}>{" ✓"}</span> : <span className={"boot-ellipsis"}>{" ..."}</span>}</div>}</div></div><button className={`btn btn-gold${bootStep >= 4 ? " boot-btn-ready" : ""}`} onClick={() => setScreen("onboard")}>{bootStep >= 4 ? "BEGIN" : "BOOT UP"}</button><button className={"btn btn-ghost boot-cancel-btn"} onClick={async () => {
+          }} /></div><div className={"boot-log-lines"}>{bootStep >= 1 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Loading combat modules..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 2 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Calibrating XP engine..."}<span className={"boot-check"}>{" ✓"}</span></div>}{bootStep >= 3 && <div className={"boot-line boot-line-in"}><span className={"boot-prompt"}>{">"}</span>{" Assigning warrior class..."}{bootStep >= 4 ? <span className={"boot-check"}>{" ✓"}</span> : <span className={"boot-ellipsis"}>{" ..."}</span>}</div>}</div></div><button className={`btn btn-gold-solid${bootStep >= 4 ? " boot-btn-ready" : ""}`} onClick={() => setScreen("onboard")}>{bootStep >= 4 ? "BEGIN" : "BOOT UP"}</button><button className={"btn btn-ghost boot-cancel-btn"} onClick={async () => {
         await sb.auth.signOut();
         setAuthUser(null);
         setAuthIsNew(false);
@@ -5126,7 +5129,7 @@ function App() {
             color: "#8a8478",
             marginTop: S.s4,
             lineHeight: 1.4
-          }}>{c.description}</div>}</div>)}</div><button className={"btn btn-gold"} disabled={!profile.chosenClass} onClick={() => confirmClass(profile.chosenClass)}>{"Confirm Class"}</button></div>
+          }}>{c.description}</div>}</div>)}</div><button className={"btn btn-gold-solid"} disabled={!profile.chosenClass} onClick={() => confirmClass(profile.chosenClass)}>{"Confirm Class"}</button></div>
 
     /* ══ MAIN ═══════════════════════════════════ */}{screen === "main" && clsKey && <div className={"hud"} style={activeTab === "messages" && msgView === "chat" ? {
       height: "100dvh",
@@ -5298,8 +5301,8 @@ function App() {
         }
       } : null} /><StartDock profile={profile} allExById={allExById} liveWorkout={liveWorkout} stagedCount={stagedIds.length} onStartWorkout={startLiveWorkout} onQuickLogSolo={quickLogSoloEx} onSeeAll={() => guardAll(() => {
         setActiveTab("workouts");
-        workoutsRef.current?.showSubTab("oneoff");
-      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} />}{pendingLiveWorkout && <ConfirmSheet
+        workoutsRef.current?.showSubTab("scheduled");
+      })} />{liveWorkout && <LiveWorkoutBanner liveWorkout={liveWorkout} openSignal={liveOpenSignal} onToggleExercise={handleToggleLiveEx} onFinish={handleFinishLiveWorkout} onDiscard={() => setLiveWorkout(null)} onUpdateExercise={handleUpdateLiveEx} onRemoveExercise={handleRemoveLiveEx} onAddExercise={handleAddLiveEx} allExercises={allExercises} units={profile.units} openExEditor={openExEditor} log={profile.log} />}{pendingLiveWorkout && <ConfirmSheet
         open
         icon={"⚡"}
         title={"Replace Active Workout?"}
@@ -5845,7 +5848,7 @@ function App() {
             gap: S.s8
           }}><button className={"btn btn-ghost btn-sm"} style={{
               flex: 1
-            }} onClick={() => setSavePlanWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+            }} onClick={() => setSavePlanWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
               flex: 2
             }} onClick={confirmSavePlanWizard}>{spwMode === "existing" ? "📋 Add to Plan" : "💾 Save New Plan"}{spwMode === "new" && spwDate ? " & Schedule" : ""}</button></div></div></div></div>, document.body)
 
@@ -5894,7 +5897,7 @@ function App() {
           gap: S.s8
         }}><button className={"btn btn-ghost btn-sm"} style={{
             flex: 1
-          }} onClick={() => setSchedulePicker(null)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+          }} onClick={() => setSchedulePicker(null)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
             flex: 2
           }} onClick={confirmSchedule}>{"📅 Schedule"}</button></div></div></div>, document.body)
 
@@ -5934,7 +5937,7 @@ function App() {
             gap: S.s8
           }}><button className={"btn btn-ghost btn-sm"} style={{
               flex: 1
-            }} onClick={() => setSaveWorkoutWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+            }} onClick={() => setSaveWorkoutWizard(null)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
               flex: 2
             }} onClick={confirmSaveWorkoutWizard}>{"💪 Save Workout"}</button></div></div></div></div>, document.body)}
 
@@ -6033,7 +6036,7 @@ function App() {
           gap: S.s8
         }}><button className={"btn btn-ghost btn-sm"} style={{
             flex: 1
-          }} onClick={() => setRetroCheckInModal(false)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+          }} onClick={() => setRetroCheckInModal(false)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
             flex: 2
           }} disabled={!retroDate || (profile.checkInHistory || []).includes(retroDate)} onClick={doRetroCheckIn}>{"🔥 Log Check-In"}</button></div></div></div>, document.body)
 
@@ -6086,8 +6089,8 @@ function App() {
       layer={"modal"}
       placement={"center"}
       style={{ "--mg-color": cls.color }}
-      ariaLabel={"Review battle stats"}
-      title={<span className={"stats-modal-title"}>{"📊 Review Battle Stats "}<span style={{ color: "#8a8478", fontWeight: "normal", fontSize: FS.lg }}>{"(Optional)"}</span></span>}
+      ariaLabel={"Review stats"}
+      title={<span className={"stats-modal-title"}>{"📊 Review stats "}<span style={{ color: "#8a8478", fontWeight: "normal", fontSize: FS.lg }}>{"(Optional)"}</span></span>}
       headerLeft={<button className={"btn btn-ghost btn-sm"} style={{ padding: "4px 8px", fontSize: FS.fs75, flexShrink: 0 }} onClick={() => {
         setStatsPromptModal(null);
         if (statsPromptModal.wo.soloEx && statsPromptModal.wo._soloExId) {
@@ -6329,7 +6332,7 @@ function App() {
               textTransform: "uppercase",
               letterSpacing: ".08em",
               marginBottom: S.s6
-            }}>{"💪 Re-Usable Workouts"}</div>{(profile.workouts || []).filter(w => !w.oneOff).map(wo => <button type={"button"} key={wo.id} style={{
+            }}>{"Reusable Workouts"}</div>{(profile.workouts || []).filter(w => !w.oneOff).map(wo => <button type={"button"} key={wo.id} style={{
               display: "flex",
               alignItems: "center",
               gap: S.s10,
@@ -6392,7 +6395,7 @@ function App() {
                 letterSpacing: ".08em",
                 marginBottom: S.s6,
                 marginTop: S.s10
-              }}>{"⚡ Scheduled One-Off Workouts"}</div>{scheduled.map(g => {
+              }}>{"Scheduled Workouts"}</div>{scheduled.map(g => {
                 const wo = (profile.workouts || []).find(w => w.id === g.id) || {
                   id: g.id,
                   name: g.name,
@@ -6446,7 +6449,7 @@ function App() {
                     color: "#e67e22"
                   }}>{"+ add →"}</span></button>;
               })}</>;
-          })()}{(profile.workouts || []).filter(w => !w.oneOff).length === 0 && !(profile.scheduledWorkouts || []).some(sw => sw.scheduledDate >= todayStr() && sw.sourceWorkoutId) && <div className={"empty"}>{"No workouts to add to yet."}<br />{"Create a Re-Usable Workout or schedule a One-Off first."}</div>}</div></Sheet>}{oneOffModal && createPortal(<div className={"modal-backdrop"} onClick={() => setOneOffModal(null)}><div className={"modal-sheet"} onClick={e => e.stopPropagation()} style={{
+          })()}{(profile.workouts || []).filter(w => !w.oneOff).length === 0 && !(profile.scheduledWorkouts || []).some(sw => sw.scheduledDate >= todayStr() && sw.sourceWorkoutId) && <div className={"empty"}>{"No workouts to add to yet."}<br />{"Create a reusable workout or schedule one first."}</div>}</div></Sheet>}{oneOffModal && createPortal(<div className={"modal-backdrop"} onClick={() => setOneOffModal(null)}><div className={"modal-sheet"} onClick={e => e.stopPropagation()} style={{
         borderRadius: R.r16,
         padding: S.s0
       }}><div className={"modal-body"}><div style={{
@@ -6459,7 +6462,7 @@ function App() {
               fontSize: FS.fs92,
               color: "#d4cec4",
               fontWeight: 700
-            }}>{"⚡ Name Your One-Off Workout"}</div><button className={"btn btn-ghost btn-sm"} onClick={() => setOneOffModal(null)}>{"✕"}</button></div><div className={"field"} style={{
+            }}>{"Name Your Workout"}</div><button className={"btn btn-ghost btn-sm"} onClick={() => setOneOffModal(null)}>{"✕"}</button></div><div className={"field"} style={{
             marginBottom: S.s10
           }}><label>{"Workout Name"}</label><input className={"inp"} placeholder={"e.g. Morning Push Session…"} value={oneOffModal.name} onChange={e => setOneOffModal(m => ({
               ...m,
@@ -6484,7 +6487,7 @@ function App() {
             fontSize: FS.fs65,
             color: "#8a8478",
             marginBottom: S.s14
-          }}>{oneOffModal.exercises.length}{" exercises selected · XP will be calculated on completion"}</div><button className={"btn btn-gold"} style={{
+          }}>{oneOffModal.exercises.length}{" exercises selected · XP will be calculated on completion"}</div><button className={"btn btn-gold-solid"} style={{
             width: "100%"
           }} disabled={!oneOffModal.name.trim()} onClick={() => {
             const wo = {
@@ -6791,7 +6794,7 @@ function App() {
               marginBottom: 12,
               display: "flex",
               justifyContent: "center"
-            }} />}<button className={"btn btn-gold"} style={{
+            }} />}<button className={"btn btn-gold-solid"} style={{
               width: "100%"
             }} disabled={!feedbackText.trim() || TURNSTILE_SITE_KEY && !turnstileToken} onClick={async () => {
               const msg = feedbackText.trim();

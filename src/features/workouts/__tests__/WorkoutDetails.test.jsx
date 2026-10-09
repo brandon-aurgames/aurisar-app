@@ -24,37 +24,12 @@ function setup(overrides = {}) {
 const advance = n => act(() => vi.advanceTimersByTime(n));
 
 describe('Workout Details interaction', () => {
-  it('follows the HUD edge through desktop resize and clamps mobile positioning', () => {
-    const root = document.getElementById('root');
-    root.className = 'hud';
-    let left = 400;
-    root.getBoundingClientRect = () => ({ left });
+  it('opens from an inline Session details button', () => {
     const { trigger } = setup();
-    expect(trigger.style.getPropertyValue('--wd-left')).toBe('400px');
-    left = 120; fireEvent(window, new Event('resize')); advance(20);
-    expect(trigger.style.getPropertyValue('--wd-left')).toBe('120px');
-    left = -5; fireEvent(document, new Event('scroll')); advance(20);
-    expect(trigger.style.getPropertyValue('--wd-left')).toBe('0px');
-  });
-
-  it('reveals for a mouse or pen regardless of media queries, but touch activates directly', () => {
-    const { trigger } = setup();
-    function enter(pointerType) {
-      const event = new Event('pointerover', { bubbles: true });
-      Object.defineProperty(event, 'pointerType', { value: pointerType });
-      fireEvent(trigger, event);
-    }
-    for (const type of ['mouse', 'pen']) {
-      enter(type);
-      expect(trigger.dataset.hovered).toBe('true');
-      expect(screen.queryByRole('dialog')).toBeNull();
-      fireEvent.pointerOut(trigger);
-      expect(trigger.dataset.hovered).toBe('false');
-    }
-    enter('touch');
-    expect(trigger.dataset.hovered).toBe('false');
+    expect(trigger.textContent).toMatch(/Session details/);
+    expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.click(trigger);
-    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Workout details' })).toBeTruthy();
   });
 
   it('keeps intensity unset and allows clearing a selection before saving', () => {
@@ -78,7 +53,7 @@ describe('Workout Details interaction', () => {
     expect(document.getElementById('root').hasAttribute('inert')).toBe(true);
     expect(document.body.style.overflow).toBe('hidden');
     expect(document.activeElement).toBe(dialog);
-    const save = screen.getByRole('button', { name: 'SAVE DETAILS' });
+    const save = screen.getByRole('button', { name: /save details/i });
     save.focus(); fireEvent.keyDown(save, { key: 'Tab' });
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }));
     fireEvent.keyDown(document.activeElement, { key: 'Tab', shiftKey: true });

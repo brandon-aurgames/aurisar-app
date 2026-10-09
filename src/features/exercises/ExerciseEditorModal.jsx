@@ -44,10 +44,10 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
   const wUnit = weightLabel(profile.units);
   const dUnit = distLabel(profile.units);
   const age = profile.age || 30;
-  const title = exEditorMode === "edit" ? "✎ Edit Technique" : exEditorMode === "copy" ? "⎘ Copy Technique" : "⚔ Forge Technique";
+  const title = exEditorMode === "edit" ? "Edit exercise" : exEditorMode === "copy" ? "Duplicate exercise" : "New custom exercise";
   return <Sheet open onClose={() => setExEditorOpen(false)} layer={"editor"} title={title} titleFont={"cinzel"} ariaLabel={title} className={"ex-editor-sheet"} style={{
         "--mg-color": getMuscleColor(ed.muscleGroup || "chest")
-      }}><div className={"ex-editor-body"}><div className={"ex-editor-subtitle"}>{exEditorMode === "edit" ? "Sharpen your custom technique" : "Forge a new technique for your grimoire"}</div>{exEditorMode !== "edit" && <div className={"field"}><label>{"Start from existing exercise (optional)"}</label><select className={"inp"} style={{
+      }}><div className={"ex-editor-body"}><div className={"ex-editor-subtitle"}>{exEditorMode === "edit" ? "Edit your custom exercise" : "Create a custom exercise"}</div>{exEditorMode !== "edit" && <div className={"field"}><label>{"Start from existing exercise (optional)"}</label><select className={"inp"} style={{
                 appearance: "auto",
                 cursor: "pointer"
               }} onChange={e => {
@@ -246,12 +246,12 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
               gap: S.s8
             }}><button className={"btn btn-ghost btn-sm"} style={{
                 flex: 1
-              }} onClick={() => setExEditorOpen(false)}>{"Cancel"}</button><button className={"btn btn-gold"} style={{
+              }} onClick={() => setExEditorOpen(false)}>{"Cancel"}</button><button className={"btn btn-gold-solid"} style={{
                 flex: 2
-              }} onClick={saveExEditor}>{exEditorMode === "edit" ? "✦ Save Changes" : "⚔ Forge Technique"}</button></div>{exEditorMode === "edit" && <button className={"btn btn-ghost btn-sm"} style={{
+              }} onClick={saveExEditor}>{exEditorMode === "edit" ? "Save changes" : "Save exercise"}</button></div>{exEditorMode === "edit" && <button className={"btn btn-ghost btn-sm"} style={{
               width: "100%",
               marginTop: S.s6
-            }} onClick={() => openExEditor("copy", ed)}>{"⎘ Duplicate as New Exercise"}</button>}{exEditorMode === "edit" && <button className={"btn btn-danger"} style={{
+            }} onClick={() => openExEditor("copy", ed)}>{"Duplicate"}</button>}{exEditorMode === "edit" && <button className={"btn btn-danger"} style={{
               width: "100%",
               marginTop: S.s8,
               padding: "10px",

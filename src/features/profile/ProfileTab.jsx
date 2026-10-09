@@ -684,7 +684,7 @@ return (
                 ))}
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                <button className={"btn btn-gold btn-sm"} style={{ flex: 1, fontSize: FS.fs58 }}
+                <button className={"btn btn-gold-solid btn-sm"} style={{ flex: 1, fontSize: FS.fs58 }}
                   disabled={profile.lastCheckIn === todayStr()} onClick={doCheckIn}>
                   {profile.lastCheckIn === todayStr() ? "✓ Checked In" : "⚡ Check In"}
                 </button>
@@ -1762,7 +1762,7 @@ return (
     boxShadow: "0 -4px 24px rgba(0,0,0,.45)",
   }}>
     <button className={"btn btn-ghost btn-sm"} style={{ flex: 1 }} onClick={() => setEditMode(false)}>{"✕ Cancel"}</button>
-    <button className={"btn btn-gold"} style={{ flex: 2 }} onClick={saveEdit}>{"⚔️ Save Profile"}</button>
+    <button className={"btn btn-gold-solid"} style={{ flex: 2 }} onClick={saveEdit}>{"⚔️ Save Profile"}</button>
   </div>
 
   {/* Edit sections — styled as log-group-cards to match the profile view */}
@@ -1937,7 +1937,7 @@ return (
     }, {
       key: "reviewBattleStats",
       icon: "📊",
-      label: "Review Battle Stats",
+      label: "Review stats",
       desc: "Remind me to input Duration, Total Calories & Active Calories for each completed Workout or Exercise"
     }];
     return <div style={{

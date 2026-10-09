@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { isMetric, lbsToKg, kgToLbs, weightLabel } from '../utils/units';
+import React, { useEffect, useRef, useState } from 'react';
+import { isMetric, lbsToKg, weightLabel } from '../utils/units';
 import Sheet from './ui/Sheet';
 import ConfirmSheet from './ui/ConfirmSheet';
 import SetsEditor from './ui/SetsEditor';
+import WorkoutExercisePicker from '../features/workouts/WorkoutExercisePicker';
 import { isGroupStart, isGrouped } from '../features/workouts/supersetModel';
+import { liveAddDefaultsFromLog } from '../features/workouts/liveAddDefaults';
 
 export default function LiveWorkoutBanner({
   liveWorkout,
+  openSignal = 0,
   onToggleExercise,
   onFinish,
   onDiscard,
@@ -15,17 +18,27 @@ export default function LiveWorkoutBanner({
   onAddExercise,
   allExercises,
   units,
+  openExEditor,
+  log = [],
 }) {
   const [open, setOpen] = useState(false);
+  const prevOpenSignalRef = useRef(openSignal);
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [expandedIdx, setExpandedIdx] = useState(null);
-  const [addExOpen, setAddExOpen] = useState(false);
-  const [addExSearch, setAddExSearch] = useState('');
-  const [addExSelected, setAddExSelected] = useState(null);
-  const [addExSets, setAddExSets] = useState('3');
-  const [addExReps, setAddExReps] = useState('10');
-  const [addExWeight, setAddExWeight] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerMuscle, setPickerMuscle] = useState(() => new Set());
+  const [pickerTypeFilter, setPickerTypeFilter] = useState(() => new Set());
+  const [pickerEquipFilter, setPickerEquipFilter] = useState(() => new Set());
+  const [pickerOpenDrop, setPickerOpenDrop] = useState(null);
+  const [pickerSelected, setPickerSelected] = useState([]);
+
+  useEffect(() => {
+    const prev = prevOpenSignalRef.current;
+    prevOpenSignalRef.current = openSignal;
+    if (openSignal !== prev) setOpen(true);
+  }, [openSignal]);
 
   const { exercises, name, icon } = liveWorkout;
   const doneCount = exercises.filter(e => e.done).length;
@@ -33,9 +46,7 @@ export default function LiveWorkoutBanner({
   const metric = isMetric(units);
   const wLabel = weightLabel(units);
 
-  // Weight display helpers: stored internally as lbs, displayed in user's unit
   const dispW = (lbs) => lbs ? (metric ? String(lbsToKg(lbs)) : String(lbs)) : '';
-  const fromW = (val) => val ? (metric ? parseFloat(kgToLbs(parseFloat(val))) : parseFloat(val)) : null;
 
   function handleFinishPress() {
     if (total - doneCount > 0) {
@@ -50,37 +61,45 @@ export default function LiveWorkoutBanner({
     setOpen(false);
     setConfirmFinish(false);
     setExpandedIdx(null);
-    setAddExOpen(false);
-    setAddExSearch('');
-    setAddExSelected(null);
+    closePicker();
   }
 
-  function toggleExpand(e, i) {
-    e.stopPropagation();
+  function closePicker() {
+    setPickerOpen(false);
+    setPickerSearch('');
+    setPickerMuscle(new Set());
+    setPickerTypeFilter(new Set());
+    setPickerEquipFilter(new Set());
+    setPickerOpenDrop(null);
+    setPickerSelected([]);
+  }
+
+  function pickerToggleEx(exId) {
+    setPickerSelected(prev => {
+      const exists = prev.find(e => e.exId === exId);
+      if (exists) return prev.filter(e => e.exId !== exId);
+      const last = liveAddDefaultsFromLog(log, exId);
+      return [...prev, {
+        exId,
+        sets: last.sets,
+        reps: last.reps,
+        weightLbs: last.weightLbs,
+        weightPct: 100,
+        durationMin: '',
+        distanceMi: '',
+        hrZone: null,
+      }];
+    });
+  }
+
+  function commitPicker() {
+    if (pickerSelected.length === 0) return;
+    onAddExercise(pickerSelected);
+    closePicker();
+  }
+
+  function openEditor(i) {
     setExpandedIdx(prev => prev === i ? null : i);
-    setAddExOpen(false);
-  }
-
-  // Add exercise search — requires 2+ chars
-  const addExResults = addExSearch.length >= 2
-    ? (allExercises || [])
-        .filter(e => e.name.toLowerCase().includes(addExSearch.toLowerCase()) && e.id !== 'rest_day')
-        .slice(0, 6)
-    : [];
-
-  function selectAddEx(ex) {
-    setAddExSelected(ex);
-    setAddExSets('3');
-    setAddExReps('10');
-    setAddExWeight('');
-  }
-
-  function confirmAddEx() {
-    if (!addExSelected) return;
-    onAddExercise(addExSelected.id, addExSets, addExReps, fromW(addExWeight));
-    setAddExOpen(false);
-    setAddExSearch('');
-    setAddExSelected(null);
   }
 
   return (
@@ -97,9 +116,6 @@ export default function LiveWorkoutBanner({
         <span className="lw-chevron">{"›"}</span>
       </button>
 
-      {/* The tracker sheet sits on the live layer — below every modal, so
-          Finish can stack the stats/completion sheets above it. navOffset
-          is off: like the old .lw-sheet it deliberately covers the tab bar. */}
       <Sheet
         open={open}
         onClose={closeSheet}
@@ -136,7 +152,7 @@ export default function LiveWorkoutBanner({
                 <button className="btn btn-ghost btn-sm" style={{ color: '#8a8478' }} onClick={() => setConfirmDiscard(true)}>
                   {"Discard"}
                 </button>
-                <button className="btn btn-gold" style={{ flex: 1 }} onClick={handleFinishPress}>
+                <button className="btn btn-gold-solid" style={{ flex: 1 }} onClick={handleFinishPress}>
                   {doneCount < total
                     ? `✓ Finish (${doneCount}/${total})`
                     : '✓ Finish Workout'}
@@ -169,52 +185,51 @@ export default function LiveWorkoutBanner({
                       <div className="lw-superset-label">{"⚡ Superset"}</div>
                     )}
                     <div className="lw-ex-item-wrap">
-                      {/* ── Collapsed row ── */}
                       <div
                         className={`lw-ex-row${ex.done ? ' done' : ''}${isInSuperset ? ' in-superset' : ''}`}
-                        onClick={() => onToggleExercise(i)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            onToggleExercise(i);
-                          }
-                        }}
-                        role="checkbox"
-                        aria-checked={ex.done}
-                        tabIndex={0}
                       >
-                        <div className={`lw-ex-cb${ex.done ? ' done' : ''}`}>
+                        <button
+                          type="button"
+                          className={`lw-ex-cb${ex.done ? ' done' : ''}`}
+                          aria-label={ex.done ? `Mark ${ex.name} not done` : `Mark ${ex.name} done`}
+                          aria-pressed={ex.done}
+                          onClick={() => onToggleExercise(i)}
+                        >
                           {ex.done && <span className="lw-ex-check-mark">{"✓"}</span>}
-                        </div>
-                        <div className="lw-ex-info">
-                          <div className="lw-ex-name">{ex.name}</div>
-                          {canEdit && (
+                        </button>
+                        {canEdit ? (
+                          <button
+                            type="button"
+                            className="lw-ex-info lw-ex-open"
+                            aria-expanded={expanded}
+                            onClick={() => openEditor(i)}
+                          >
+                            <div className="lw-ex-name">{ex.name}</div>
                             <div className="lw-ex-meta">
                               {ex.setsDesc || `${ex.sets}×${ex.reps}`}
                               {ex.weightLbs
                                 ? ` · ${dispW(ex.weightLbs)} ${wLabel}`
                                 : ''}
                             </div>
-                          )}
-                        </div>
+                          </button>
+                        ) : (
+                          <div className="lw-ex-info">
+                            <div className="lw-ex-name">{ex.name}</div>
+                          </div>
+                        )}
                         {canEdit && (
                           <button
                             className={`lw-dots-btn${expanded ? ' active' : ''}`}
-                            onClick={(e) => toggleExpand(e, i)}
-                            aria-label="Edit exercise"
+                            onClick={() => openEditor(i)}
+                            aria-label={`Edit ${ex.name}`}
                           >
                             {"···"}
                           </button>
                         )}
                       </div>
 
-                      {/* ── Inline edit panel ── */}
                       {expanded && (
                         <div className="lw-ex-edit">
-                          {/* Same SetsEditor as the workout builder and the
-                              quick log — the live variant hides HR/treadmill/
-                              distance (never part of mid-session tracking)
-                              and commits extra rows per keystroke. */}
                           <SetsEditor
                             exD={{ id: ex.exId, category: ex.category, hasTreadmill: false }}
                             value={ex}
@@ -229,7 +244,6 @@ export default function LiveWorkoutBanner({
                             showDist={false}
                           />
 
-                          {/* Actions */}
                           <div className="lw-ex-edit-actions">
                             <button className="lw-ex-edit-remove-ex" onClick={() => { onRemoveExercise(i); setExpandedIdx(null); }}>
                               {"Remove Exercise"}
@@ -245,88 +259,38 @@ export default function LiveWorkoutBanner({
                 );
               })}
 
-              {/* ── Add Exercise ── */}
               <div className="lw-add-ex-wrap">
-                {!addExOpen ? (
-                  <button
-                    className="lw-add-ex-btn"
-                    onClick={() => { setAddExOpen(true); setExpandedIdx(null); }}
-                  >
-                    {"+ Add Exercise"}
-                  </button>
-                ) : (
-                  <div className="lw-add-ex-panel">
-                    {!addExSelected ? (
-                      <>
-                        <div className="lw-add-ex-search-row">
-                          <input
-                            className="lw-add-ex-input"
-                            type="text"
-                            placeholder="Search exercises…"
-                            autoFocus
-                            value={addExSearch}
-                            onChange={e => setAddExSearch(e.target.value)}
-                          />
-                          <button
-                            className="lw-add-ex-cancel"
-                            onClick={() => { setAddExOpen(false); setAddExSearch(''); }}
-                          >
-                            {"✕"}
-                          </button>
-                        </div>
-                        {addExSearch.length >= 2 && addExResults.length === 0 && (
-                          <div className="lw-add-ex-empty">{"No exercises found"}</div>
-                        )}
-                        {addExResults.map(ex => (
-                          <button key={ex.id} className="lw-add-ex-result" onClick={() => selectAddEx(ex)}>
-                            <span className="lw-add-ex-result-name">{ex.name}</span>
-                            <span className="lw-add-ex-result-cat">{ex.category}</span>
-                          </button>
-                        ))}
-                      </>
-                    ) : (
-                      <div className="lw-add-ex-config">
-                        <div className="lw-add-ex-config-name">
-                          <span>{addExSelected.name}</span>
-                          <button className="lw-add-ex-cancel" onClick={() => setAddExSelected(null)}>{"←"}</button>
-                        </div>
-                        {(() => {
-                          const selCat = (addExSelected.category || '').toLowerCase();
-                          const selIsCardioFlex = selCat === 'cardio' || selCat === 'flexibility';
-                          const selShowW = !selIsCardioFlex;
-                          return (
-                            <div className="lw-ex-edit-row" style={{ marginBottom: 10 }}>
-                              <div className="lw-ex-edit-cell">
-                                <span className="lw-ex-edit-col-hdr">{"Sets"}</span>
-                                <input className="lw-ex-edit-inp" type="text" inputMode="decimal" value={addExSets} onChange={e => setAddExSets(e.target.value)} />
-                              </div>
-                              <div className="lw-ex-edit-cell">
-                                <span className="lw-ex-edit-col-hdr">{"Reps"}</span>
-                                <input className="lw-ex-edit-inp" type="text" inputMode="decimal" value={addExReps} onChange={e => setAddExReps(e.target.value)} />
-                              </div>
-                              {selShowW && (
-                                <div className="lw-ex-edit-cell">
-                                  <span className="lw-ex-edit-col-hdr">{wLabel}</span>
-                                  <input className="lw-ex-edit-inp" type="text" inputMode="decimal" placeholder="—" value={addExWeight} onChange={e => setAddExWeight(e.target.value)} />
-                                </div>
-                              )}
-                              <div className="lw-ex-edit-spacer" />
-                            </div>
-                          );
-                        })()}
-                        <button className="btn btn-gold btn-sm" style={{ width: '100%' }} onClick={confirmAddEx}>
-                          {"Add to Workout"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <button
+                  className="lw-add-ex-btn"
+                  onClick={() => { setPickerOpen(true); setExpandedIdx(null); }}
+                >
+                  {"+ Add Exercise"}
+                </button>
               </div>
             </div>
       </Sheet>
 
-      {/* In-app confirm instead of window.confirm (which is jarring and
-          fails in sandboxed frames — see the note in App.jsx). */}
+      {pickerOpen && (
+        <WorkoutExercisePicker
+          pickerSearch={pickerSearch}
+          setPickerSearch={setPickerSearch}
+          pickerMuscle={pickerMuscle}
+          setPickerMuscle={setPickerMuscle}
+          pickerTypeFilter={pickerTypeFilter}
+          setPickerTypeFilter={setPickerTypeFilter}
+          pickerEquipFilter={pickerEquipFilter}
+          setPickerEquipFilter={setPickerEquipFilter}
+          pickerOpenDrop={pickerOpenDrop}
+          setPickerOpenDrop={setPickerOpenDrop}
+          pickerSelected={pickerSelected}
+          allExercises={allExercises || []}
+          closePicker={closePicker}
+          openExEditor={openExEditor || (() => {})}
+          pickerToggleEx={pickerToggleEx}
+          commitPickerToWorkout={commitPicker}
+        />
+      )}
+
       <ConfirmSheet
         open={confirmDiscard}
         icon={"🗑"}
