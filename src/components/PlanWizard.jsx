@@ -715,7 +715,7 @@ function PlanWizard(props) {
                 <span className="plan-wizard-hdr-icon">{bIcon}</span>
                 {" "}{bName||"Untitled Plan"}
               </div>
-              <button className="btn btn-gold-solid btn-sm" onClick={()=>{saveBuiltPlan();setPlanWizardOpen(false);}}>{"💾 Save"}</button>
+              <button className="btn btn-gold btn-sm" onClick={()=>{saveBuiltPlan();setPlanWizardOpen(false);}}>{"💾 Save"}</button>
             </div>
 
             {/* Week tabs (only for multi-week plans) */}

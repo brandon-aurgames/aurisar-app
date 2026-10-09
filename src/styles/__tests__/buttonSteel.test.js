@@ -104,12 +104,37 @@ describe('steel button tokens', () => {
     expect(history).not.toContain('btn-gold-solid');
   });
 
-  it('leaves WorkoutsTab and LiveWorkoutBanner primaries for the #389 rebase', () => {
+  it('gives New Workout and live Finish the solid primary, Start/Log the same outline', () => {
     const workouts = readFileSync(ROOT + 'src/features/workouts/WorkoutsTab.jsx', 'utf8');
     const live = readFileSync(ROOT + 'src/components/LiveWorkoutBanner.jsx', 'utf8');
-    expect(workouts).toContain('btn btn-gold btn-sm');
+    expect(workouts).toContain('btn btn-gold-solid btn-sm');
     expect(workouts).toContain('＋ New Workout');
-    expect(live).toContain('className="btn btn-gold"');
+    expect(workouts).not.toMatch(/btn-gold-solid btn-sm\$\{live \? " on"/);
+    expect(workouts).toContain('btn btn-gold btn-sm${live ? " on" : ""}');
+    expect(workouts).toContain('btn btn-gold${isLiveWorkout(liveWorkout, wo) ? " on" : ""}');
+    expect(workouts).toMatch(/btn btn-gold btn-sm.*\{\"Log\"\}/);
+    expect(workouts).toMatch(/btn btn-gold.*\{\"Log\"\}/);
+    expect(live).toContain('className="btn btn-gold-solid"');
     expect(live).toContain('handleFinishPress');
+    expect(css).toMatch(/\.btn-gold\.on/);
+  });
+
+  it('keeps the final reduced-motion transform override after press-scale rules', () => {
+    const scaleAt = (sel) => {
+      const re = new RegExp(`${sel.replace('.', '\\.')}:active\\{[^}]*transform:scale`);
+      const idx = css.search(re);
+      expect(idx, `${sel}:active scale`).toBeGreaterThan(-1);
+      return idx;
+    };
+    const lastReduce = css.lastIndexOf('@media (prefers-reduced-motion: reduce)');
+    expect(lastReduce).toBeGreaterThan(scaleAt('.track-toggle-btn'));
+    expect(lastReduce).toBeGreaterThan(scaleAt('.wb-picker-add-btn'));
+    expect(lastReduce).toBeGreaterThan(scaleAt('.cart-forge-btn'));
+    const tail = css.slice(lastReduce);
+    expect(tail).toMatch(/\.track-toggle-btn:active/);
+    expect(tail).toMatch(/\.wb-picker-add-btn:active/);
+    expect(tail).toMatch(/\.cart-forge-btn:active/);
+    expect(tail).toMatch(/\.cart-forge-primary:active/);
+    expect(tail).toMatch(/transform:\s*none/);
   });
 });
