@@ -62,6 +62,14 @@ describe('stretched-row overlay safeguard', () => {
   it('gives the checkbox and star 44px-wide columns so their hit slop misses the name', () => {
     expect(css).toMatch(/\.ex-row-check\{[^}]*width:44px/);
     expect(css).toMatch(/\.picker-ex-fav\{[^}]*width:44px/);
+    expect(css).toMatch(/\.ex-row-more\{[^}]*width:44px/);
+  });
+
+  it('keeps the thin-row exercise name at normal weight', () => {
+    expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?font-weight:\s*400/);
+    const block = css.match(/\.picker-ex-main\{[\s\S]*?\n\s*\}/);
+    expect(block, '.picker-ex-main rule').not.toBeNull();
+    expect(block[0]).not.toMatch(/font-weight:\s*600/);
   });
 
   it('applies .stretch-row wherever the stretched primary action is used', () => {

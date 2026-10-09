@@ -3,6 +3,7 @@ import { getMuscleColor } from '../../utils/xp';
 import { ExIcon } from '../../components/ExIcon';
 import { muscleLabel, equipLabel } from './exerciseFilterOptions';
 import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
+import ExRowOverflowMenu from './ExRowOverflowMenu';
 
 /**
  * Shared exercise row — Library, My Exercises, and the workout-builder picker.
@@ -19,7 +20,7 @@ export function difficultyOf(ex) {
 
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
-const TOOL_PRESS = '.ex-row-check, .picker-ex-fav, .ex-row-icon-btn';
+const TOOL_PRESS = '.ex-row-check, .picker-ex-fav, .ex-row-icon-btn, .ex-row-more';
 
 function suppressRowPress(e) {
   if (!e.target.closest?.(TOOL_PRESS)) return;
@@ -40,6 +41,7 @@ export function exerciseRowLabel(ex, { showPB = false } = {}) {
   return [
     ex.name,
     showPbBadge ? 'personal best' : null,
+    ex.custom ? 'Custom' : null,
     ex.category && cap(ex.category),
     ex.muscleGroup && muscleLabel(ex.muscleGroup),
     ex.equipment ? equipLabel(ex.equipment) : null,
@@ -58,6 +60,9 @@ const ExerciseRow = memo(function ExerciseRow({
   showCustomBadge = false,
   isFav,
   onToggleFav,
+  onEdit,
+  onDuplicate,
+  onDelete,
   trailing,
   style,
   rowRef,
@@ -67,9 +72,11 @@ const ExerciseRow = memo(function ExerciseRow({
   const mg = getMuscleColor(ex.muscleGroup);
   const showPbBadge = SHOW_EXERCISE_PB_DISPLAY && showPB;
   const label = exerciseRowLabel(ex, { showPB });
-  const metaMuscle = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : "";
-  const metaEquip = ex.equipment ? equipLabel(ex.equipment) : "";
-  const showMetaEquip = showEquipment || !!ex.equipment;
+  const metaBits = [
+    ex.custom ? "Custom" : null,
+    ex.muscleGroup ? muscleLabel(ex.muscleGroup) : null,
+    (showEquipment || !!ex.equipment) && ex.equipment ? equipLabel(ex.equipment) : null,
+  ].filter(Boolean);
 
   return (
     <div
@@ -109,11 +116,18 @@ const ExerciseRow = memo(function ExerciseRow({
           {showPbBadge && <span className={"picker-ex-pb"} aria-hidden="true">{"🏆"}</span>}
         </div>
         <div className={"picker-ex-meta"} aria-hidden="true">
-          {metaMuscle}
-          {showMetaEquip && metaEquip && metaMuscle ? " · " : null}
-          {showMetaEquip && metaEquip ? metaEquip : null}
+          {metaBits.join(" · ")}
         </div>
       </div>
+
+      {(onEdit || onDuplicate || onDelete) && (
+        <ExRowOverflowMenu
+          name={ex.name}
+          onEdit={onEdit}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+        />
+      )}
 
       {trailing}
 

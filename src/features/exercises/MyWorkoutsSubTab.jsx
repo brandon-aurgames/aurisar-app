@@ -175,22 +175,9 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
                   onToggleFav={() => toggleFav(ex.id)}
                   onToggleSelect={toggleCart}
                   onActivate={() => setLibDetailEx(ex)}
-                  trailing={
-                    <div className={"ex-row-tools"}>
-                      <button
-                        type="button"
-                        className={"ex-row-icon-btn btn-sm"}
-                        onClick={e => { e.stopPropagation(); openExEditor("edit", ex); }}
-                        aria-label={`Edit ${ex.name}`}
-                      >{"Edit"}</button>
-                      <button
-                        type="button"
-                        className={"ex-row-icon-btn ex-row-icon-btn--danger btn-sm"}
-                        onClick={e => { e.stopPropagation(); deleteCustomEx(ex.id); }}
-                        aria-label={`Delete ${ex.name}`}
-                      >{"Delete"}</button>
-                    </div>
-                  }
+                  onEdit={() => openExEditor("edit", ex)}
+                  onDuplicate={() => openExEditor("copy", ex)}
+                  onDelete={() => deleteCustomEx(ex.id)}
                 />
               );
             })}

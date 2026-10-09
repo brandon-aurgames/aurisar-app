@@ -153,10 +153,10 @@
        absolutely positioned and centered on the host. */
     @media (hover: none) and (pointer: coarse) {
       .btn-xs, .btn-sm, .tab, .preview-pin-go,
-      .picker-ex-fav, .ex-row-check, .lib-see-all, .lib-filter-chip,
+      .picker-ex-fav, .ex-row-check, .ex-row-more, .lib-see-all, .lib-filter-chip,
       .lib-resume-chip-x, .lib-filter-trigger, .ex-row-icon-btn { position: relative; }
       .btn-xs::before, .btn-sm::before, .tab::before, .preview-pin-go::before,
-      .picker-ex-fav::before, .ex-row-check::before, .lib-see-all::before,
+      .picker-ex-fav::before, .ex-row-check::before, .ex-row-more::before, .lib-see-all::before,
       .lib-filter-chip::before, .lib-resume-chip-x::before, .lib-filter-trigger::before,
       .ex-row-icon-btn::before {
         content: ""; position: absolute; top: 50%; left: 50%;
@@ -927,6 +927,23 @@
       display:flex;align-items:center;justify-content:center
     }
     .picker-ex-fav[aria-pressed="true"]{color:#d4cec4}
+    .ex-row-overflow{position:relative;flex-shrink:0;z-index:1}
+    .ex-row-more{
+      background:transparent;border:none;color:#8a8478;font-size:1.05rem;cursor:pointer;
+      padding:0;margin:0;line-height:1;flex-shrink:0;width:44px;height:20px;letter-spacing:.04em;
+      display:flex;align-items:center;justify-content:center
+    }
+    .ex-row-menu-scrim{position:fixed;inset:0;z-index:var(--z-dropdown)}
+    .ex-row-menu{
+      position:fixed;z-index:calc(var(--z-dropdown) + 1);min-width:160px;padding:6px;
+      background:#16140e;border:1px solid rgba(180,172,158,.14);border-radius:10px;
+      box-shadow:0 8px 24px rgba(0,0,0,.55);display:flex;flex-direction:column
+    }
+    .ex-row-menu button{
+      min-height:44px;text-align:left;background:transparent;border:0;color:#d4cec4;
+      font-family:var(--font-body);font-size:.75rem;font-weight:400;padding:0 12px;border-radius:8px;cursor:pointer
+    }
+    .ex-row-menu button.danger{color:#e05252}
     .ex-row-tools{display:flex;gap:6px;align-items:center}
     .ex-row-icon-btn{
       background:rgba(45,42,36,.25);border:1px solid rgba(180,172,158,.08);color:#8a8478;
@@ -1015,7 +1032,7 @@
       color:inherit;text-align:left;cursor:pointer;
       /* One line with ellipsis so a long name cannot overflow the card. */
       display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      min-width:0;max-width:100%;flex:1;font-size:.95rem;line-height:1.15;font-weight:600;
+      min-width:0;max-width:100%;flex:1;font-size:.95rem;line-height:1.15;font-weight:400;
       -webkit-tap-highlight-color:transparent
     }
     .picker-ex-pb{flex-shrink:0;font-size:.7rem;line-height:1}
