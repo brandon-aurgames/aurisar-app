@@ -2,6 +2,10 @@
     @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
     
     *{box-sizing:border-box;margin:0;padding:0}
+    .sr-only{
+      position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+      overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0
+    }
 
     /* Visible focus rings for keyboard users only — :focus-visible matches
        only when focus arrived via keyboard, so mouse/touch focus stays
@@ -79,6 +83,11 @@
       --btn-steel-glow:rgba(180,172,158,.22);
       --btn-steel-fill:linear-gradient(145deg,var(--btn-steel-hi) 0%,var(--btn-steel-mid) 55%,var(--btn-steel-lo) 100%);
       --btn-steel-outline-fill:linear-gradient(145deg,rgba(58,56,52,.14),rgba(20,19,16,.06));
+
+      /* ExerciseRow: painted card + visible gap = virtual slot.
+         Keep in lockstep with src/features/exercises/exerciseRowLayout.js. */
+      --ex-row-card-h:52px;
+      --ex-row-gap:8px;
     }
     html{font-size:17.333px}
     .root{min-height:100vh;background:#0c0c0a;color:#d4cec4;font-family:var(--font-body);position:relative;overflow-x:hidden}
@@ -143,8 +152,13 @@
        44x44 target. Visual layout is unaffected because the pseudo is
        absolutely positioned and centered on the host. */
     @media (hover: none) and (pointer: coarse) {
-      .btn-xs, .btn-sm, .tab, .preview-pin-go { position: relative; }
-      .btn-xs::before, .btn-sm::before, .tab::before, .preview-pin-go::before {
+      .btn-xs, .btn-sm, .tab, .preview-pin-go,
+      .picker-ex-fav, .ex-row-check, .ex-row-more, .lib-see-all, .lib-filter-chip,
+      .lib-resume-chip-x, .lib-filter-trigger, .ex-row-icon-btn { position: relative; }
+      .btn-xs::before, .btn-sm::before, .tab::before, .preview-pin-go::before,
+      .picker-ex-fav::before, .ex-row-check::before, .ex-row-more::before, .lib-see-all::before,
+      .lib-filter-chip::before, .lib-resume-chip-x::before, .lib-filter-trigger::before,
+      .ex-row-icon-btn::before {
         content: ""; position: absolute; top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         min-width: 44px; min-height: 44px;
@@ -541,6 +555,7 @@
       padding:calc(8px + env(safe-area-inset-top,0px)) 16px env(safe-area-inset-bottom,0px)
     }
     .wb-picker-list-wrap{position:relative;flex:1 1 0;min-height:120px;overflow:hidden}
+    .wb-picker-list-wrap.has-add-overlay{padding-bottom:0}
     .wb-picker-add-overlay{
       position:absolute;left:0;right:0;bottom:12px;z-index:2;
       display:flex;justify-content:center;pointer-events:none
@@ -607,7 +622,7 @@
 
     .lib-section-hdr{font-family:'Cinzel',serif;font-size:.8rem;font-weight:600;color:#b4ac9e;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
     .lib-section-hdr .lib-hdr-icon{font-size:.9rem;opacity:.7}
-    .lib-see-all{background:transparent;border:none;color:#8a8478;font-size:.65rem;cursor:pointer;padding:2px 0;transition:color var(--dur-base) var(--ease-standard);font-family:'Inter',sans-serif;letter-spacing:.02em}
+    .lib-see-all{background:transparent;border:none;color:#8a8478;font-size:.65rem;cursor:pointer;padding:8px 4px;min-height:44px;transition:color var(--dur-base) var(--ease-standard);font-family:'Inter',sans-serif;letter-spacing:.02em}
     .lib-see-all:hover{color:#b4ac9e}
     .lib-divider{height:1px;margin:22px 0;background:linear-gradient(90deg,transparent,rgba(180,172,158,.1) 20%,rgba(180,172,158,.14) 50%,rgba(180,172,158,.1) 80%,transparent)}
 
@@ -661,14 +676,17 @@
        so a non-destructive back leaves the filtered results visibly reachable. */
     .lib-resume-chip-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .lib-resume-chip{
-      display:flex;align-items:center;gap:8px;width:100%;min-height:44px;
-      margin-bottom:10px;padding:8px 12px;border-radius:9px;cursor:pointer;
-      font-family:'Inter',sans-serif;font-size:.68rem;text-align:left;
-      color:#d4cec4;background:rgba(196,160,68,.1);
-      border:1px solid rgba(196,148,40,.28)
+      display:flex;align-items:center;gap:4px;width:100%;min-height:44px;
+      margin-bottom:10px;padding:0;border-radius:9px;
+      background:rgba(45,42,36,.32);
+      border:1px solid rgba(180,172,158,.2)
+    }
+    .lib-resume-chip-go{
+      flex:1;min-width:0;min-height:44px;padding:8px 12px;border:none;background:transparent;
+      font-family:'Inter',sans-serif;font-size:.68rem;text-align:left;color:#d4cec4;cursor:pointer
     }
     .lib-resume-chip-x{
-      margin-left:auto;flex-shrink:0;width:28px;height:28px;display:flex;
+      flex-shrink:0;width:44px;height:44px;display:flex;
       align-items:center;justify-content:center;border-radius:6px;
       background:transparent;border:none;color:#8a8478;cursor:pointer;font-size:.7rem
     }
@@ -681,10 +699,7 @@
     .lib-hero-card:hover,.lib-hero-card:active{filter:none}
     .lib-hero-when{font-size:.48rem;color:#8a8478;letter-spacing:.03em;line-height:1}
 
-    /* ── Discover carousel customize menu ────────────────────────────────
-       Nested/cascading pick-3 for the Library home's discover rows. Reuses
-       .myex-accordion for the group disclosure; the option rows below are
-       deliberately not checkboxes — see DiscoverCustomizeMenu.jsx. */
+    /* ── Legacy discover-carousel chrome (rows removed; keep tokens inert) */
     .lib-discover-cust-trigger{
       background:rgba(45,42,36,.22);border:1px solid rgba(180,172,158,.1);
       border-radius:8px;padding:5px 11px;color:#8a8478;font-size:.62rem;
@@ -726,7 +741,7 @@
       width:100%;max-width:520px;
       background:linear-gradient(180deg,rgba(20,19,14,.94),rgba(12,12,10,.97));
       backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-      border:1px solid rgba(196,148,40,.22);border-bottom:none;
+      border:1px solid rgba(180,172,158,.2);border-bottom:none;
       border-radius:12px 12px 0 0;
       box-shadow:0 -6px 28px rgba(0,0,0,.5);
       animation:cartTrayIn var(--dur-slow) var(--ease-out) both
@@ -741,14 +756,14 @@
     .cart-tray-count{
       flex-shrink:0;min-width:20px;height:20px;padding:0 6px;
       display:flex;align-items:center;justify-content:center;
-      border-radius:10px;background:rgba(196,148,40,.18);
-      border:1px solid rgba(196,148,40,.4);
-      color:#e8d08a;font-family:'Inter',sans-serif;font-size:.66rem;
+      border-radius:10px;background:rgba(45,42,36,.45);
+      border:1px solid rgba(180,172,158,.28);
+      color:#d4cec4;font-family:'Inter',sans-serif;font-size:.66rem;
       font-variant-numeric:tabular-nums
     }
     .cart-tray-label{
-      flex:1;text-align:left;font-family:'Cinzel',serif;font-size:.62rem;
-      letter-spacing:.1em;text-transform:uppercase;color:#c4a044
+      flex:1;text-align:left;font-family:'Inter',sans-serif;font-size:.72rem;
+      letter-spacing:.02em;color:#d4cec4
     }
     .cart-tray-chevron{color:#8a8478;font-size:.7rem;flex-shrink:0}
 
@@ -859,8 +874,8 @@
 
     /* Skeleton rows — same silhouette as .picker-ex-row so the list doesn't
        reflow when the real data lands. */
-    .lib-skel-row{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;background:rgba(45,42,36,.16);border:1px solid rgba(180,172,158,.05);border-left:3px solid rgba(180,172,158,.09);margin-bottom:6px}
-    .lib-skel-orb{width:34px;height:34px;border-radius:9px;flex-shrink:0}
+    .lib-skel-row{display:flex;align-items:center;gap:8px;padding:4px 8px;height:var(--ex-row-card-h);min-height:0;box-sizing:border-box;overflow:hidden;border-radius:10px;background:rgba(45,42,36,.16);border:1px solid rgba(180,172,158,.05);border-left:2px solid rgba(180,172,158,.09);margin-bottom:var(--ex-row-gap)}
+    .lib-skel-orb{width:24px;height:24px;border-radius:7px;flex-shrink:0}
     .lib-skel-line{height:9px;border-radius:4px}
     .lib-skel-orb,.lib-skel-line{background:linear-gradient(90deg,rgba(180,172,158,.06) 25%,rgba(180,172,158,.13) 50%,rgba(180,172,158,.06) 75%);background-size:200% 100%;animation:libSkelShimmer 1.4s ease-in-out infinite}
     @keyframes libSkelShimmer{from{background-position:200% 0}to{background-position:-200% 0}}
@@ -869,9 +884,81 @@
     .lib-muscle-pill{padding:2px 7px;border-radius:9px;font-size:.48rem;font-weight:600;letter-spacing:.02em;color:var(--mg-color);background:color-mix(in srgb,var(--mg-color) 12%,transparent);border:1px solid color-mix(in srgb,var(--mg-color) 15%,transparent);text-transform:capitalize}
 
     /* ── LIBRARY HOME: Muscle Tiles (Browse by Muscle) ── */
+    .lib-muscle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+    @media (min-width: 480px){
+      .lib-muscle-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
+    .lib-home-rows{display:flex;flex-direction:column;gap:var(--ex-row-gap)}
+    .lib-home-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .lib-filter-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;position:relative}
+    .lib-filter-sheet-footer{display:flex;align-items:center;gap:8px;width:100%}
+    .lib-filter-sheet-count{flex:1;font-size:.7rem;color:#8a8478;font-variant-numeric:tabular-nums}
+    .lib-filter-sheet-footer .btn-gold-solid{flex:0 0 auto;min-width:88px}
+    .lib-filter-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+    .lib-filter-chip{
+      background:rgba(45,42,36,.28);border:1px solid rgba(180,172,158,.2);color:#b4ac9e;
+      font-size:.62rem;padding:8px 10px;min-height:44px;border-radius:12px;cursor:pointer
+    }
+    .lib-filtered-back{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .lib-back-btn{
+      background:transparent;border:none;color:#b4ac9e;font-size:.78rem;cursor:pointer;
+      padding:8px 0;min-height:44px;display:flex;align-items:center
+    }
+    .lib-filtered-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .lib-filtered-count{font-size:.68rem;color:#8a8478}
+    .lib-empty-actions{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+    /* 44px-wide columns so the touch ::before slop cannot spill into the
+       name. Visual box is the inner 16px span; height stays ~20px so the
+       card does not have to grow to host the WCAG target. */
+    .ex-row-check{
+      flex-shrink:0;width:44px;height:20px;padding:0;margin:0;cursor:pointer;
+      border:none;background:transparent;color:#d4cec4;
+      display:flex;align-items:center;justify-content:center
+    }
+    .ex-row-check-box{
+      width:16px;height:16px;border-radius:4px;
+      border:1.5px solid rgba(180,172,158,.22);background:transparent;
+      display:flex;align-items:center;justify-content:center;font-size:.65rem;line-height:1
+    }
+    .ex-row-check.on .ex-row-check-box{background:rgba(45,42,36,.45);border-color:rgba(180,172,158,.45)}
+    .picker-ex-fav{
+      background:transparent;border:none;color:#8a8478;font-size:.9rem;cursor:pointer;
+      padding:0;margin:0;line-height:1;flex-shrink:0;width:44px;height:20px;
+      display:flex;align-items:center;justify-content:center
+    }
+    .picker-ex-fav[aria-pressed="true"]{color:#d4cec4}
+    .ex-row-overflow{position:relative;flex-shrink:0;z-index:1}
+    .ex-row-more{
+      background:transparent;border:none;color:#8a8478;font-size:1.05rem;cursor:pointer;
+      padding:0;margin:0;line-height:1;flex-shrink:0;width:44px;height:20px;letter-spacing:.04em;
+      display:flex;align-items:center;justify-content:center
+    }
+    .ex-row-menu-scrim{position:fixed;inset:0;z-index:var(--z-dropdown)}
+    .ex-row-menu{
+      position:fixed;z-index:calc(var(--z-dropdown) + 1);min-width:160px;padding:6px;
+      background:#16140e;border:1px solid rgba(180,172,158,.14);border-radius:10px;
+      box-shadow:0 8px 24px rgba(0,0,0,.55);display:flex;flex-direction:column
+    }
+    .ex-row-menu button{
+      min-height:44px;text-align:left;background:transparent;border:0;color:#d4cec4;
+      font-family:var(--font-body);font-size:.75rem;font-weight:400;padding:0 12px;border-radius:8px;cursor:pointer
+    }
+    .ex-row-menu button.danger{color:#e05252}
+    .ex-row-tools{display:flex;gap:6px;align-items:center}
+    .ex-row-icon-btn{
+      background:rgba(45,42,36,.25);border:1px solid rgba(180,172,158,.08);color:#8a8478;
+      font-size:.55rem;cursor:pointer;padding:4px 8px;border-radius:5px;font-family:'Barlow',sans-serif
+    }
+    .ex-row-icon-btn--danger{background:rgba(46,20,20,.3);border-color:rgba(231,76,60,.15);color:#e74c3c}
+    .ex-editor-footer{display:flex;gap:8px;width:100%}
+    .ex-editor-from-list{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+    .ex-editor-from-hit{
+      text-align:left;background:rgba(45,42,36,.28);border:1px solid rgba(180,172,158,.12);
+      color:#d4cec4;border-radius:8px;padding:10px 12px;min-height:44px;cursor:pointer;font-size:.78rem
+    }
     .lib-muscle-tile{
-      position:relative;overflow:hidden;border-radius:11px;padding:11px 12px;cursor:pointer;
-      display:flex;align-items:center;gap:10px;min-height:62px;
+      position:relative;overflow:hidden;border-radius:9px;padding:8px 8px;cursor:pointer;
+      display:flex;align-items:center;gap:6px;min-height:52px;
       background:linear-gradient(155deg,color-mix(in srgb,var(--mg-color) 15%,rgba(45,42,36,.38)),color-mix(in srgb,var(--mg-color) 5%,rgba(32,30,26,.2)));
       border:1px solid color-mix(in srgb,var(--mg-color) 22%,transparent);
       border-left:3px solid color-mix(in srgb,var(--mg-color) 40%,transparent);
@@ -882,19 +969,20 @@
     .lib-muscle-tile:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--mg-color) 32%,transparent);box-shadow:0 6px 22px rgba(0,0,0,.4),0 0 16px color-mix(in srgb,var(--mg-color) 8%,transparent),inset 0 1px 0 rgba(255,255,255,.04)}
     .lib-muscle-tile .lib-tile-watermark{position:absolute;top:4px;right:8px;font-size:2rem;opacity:.07;pointer-events:none;filter:grayscale(.3)}
     .lib-tile-orb{
-      width:32px;height:32px;border-radius:9px;flex-shrink:0;
+      width:26px;height:26px;border-radius:7px;flex-shrink:0;
       display:flex;align-items:center;justify-content:center;
       background:radial-gradient(circle at 35% 35%,color-mix(in srgb,var(--mg-color) 25%,rgba(45,42,36,.5)),color-mix(in srgb,var(--mg-color) 10%,rgba(25,23,18,.6)));
       box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 0 6px rgba(0,0,0,.3)
     }
-    .lib-tile-name{font-family:'Cinzel',serif;font-size:.7rem;font-weight:600;color:#d4cec4;letter-spacing:.02em}
-    .lib-tile-count{font-size:.55rem;color:var(--mg-color);font-weight:500;margin-top:2px}
+    .lib-tile-name{font-family:'Cinzel',serif;font-size:.58rem;font-weight:600;color:#d4cec4;letter-spacing:.02em}
+    .lib-tile-count{font-size:.48rem;color:var(--mg-color);font-weight:500;margin-top:1px}
 
     /* ── EXERCISE PICKER: Themed Selection Rows (Add Exercise screens) ── */
     .picker-ex-row{
       --mg-color:#B0A090;
-      position:relative;isolation:isolate;border-radius:13px;padding:10px 13px;cursor:pointer;
-      display:flex;align-items:center;gap:12px;overflow:hidden;
+      position:relative;isolation:isolate;border-radius:10px;padding:4px 8px;cursor:pointer;
+      display:flex;align-items:center;gap:6px;
+      box-sizing:border-box;min-height:0;height:100%;max-height:var(--ex-row-card-h);overflow:hidden;
       background:
         linear-gradient(158deg,
           color-mix(in srgb,var(--mg-color) 13%,rgba(26,24,20,.62)) 0%,
@@ -917,8 +1005,9 @@
     }
     /* Picker cards are inset and compact so they read as slim rows, not
        full-bleed slabs. height:100% still fills the fixed virtualized slot. */
-    .picker-ex-row.wb-pcard{height:100%;padding:6px 10px;gap:9px;border-radius:10px}
-    .wb-pcard .picker-ex-orb{width:30px;height:30px;border-radius:8px}
+    .picker-ex-row.wb-pcard{min-height:0;height:100%;max-height:var(--ex-row-card-h);padding:4px 8px;gap:6px;border-radius:10px;overflow:hidden}
+    .lib-home-rows .picker-ex-row{height:var(--ex-row-card-h)}
+    .wb-pcard .picker-ex-orb{width:24px;height:24px;border-radius:7px}
     .wb-pcard .picker-ex-xp{font-size:.64rem}
     /* These were <div>s with onClick — invisible to keyboard and announced as
        nothing. They are <button>s now; this normalises the UA button styling
@@ -936,15 +1025,17 @@
        out-of-flow ::after, so the row is keyboard-operable and announces
        itself without nesting the favourite button inside another button —
        which is invalid, and hides the inner control from assistive tech. */
+    .picker-ex-copy{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:0 2px;overflow:hidden}
+    .picker-ex-name-row{display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden}
     .picker-ex-main{
       background:none;border:none;padding:0;margin:0;font:inherit;
       color:inherit;text-align:left;cursor:pointer;
-      /* Clamp to two lines so a long name can never overflow the fixed-height
-         virtualized row and overlap the card below it. */
-      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-      overflow:hidden;min-width:0;max-width:100%;
+      /* One line with ellipsis so a long name cannot overflow the card. */
+      display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      min-width:0;max-width:100%;flex:1;font-size:.95rem;line-height:1.15;font-weight:400;
       -webkit-tap-highlight-color:transparent
     }
+    .picker-ex-pb{flex-shrink:0;font-size:.7rem;line-height:1}
     .picker-ex-main::after{content:'';position:absolute;inset:0;border-radius:inherit}
     .picker-ex-main:focus-visible{outline:none}
     .picker-ex-main:focus-visible::after{
@@ -964,8 +1055,14 @@
     .stretch-row a,
     .stretch-row input,
     .stretch-row select{position:relative;z-index:1}
-    .picker-ex-row:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--mg-color) 30%,transparent);box-shadow:0 6px 20px rgba(0,0,0,.36),0 0 16px color-mix(in srgb,var(--mg-color) 12%,transparent),inset 0 1px 0 rgba(255,255,255,.05)}
+    .picker-ex-row:hover{border-color:color-mix(in srgb,var(--mg-color) 30%,transparent);box-shadow:0 6px 20px rgba(0,0,0,.36),0 0 16px color-mix(in srgb,var(--mg-color) 12%,transparent),inset 0 1px 0 rgba(255,255,255,.05)}
     .picker-ex-row:active{transform:scale(.985);transition:transform var(--dur-instant) var(--ease-standard)}
+    /* Checkbox / star / edit taps must not play the row's press scale.
+       Class is set from pointerdown on those controls — :has(:active) is
+       skipped so jsdom's stylesheet parser (and the reduced-motion test
+       that aliases :active) can still read the rest of this file. */
+    .picker-ex-row.no-row-press,
+    .picker-ex-row.no-row-press:active{transform:none}
     .picker-ex-row.sel{
       background:linear-gradient(155deg,color-mix(in srgb,var(--mg-color) 24%,rgba(45,42,36,.44)),color-mix(in srgb,var(--mg-color) 10%,rgba(28,26,22,.3)));
       border-color:color-mix(in srgb,var(--mg-color) 48%,transparent);
@@ -978,7 +1075,10 @@
       font-family:'Inter',sans-serif;font-weight:600;font-size:.72rem;letter-spacing:.02em;
       color:#ece6da;white-space:nowrap
     }
-    .picker-ex-meta{letter-spacing:.01em;opacity:.92}
+    .picker-ex-meta{
+      letter-spacing:.01em;opacity:.92;font-size:.72rem;color:#8a8478;line-height:1.15;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+    }
     /* Collapsible muscle-section header inside the virtualized picker list.
        Lives in a react-window row, so it fills the row box (height comes from
        the List's per-index rowHeight); the muscle colour keys it to its rows. */
@@ -1003,7 +1103,7 @@
     }
     .wb-picker-body{position:relative}
     .picker-ex-orb{
-      width:40px;height:40px;border-radius:11px;flex-shrink:0;
+      width:24px;height:24px;border-radius:7px;flex-shrink:0;
       display:flex;align-items:center;justify-content:center;
       background:radial-gradient(circle at 34% 30%,color-mix(in srgb,var(--mg-color) 32%,rgba(45,42,36,.55)),color-mix(in srgb,var(--mg-color) 9%,rgba(20,18,14,.7)));
       border:1px solid color-mix(in srgb,var(--mg-color) 32%,transparent);
@@ -1396,7 +1496,9 @@
       border-radius:11px;padding:13px 14px;display:flex;flex-direction:column;gap:10px;
       backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)
     }
-    .ex-editor-section-title{font-family:'Cinzel',serif;font-size:.58rem;color:color-mix(in srgb,var(--mg-color) 30%,#8a8478);letter-spacing:.2em;text-transform:uppercase}
+    .ex-editor-section-title{font-family:'Cinzel',serif;font-size:.58rem;color:color-mix(in srgb,var(--mg-color) 30%,#8a8478);letter-spacing:.2em;text-transform:uppercase;font-weight:600;margin:0}
+    .ex-editor-legend{font-size:.62rem;color:#8a8478;margin-bottom:6px}
+    .ex-editor-error{font-size:.62rem;color:#c44;margin-top:4px}
 
     /* ── Stats / Review Modal ── */
     .modal-sheet{background:linear-gradient(160deg,rgba(18,18,14,.88),rgba(12,12,10,.92));border:1px solid rgba(180,172,158,.05);border-radius:18px 18px 0 0;padding:0;width:100%;max-width:520px;max-height:calc(88vh - var(--bottom-nav-h));overflow-y:auto;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}

@@ -22,6 +22,13 @@ describe('ExerciseDetailSheet respects profile.units', () => {
     expect(formatSrc).not.toMatch(/min\/mi`;/);
   });
 
+  it('does not offer Configure or Stage, and hides the empty History forge copy', () => {
+    expect(src).not.toMatch(/Configure/);
+    expect(src).not.toMatch(/Stage for later/);
+    expect(src).toContain('No logs yet.');
+    expect(src).toMatch(/className=\{["']btn btn-gold btn-sm["']\}/);
+  });
+
   it('the History Trend chip renders its delta through displayWt, not a hardcoded "lbs" literal', () => {
     const idx = src.indexOf('"Trend"');
     const chip = src.slice(idx, idx + 400);
