@@ -12,9 +12,9 @@ describe('formatExPb', () => {
     expect(formatExPb({ type: 'cardio', value: 8.5 }, 'imperial')).toBe('8.50 min/mi');
   });
 
-  it('formats a legacy {weight} PB as 1RM', () => {
-    expect(formatExPb({ weight: 185 }, 'imperial')).toBe('🏆 1RM: 185 lbs');
-    expect(formatExPb({ weight: 185 }, 'metric')).toMatch(/kg/);
+  it('formats a legacy {weight} PB as a unit string with no glyph or 1RM label', () => {
+    expect(formatExPb({ weight: 185 }, 'imperial')).toBe('185 lbs');
+    expect(formatExPb({ weight: 185 }, 'metric')).toBe('83.9 kg');
   });
 
   it('returns null when there is no PB', () => {

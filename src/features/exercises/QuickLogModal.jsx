@@ -3,12 +3,14 @@ import { UI_COLORS, NO_SETS_EX_IDS, RUNNING_EX_ID } from '../../data/constants';
 import { calcExXP } from '../../utils/xp';
 import { planQuickLogRows } from '../../utils/quickLogRows';
 import { isMetric, kgToLbs, lbsToKg, kmToMi, miToKm, weightLabel, distLabel, displayPace } from '../../utils/units';
+import { formatPbValue } from '../../utils/formatPbValue';
 import { S, R, FS, FG } from '../../utils/tokens';
 import Sheet from '../../components/ui/Sheet';
 import SetsEditor from '../../components/ui/SetsEditor';
 import WeightRuler from '../../components/ui/WeightRuler';
 import { entryTime } from './logEntryTime';
 import { planEntry } from './planEntry';
+import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
 /**
  * Single-exercise quick-log modal — extracted from the inline IIFE in
@@ -137,17 +139,9 @@ const QuickLogModal = memo(function QuickLogModal({
   const distMi = rawDist > 0 ? metric ? parseFloat(kmToMi(rawDist)) : rawDist : 0;
 
   const pbPaceMi = profile.runningPB || null;
-  const pbDisp = displayPace(pbPaceMi, profile.units);
-  const exPB4 = (profile.exercisePBs || {})[ex.id] || null;
-  const pbWeightDisp = v => (metric ? parseFloat(lbsToKg(v)).toFixed(1) : v) + (metric ? " kg" : " lbs");
-  const exPBDisp4 = exPB4
-    ? exPB4.type === "Cardio Pace" ? displayPace(exPB4.value, profile.units)
-    : exPB4.type === "Assisted Weight" ? "1RM: " + pbWeightDisp(exPB4.value) + " (Assisted)"
-    : exPB4.type === "Max Reps Per 1 Set" ? exPB4.value + " reps"
-    : exPB4.type === "Longest Hold" || exPB4.type === "Fastest Time" ? parseFloat(exPB4.value.toFixed(2)) + " min"
-    : exPB4.type === "Heaviest Weight" ? pbWeightDisp(exPB4.value)
-    : "1RM: " + pbWeightDisp(exPB4.value)
-    : null;
+  const pbDisp = SHOW_EXERCISE_PB_DISPLAY ? displayPace(pbPaceMi, profile.units) : null;
+  const exPB4 = SHOW_EXERCISE_PB_DISPLAY ? (profile.exercisePBs || {})[ex.id] || null : null;
+  const exPBDisp4 = formatPbValue(exPB4, profile.units);
 
   const durationMin = parseFloat(reps || 0);
   const runPace = isRunning && distMi > 0 && durationMin > 0 ? durationMin / distMi : null;
@@ -464,8 +458,8 @@ const QuickLogModal = memo(function QuickLogModal({
                 </div>
               )}
 
-              {/* Personal Best */}
-              {ex.id !== "rest_day" && (isRunning && pbDisp || exPBDisp4) && (
+              {/* Personal Best — hidden while SHOW_EXERCISE_PB_DISPLAY is off. */}
+              {SHOW_EXERCISE_PB_DISPLAY && ex.id !== "rest_day" && (isRunning && pbDisp || exPBDisp4) && (
                 <div style={{ fontSize: FS.fs68, color: "#b4ac9e", marginBottom: S.s8, display: "flex", alignItems: "center", gap: S.s6 }}>
                   <span>{"🏆"}</span>
                   <span>{"Current PB: "}{isRunning && pbDisp ? pbDisp : exPBDisp4}</span>

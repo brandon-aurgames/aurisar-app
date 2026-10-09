@@ -5,6 +5,7 @@ import { ExIcon } from '../../components/ExIcon';
 import { S, R, FS } from '../../utils/tokens';
 import { diffColor, diffBg } from './difficulty';
 import { entryTime } from './logEntryTime';
+import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
 /**
  * My Exercises sub-tab — extracted from the inline block in App.jsx as part
@@ -173,7 +174,7 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
             {(profile.favoriteExercises || []).slice(0, favVisibleCount).map(exId => {
               const ex = allExById[exId];
               if (!ex) return null;
-              const hasPB = !!(profile.exercisePBs || {})[ex.id];
+              const hasPB = SHOW_EXERCISE_PB_DISPLAY && !!(profile.exercisePBs || {})[ex.id];
               const isSel = isInCart(exId);
               const mgColor = getMuscleColor(ex.muscleGroup);
               return (
@@ -312,7 +313,7 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: S.s6 }}>
             {(profile.customExercises || []).map(ex => {
-              const hasPB = !!(profile.exercisePBs || {})[ex.id];
+              const hasPB = SHOW_EXERCISE_PB_DISPLAY && !!(profile.exercisePBs || {})[ex.id];
               const isFav = (profile.favoriteExercises || []).includes(ex.id);
               const diffLabel = ex.difficulty || (ex.baseXP >= 60 ? "Advanced" : ex.baseXP >= 45 ? "Intermediate" : "Beginner");
               const rowDiffColor = diffColor(diffLabel);
@@ -472,7 +473,7 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: S.s6 }}>
             {recentExercises.map(({ ex, days }) => {
-              const hasPB = !!(profile.exercisePBs || {})[ex.id];
+              const hasPB = SHOW_EXERCISE_PB_DISPLAY && !!(profile.exercisePBs || {})[ex.id];
               const isFav = (profile.favoriteExercises || []).includes(ex.id);
               const whenLabel = days == null ? null : days === 0 ? "today" : days === 1 ? "yesterday" : `${days}d ago`;
               const mgColor = getMuscleColor(ex.muscleGroup);

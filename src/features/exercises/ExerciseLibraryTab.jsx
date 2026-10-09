@@ -11,6 +11,7 @@ import DiscoverCustomizeMenu from './DiscoverCustomizeMenu';
 import { TYPE_OPTS, TYPE_LABELS, muscleLabel } from './exerciseFilterOptions';
 import { DISCOVER_CATEGORY_GROUPS, DISCOVER_PICK_COUNT, DISCOVER_CATEGORIES_BY_KEY } from './discoverCategories';
 import { measureVisibleListHeight } from './visibleListHeight';
+import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
 // Row adapter for the virtualised filtered list — mirrors
 // WorkoutExercisePicker's WbExPickerRow: maps react-window's props onto the
@@ -108,7 +109,10 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
   // (react-window re-renders rows when any rowProps value changes by identity).
   const cartSet = useMemo(() => new Set(cartIds), [cartIds]);
   const favSet = useMemo(() => new Set(profile.favoriteExercises || []), [profile.favoriteExercises]);
-  const pbSet = useMemo(() => new Set(Object.keys(profile.exercisePBs || {})), [profile.exercisePBs]);
+  const pbSet = useMemo(
+    () => SHOW_EXERCISE_PB_DISPLAY ? new Set(Object.keys(profile.exercisePBs || {})) : new Set(),
+    [profile.exercisePBs],
+  );
 
   // Persist the List's own scrollTop (v2.2.7 has no onScroll prop, but a native
   // onScroll passes through ...rest to the scroller). Throttled.
