@@ -1,11 +1,13 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { measureExRowMenuPos } from './placeExRowMenu';
 
 /**
  * ⋯ overflow for custom ExerciseRows. Portaled so the 52px overflow:hidden
  * card cannot clip the menu. Keyboard matches the workout-builder overflow:
  * focus the first item on open, arrows cycle, Escape closes and returns
- * focus to the trigger.
+ * focus to the trigger. Placement flips above the trigger when the menu
+ * would run into the staging tray or the bottom nav.
  */
 export default function ExRowOverflowMenu({
   name,
@@ -14,15 +16,28 @@ export default function ExRowOverflowMenu({
   onDelete,
 }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const [pos, setPos] = useState({ top: 0, right: 0, flip: false });
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
   const menuId = useId();
 
   useLayoutEffect(() => {
-    if (!open || !triggerRef.current) return;
-    const r = triggerRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    if (!open) return undefined;
+    const place = () => {
+      if (!triggerRef.current) return;
+      setPos(measureExRowMenuPos(triggerRef.current, menuRef.current));
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    window.visualViewport?.addEventListener("resize", place);
+    window.visualViewport?.addEventListener("scroll", place);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+      window.visualViewport?.removeEventListener("resize", place);
+      window.visualViewport?.removeEventListener("scroll", place);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -98,6 +113,7 @@ export default function ExRowOverflowMenu({
             id={menuId}
             className={"ex-row-menu"}
             role={"menu"}
+            data-placement={pos.flip ? "up" : "down"}
             style={{ top: pos.top, right: pos.right }}
           >
             {onEdit && (

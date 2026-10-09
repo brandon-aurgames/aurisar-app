@@ -132,6 +132,7 @@ it('opens the overflow menu without toggling the row or the checkbox', () => {
   expect(more.getAttribute('aria-expanded')).toBe('true');
   const menu = screen.getByRole('menu');
   expect(menu).toBeTruthy();
+  expect(menu.getAttribute('data-placement')).toMatch(/^(up|down)$/);
 
   fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
   expect(onEdit).toHaveBeenCalledTimes(1);
