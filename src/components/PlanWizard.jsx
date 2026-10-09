@@ -106,8 +106,8 @@ const PlanExCard = React.memo(function PlanExCard({ ex, i, exData, bDayIdx, xp, 
   const dispDist = ex.distanceMi ? (bMetric ? String(parseFloat(miToKm(ex.distanceMi)).toFixed(2)) : String(ex.distanceMi)) : "";
   const age = profile.age || 30;
   const pbPaceMi=profile.runningPB||null;
-  const pbDisp=pbPaceMi?(bMetric?parseFloat((pbPaceMi*1.60934).toFixed(2))+" min/km":parseFloat(pbPaceMi.toFixed(2))+" min/mi"):null;
-  const exPB3=(profile.exercisePBs||{})[exData.id]||null;
+  const pbDisp=SHOW_EXERCISE_PB_DISPLAY&&pbPaceMi?(bMetric?parseFloat((pbPaceMi*1.60934).toFixed(2))+" min/km":parseFloat(pbPaceMi.toFixed(2))+" min/mi"):null;
+  const exPB3=SHOW_EXERCISE_PB_DISPLAY?((profile.exercisePBs||{})[exData.id]||null):null;
   const exPBDisp3=exPB3?(exPB3.type==="cardio"?(bMetric?parseFloat((exPB3.value*1.60934).toFixed(2))+" min/km":parseFloat(exPB3.value.toFixed(2))+" min/mi"):(exPB3.type==="assisted"?"1RM: "+exPB3.value+(bMetric?" kg":" lbs")+" (Assisted)":"1RM: "+exPB3.value+(bMetric?" kg":" lbs"))):null;
   const durationMin=parseFloat(ex.reps||0);
   const distMiVal=ex.distanceMi?parseFloat(ex.distanceMi):0;

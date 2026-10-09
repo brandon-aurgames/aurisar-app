@@ -138,8 +138,8 @@ const QuickLogModal = memo(function QuickLogModal({
   const distMi = rawDist > 0 ? metric ? parseFloat(kmToMi(rawDist)) : rawDist : 0;
 
   const pbPaceMi = profile.runningPB || null;
-  const pbDisp = displayPace(pbPaceMi, profile.units);
-  const exPB4 = (profile.exercisePBs || {})[ex.id] || null;
+  const pbDisp = SHOW_EXERCISE_PB_DISPLAY ? displayPace(pbPaceMi, profile.units) : null;
+  const exPB4 = SHOW_EXERCISE_PB_DISPLAY ? (profile.exercisePBs || {})[ex.id] || null : null;
   const pbWeightDisp = v => (metric ? parseFloat(lbsToKg(v)).toFixed(1) : v) + (metric ? " kg" : " lbs");
   const exPBDisp4 = exPB4
     ? exPB4.type === "Cardio Pace" ? displayPace(exPB4.value, profile.units)
