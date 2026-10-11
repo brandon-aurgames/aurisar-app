@@ -48,8 +48,8 @@
     "terrain/zone2_tile_3_1.r16": "851daa77c8c18282b986b867d4e6171cf07916b9cf5edfdd74e92002099ec1aa",
     "terrain/zone2_tile_3_2.r16": "c2a1bea0dbfb5902c5e5e9b3f94b2603e47118e20d5885db5fa8a4fdf33e7047",
     "terrain/zone2_tile_3_3.r16": "de7060262830d12c550b6cdb1f31124daa4e2c241af4b43d905ffc9cbbc3c041",
-    "worldgen/zone1_world.json": "18d5c870bd903ac6ea102b1a5d166ccff90fa59e0304f3e68da4888aac68b3e7",
-    "worldgen/zone2_world.json": "79a5593facf3f9b6b0dcc350687c73026a840c57ef32dbdd6ce74a029156a535",
-    "zones.json": "cb465dcc8695e2690d1b6c5c0d4d0bb8a9c3aa87003faa7618fc596e6ae00f50"
+    "worldgen/zone1_world.json": "5e80b543fdd88031ec5ce06bfc01a0097f22f3c86e9984632322122112e69120",
+    "worldgen/zone2_world.json": "3a453d916adbdcd247d5827d51d8ff6bffa8a8c52021d47224ad116339b4120d",
+    "zones.json": "7d98bac31ecdef7c04a521e87dfc4f05189464703588c07e8bbc46f4af34e83d"
   }
 }

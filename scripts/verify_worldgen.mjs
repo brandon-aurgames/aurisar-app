@@ -82,8 +82,11 @@ const GOLDEN = {
     // reshuffle (authored biomeAnchors + road corridors). See
     // worldgen/DETERMINISM.md and docs/world-design-plan.md Batch D.
     plateaus: [0, 0, 0, 0, 10.303, 22.5805, 45.902, 49.3826, 71.4533, 65.0962, 94.1685, 116.1395, 113.8915],
-    sites: { trees: 407, rocks: 325, bushes: 149, details: 794, ruins: 6, caves: 5, chests: 25, ponds: 6 },
-    sitesDigest: 2293337888,
+    // M14-1 (D233): 8 chests on zone 2's side of the overworld seam are
+    // excluded after every draw, so only the chest count and the position
+    // digest move; every other count, the forest and the biomes are unchanged.
+    sites: { trees: 407, rocks: 325, bushes: 149, details: 794, ruins: 6, caves: 5, chests: 17, ponds: 6 },
+    sitesDigest: 2202766349,
     forestDigest: 260965903,
     biomeDigest: 4105125819,
   },
