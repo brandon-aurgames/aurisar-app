@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { calcExercisePBs } from '../../../utils/xp';
+import { detailWorkoutEntry } from '../detailActions';
 import { newExDraft, saveCustomExercise, mergeEditedExercise, PB_FIELDS } from '../exEditorDraft';
 
 const ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -168,5 +169,21 @@ describe('App wires edit through the merge helper', () => {
     expect(body).toContain('saveCustomExercise');
     expect(body).not.toMatch(/Exercise patched/);
     expect(body).not.toMatch(/e\.id === d\.id \? \{\s*\.\.\.d/);
+  });
+});
+
+describe('duplicate keeps supported defaults', () => {
+  it('carries defaultDurationMin through copy → save → Add to Workout, with a new id', () => {
+    const src = { ...base, defaultDurationMin: 12, custom: true };
+    const draft = newExDraft(src, 'copy');
+    expect(draft.defaultDurationMin).toBe(12);
+    expect(draft.id).not.toBe(src.id);
+    const res = saveCustomExercise({ mode: 'copy', draft, list: [src] });
+    expect(res.item.id).not.toBe(src.id);
+    expect(detailWorkoutEntry(res.item).durationMin).toBe(12);
+  });
+
+  it('does not invent defaultDurationMin when the source has none', () => {
+    expect('defaultDurationMin' in newExDraft(base, 'copy')).toBe(false);
   });
 });

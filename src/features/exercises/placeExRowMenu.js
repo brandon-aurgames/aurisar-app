@@ -27,23 +27,44 @@ export function placeExRowMenu({
   gap = EX_ROW_MENU_GAP,
   pad = EX_ROW_MENU_PAD,
 }) {
-  const vw = viewport.width;
-  const vh = viewport.height;
+  // viewport is the *visible* rect (visualViewport) in layout-viewport
+  // coordinates, which is what position:fixed and getBoundingClientRect use.
+  const offsetTop = viewport.offsetTop || 0;
+  const offsetLeft = viewport.offsetLeft || 0;
+  const visBottom = offsetTop + viewport.height;
+  const visRight = offsetLeft + viewport.width;
+  const layoutWidth = viewport.layoutWidth ?? visRight;
   const menuW = menu.width;
-  const menuH = menu.height;
-  const safeFloor = Number.isFinite(floor) ? Math.min(floor, vh) : vh;
+  const safeFloor = Number.isFinite(floor) ? Math.min(floor, visBottom) : visBottom;
+  const minTop = offsetTop + pad;
+  // The panel scrolls when the visible area is shorter than it is.
+  const maxHeight = Math.max(0, safeFloor - minTop - pad);
+  const menuH = Math.min(menu.height, maxHeight);
   const spaceBelow = safeFloor - trigger.bottom - gap;
   const flip = menuH > spaceBelow;
 
   let top = flip ? trigger.top - menuH - gap : trigger.bottom + gap;
   const maxTop = safeFloor - menuH;
-  top = Math.min(Math.max(top, pad), Math.max(pad, maxTop));
+  top = Math.min(Math.max(top, minTop), Math.max(minTop, maxTop));
 
-  let right = vw - trigger.right;
-  if (vw - right - menuW < pad) right = vw - menuW - pad;
-  if (right < pad) right = pad;
+  let menuRight = Math.min(trigger.right, visRight - pad);
+  menuRight = Math.max(menuRight, offsetLeft + pad + menuW);
+  const right = layoutWidth - menuRight;
 
-  return { top, right, flip };
+  return { top, right, flip, maxHeight };
+}
+
+export function visibleViewport(doc = document, win = window) {
+  const vv = win.visualViewport;
+  const layoutWidth = doc.documentElement?.clientWidth || win.innerWidth;
+  if (!vv) return { width: win.innerWidth, height: win.innerHeight, offsetTop: 0, offsetLeft: 0, layoutWidth };
+  return {
+    width: vv.width,
+    height: vv.height,
+    offsetTop: vv.offsetTop || 0,
+    offsetLeft: vv.offsetLeft || 0,
+    layoutWidth,
+  };
 }
 
 export function measureExRowMenuPos(triggerEl, menuEl, doc = document, win = window) {
@@ -56,7 +77,7 @@ export function measureExRowMenuPos(triggerEl, menuEl, doc = document, win = win
   return placeExRowMenu({
     trigger,
     menu,
-    viewport: { width: win.innerWidth, height: win.innerHeight },
+    viewport: visibleViewport(doc, win),
     floor: readExRowMenuFloor(doc, win),
   });
 }

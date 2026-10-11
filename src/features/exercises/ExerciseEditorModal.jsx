@@ -9,6 +9,7 @@ import { isMetric, lbsToKg, kgToLbs, miToKm, kmToMi, weightLabel, distLabel, pct
 import { getMuscleColor, hrRange } from '../../utils/xp';
 import { HR_ZONES } from '../../data/constants';
 import TechSearch from './TechSearch';
+import { radioKeyDown, radioTabIndex } from './radioNav';
 
 const EX_ICON_LIST = ["🏋️", "💪", "⚡", "🦾", "🪃", "🏃", "🚴", "🔥", "⭕", "🧘", "🤸", "🧱", "🪝", "🏊", "🔻", "🦵", "🚶", "🧗", "🎯", "🏌️", "⛹️", "🤼", "🏇", "🥊", "🤺", "🏋", "🦶", "🫀", "🧠", "🛌", "💤", "🌙", "☕", "🧊", "🏖️"];
 
@@ -17,7 +18,7 @@ function ChoiceGroup({ legend, value, options, onChange, getLabel, name }) {
     <div className={"field"} role={"radiogroup"} aria-label={legend}>
       <div className={"ex-editor-legend"}>{legend}</div>
       <div style={{ display: "flex", gap: S.s4, flexWrap: "wrap" }}>
-        {options.map(opt => {
+        {options.map((opt, oi) => {
           const selected = value === opt;
           return (
             <button
@@ -26,6 +27,8 @@ function ChoiceGroup({ legend, value, options, onChange, getLabel, name }) {
               role="radio"
               name={name}
               aria-checked={selected}
+              tabIndex={radioTabIndex(oi, options.indexOf(value))}
+              onKeyDown={radioKeyDown}
               className={`btn btn-sm ${selected ? "btn-gold" : "btn-ghost"}`}
               style={{ fontSize: FS.fs54, padding: "6px 8px", textTransform: name === "category" ? "capitalize" : undefined, flex: name === "difficulty" || name === "category" ? 1 : undefined }}
               onClick={() => onChange(opt)}
@@ -178,8 +181,8 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
               {nameError && <div id={"ex-ed-name-error"} className={"ex-editor-error"} role={"alert"}>{nameError}</div>}
             </div>
             <div className={"field"} style={{ width: 70 }}>
-              <label htmlFor={"ex-ed-icon"}>{"Icon"}</label>
-              <div id={"ex-ed-icon"} className={"inp"} style={{ textAlign: "center", fontSize: "1.4rem", padding: "5px 0", cursor: "default" }}>{ed.icon || "💪"}</div>
+              <div id={"ex-ed-icon-label"}>{"Icon"}</div>
+              <div role={"img"} aria-labelledby={"ex-ed-icon-label"} aria-describedby={undefined} id={"ex-ed-icon"} className={"inp"} style={{ textAlign: "center", fontSize: "1.4rem", padding: "5px 0", cursor: "default" }}>{ed.icon || "💪"}</div>
             </div>
           </div>
 
@@ -308,16 +311,20 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
           </div>}
           {isCardioED && <div className={"field"}>
             <div id={"ex-ed-hr-legend"}>{"Default heart rate zone "}{profile.age ? `(Age ${profile.age})` : ""}</div>
-            <div className={"hr-zone-row"} role={"radiogroup"} aria-labelledby={"ex-ed-hr-legend"}>{HR_ZONES.map(z => {
-              const range = hrRange(age, z);
-              const sel = (ed.defaultHrZone || null) === z.z;
-              return <button type={"button"} key={z.z} role={"radio"} aria-checked={sel} className={`hr-zone-btn ${sel ? "sel" : ""}`} style={{
-                "--zc": z.color,
-                borderColor: sel ? z.color : "rgba(45,42,36,.2)",
-                background: sel ? `${z.color}22` : "rgba(45,42,36,.12)"
-              }} onClick={() => setEd({ defaultHrZone: sel ? null : z.z })}>
-                <span className={"hz-name"} style={{ color: sel ? z.color : "#8a8478" }}>{"Z"}{z.z}{" "}{z.name}</span>
-                <span className={"hz-bpm"} style={{ color: sel ? z.color : "#8a8478" }}>{range.lo}{"–"}{range.hi}</span>
+            <div className={"hr-zone-row"} role={"radiogroup"} aria-labelledby={"ex-ed-hr-legend"}>{[{ z: null, name: "None" }, ...HR_ZONES].map((z, zi) => {
+              const none = z.z === null;
+              const range = none ? null : hrRange(age, z);
+              const cur = ed.defaultHrZone || null;
+              const sel = cur === z.z;
+              const curIdx = cur === null ? 0 : HR_ZONES.findIndex(h => h.z === cur) + 1;
+              const color = none ? "#8a8478" : z.color;
+              return <button type={"button"} key={none ? "none" : z.z} role={"radio"} aria-checked={sel} tabIndex={radioTabIndex(zi, curIdx)} onKeyDown={radioKeyDown} className={`hr-zone-btn ${sel ? "sel" : ""}`} style={{
+                "--zc": color,
+                borderColor: sel ? color : "rgba(45,42,36,.2)",
+                background: sel ? `${color}22` : "rgba(45,42,36,.12)"
+              }} onClick={() => setEd({ defaultHrZone: z.z })}>
+                <span className={"hz-name"} style={{ color: sel ? color : "#8a8478" }}>{none ? "None" : <>{"Z"}{z.z}{" "}{z.name}</>}</span>
+                {range && <span className={"hz-bpm"} style={{ color: sel ? color : "#8a8478" }}>{range.lo}{"–"}{range.hi}</span>}
               </button>;
             })}</div>
             {!profile.age && <div style={{ fontSize: FS.sm, color: "#8a8478", marginTop: S.s4 }}>{"Set your age in Profile for accurate BPM ranges"}</div>}
@@ -336,12 +343,13 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
               resize: "vertical", minHeight: 70, fontFamily: "'Inter',sans-serif", lineHeight: 1.5
             }} />
           </div>
-          <div className={"field"}>
-            <label htmlFor={"ex-ed-tip-0"}>{"Form tips"}</label>
+          <div className={"field"} role={"group"} aria-labelledby={"ex-ed-tips-legend"}>
+            <div id={"ex-ed-tips-legend"}>{"Form tips"}</div>
             {[0, 1, 2].map(ti => (
               <input
                 key={ti}
                 id={`ex-ed-tip-${ti}`}
+                aria-label={`Form tip ${ti + 1}`}
                 className={"inp"}
                 style={{ marginBottom: S.s6 }}
                 value={tipAt(ti)}

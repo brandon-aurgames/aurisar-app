@@ -5,7 +5,7 @@ import { measureExRowMenuPos } from './placeExRowMenu';
 /**
  * ⋯ overflow for custom ExerciseRows. Portaled so the 52px overflow:hidden
  * card cannot clip the menu. Keyboard matches the workout-builder overflow:
- * focus the first item on open, arrows cycle, Escape closes and returns
+ * focus the first item on open, arrows cycle, Tab/Escape close and returns
  * focus to the trigger. Placement flips above the trigger when the menu
  * would run into the staging tray or the bottom nav.
  */
@@ -16,7 +16,7 @@ export default function ExRowOverflowMenu({
   onDelete,
 }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, right: 0, flip: false });
+  const [pos, setPos] = useState({ top: 0, right: 0, flip: false, maxHeight: undefined });
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
   const menuId = useId();
@@ -73,9 +73,9 @@ export default function ExRowOverflowMenu({
         return;
       }
       if (e.key === "Tab") {
-        e.preventDefault();
-        const dir = e.shiftKey ? -1 : 1;
-        enabled[(i + dir + enabled.length) % enabled.length]?.focus();
+        // Non-modal menu: Tab dismisses and lets focus move on from the trigger.
+        setOpen(false);
+        triggerRef.current?.focus();
       }
     }
     document.addEventListener("keydown", onKey, true);
@@ -114,7 +114,7 @@ export default function ExRowOverflowMenu({
             className={"ex-row-menu"}
             role={"menu"}
             data-placement={pos.flip ? "up" : "down"}
-            style={{ top: pos.top, right: pos.right }}
+            style={{ top: pos.top, right: pos.right, maxHeight: pos.maxHeight, overflowY: "auto" }}
           >
             {onEdit && (
               <button

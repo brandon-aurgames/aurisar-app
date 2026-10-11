@@ -28,9 +28,15 @@ export const EDITABLE_FIELDS = [
  */
 export const PB_FIELDS = ["pbType", "pbTier", "primaryPBMetric", "markAsPB"];
 
+/**
+ * Supported defaults the editor has no control for but detail actions read
+ * (detailWorkoutEntry uses defaultDurationMin). A copy must carry them.
+ */
+export const COPY_EXTRA_FIELDS = ["defaultDurationMin"];
+
 function copyPbFields(from, to) {
   if (!from) return to;
-  for (const key of PB_FIELDS) {
+  for (const key of [...PB_FIELDS, ...COPY_EXTRA_FIELDS]) {
     if (from[key] !== undefined) to[key] = from[key];
   }
   return to;
@@ -65,7 +71,7 @@ function modeledFields(base, { name, id }) {
  *
  * Edit keeps the existing object (id + every unmodeled/legacy field, full
  * tips array). Copy and create mint a new id. Copy also carries PB type
- * fields so a duplicate of Bench Press still tracks PBs.
+ * fields and defaultDurationMin so a duplicate of Bench Press still tracks PBs.
  */
 export function newExDraft(base, mode = "create") {
   const isEdit = mode === "edit" && !!base;

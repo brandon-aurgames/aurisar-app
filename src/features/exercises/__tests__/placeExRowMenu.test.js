@@ -67,6 +67,44 @@ describe('placeExRowMenu', () => {
   });
 });
 
+describe('placeExRowMenu visual viewport', () => {
+  it('clamps to a panned visible rect, not the layout viewport', () => {
+    // pinch-zoomed: visible 200x400 window starting at (100, 300)
+    const pos = placeExRowMenu({
+      trigger: { top: 320, right: 120, bottom: 340, left: 100 },
+      menu,
+      viewport: { width: 200, height: 400, offsetTop: 300, offsetLeft: 100, layoutWidth: 390 },
+      floor: 1000,
+    });
+    const left = 390 - pos.right - menu.width;
+    expect(left).toBeGreaterThanOrEqual(100 + EX_ROW_MENU_PAD);
+    expect(pos.top).toBeGreaterThanOrEqual(300 + EX_ROW_MENU_PAD);
+    expect(pos.top + menu.height).toBeLessThanOrEqual(700);
+  });
+
+  it('keeps the menu above a keyboard-shrunk visible bottom', () => {
+    const pos = placeExRowMenu({
+      trigger: { top: 200, right: 304, bottom: 220, left: 260 },
+      menu,
+      viewport: { width: 390, height: 300, offsetTop: 0, offsetLeft: 0 },
+      floor: 786,
+    });
+    expect(pos.top + menu.height).toBeLessThanOrEqual(300);
+  });
+
+  it('caps height and scrolls when the visible area is shorter than the menu', () => {
+    const pos = placeExRowMenu({
+      trigger: { top: 40, right: 304, bottom: 60, left: 260 },
+      menu,
+      viewport: { width: 390, height: 120 },
+      floor: 120,
+    });
+    expect(pos.maxHeight).toBe(120 - 2 * EX_ROW_MENU_PAD);
+    expect(pos.top).toBeGreaterThanOrEqual(EX_ROW_MENU_PAD);
+    expect(pos.top + pos.maxHeight).toBeLessThanOrEqual(120);
+  });
+});
+
 describe('readExRowMenuFloor', () => {
   const rect = top => ({ getBoundingClientRect: () => ({ top }) });
 
