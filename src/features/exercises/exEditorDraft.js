@@ -66,6 +66,33 @@ function modeledFields(base, { name, id }) {
   };
 }
 
+/** Inclusive numeric bounds, in stored units (lbs / miles). "" and null mean unset. */
+export const NUMERIC_RULES = {
+  baseXP: { label: "Base XP", min: 1, max: 500 },
+  defaultSets: { label: "Default sets", min: 0, max: 20 },
+  defaultReps: { label: "Default reps / duration", min: 0, max: 300 },
+  defaultWeightLbs: { label: "Default weight", min: 0, max: 4410 },
+  defaultWeightPct: { label: "Default intensity", min: 50, max: 200 },
+  defaultDistanceMi: { label: "Default distance", min: 0, max: 200 },
+};
+
+/** Returns `{ field: message }` for every out-of-range or non-finite value. */
+export function validateExerciseDraft(draft) {
+  const errors = {};
+  if (!draft) return errors;
+  for (const [key, rule] of Object.entries(NUMERIC_RULES)) {
+    const raw = draft[key];
+    if (raw === "" || raw === null || raw === undefined) {
+      if (rule.required) errors[key] = `${rule.label} is required.`;
+      continue;
+    }
+    const n = typeof raw === "number" ? raw : Number(raw);
+    if (!Number.isFinite(n)) errors[key] = `${rule.label} must be a number.`;
+    else if (n < rule.min || n > rule.max) errors[key] = `${rule.label} must be between ${rule.min} and ${rule.max}.`;
+  }
+  return errors;
+}
+
 /**
  * Draft for the custom-exercise editor.
  *
@@ -109,6 +136,9 @@ export function mergeEditedExercise(stored, draft) {
 export function saveCustomExercise({ mode, draft, list }) {
   const name = (draft?.name || "").trim();
   if (!name) return { error: "Exercise needs a name!" };
+  const invalid = validateExerciseDraft(draft);
+  const firstInvalid = Object.values(invalid)[0];
+  if (firstInvalid) return { error: firstInvalid, fieldErrors: invalid };
   const cleaned = { ...draft, name };
   const current = Array.isArray(list) ? list : [];
 

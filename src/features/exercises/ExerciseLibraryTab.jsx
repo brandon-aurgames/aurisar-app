@@ -68,6 +68,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
     libMuscleFilters, setLibMuscleFilters,
     libEquipFilters, setLibEquipFilters,
     debouncedSetLibSearch,
+    libSearchDebounced,
     setLibDetailEx,
     cartIds, toggleCart,
     profile, setProfile,
@@ -78,7 +79,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
   } = props;
 
   const [catalogNoteDismissed, setCatalogNoteDismissed] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(libSearchDebounced || "");
   const [libOpenDrop, setLibOpenDrop] = useState(null);
   const [libBrowseMode, setLibBrowseMode] = useState("home");
   const [recentNow] = useState(() => Date.now());
@@ -416,8 +417,8 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
       </div>}
 
       <div className={"lib-filtered-meta"}>
-        <div className={"lib-filtered-count"}>{libFiltered.length + " exercises"}</div>
-        {hasFilters && <button type="button" className={"btn btn-gold-solid btn-sm"} onClick={clearAll}>{"Clear filters"}</button>}
+        <div className={"lib-filtered-count"} role={"status"} aria-live={"polite"}>{libFiltered.length + " exercises"}</div>
+        {hasFilters && <button type="button" className={"btn btn-gold-solid btn-sm"} onClick={clearAll}>{"Clear search & filters"}</button>}
       </div>
 
       <div className={"lib-vlist-wrap"} ref={vlistWrapRef}>{libFiltered.length === 0
@@ -425,7 +426,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
             ? <div className={"empty lib-empty"} style={{ padding: "24px 0" }}>
                 <div>{"No exercises match."}</div>
                 <div className={"lib-empty-actions"}>
-                  <button type="button" className={"btn btn-gold-solid btn-sm"} onClick={clearAll}>{"Clear filters"}</button>
+                  <button type="button" className={"btn btn-gold-solid btn-sm"} onClick={clearAll}>{"Clear search & filters"}</button>
                   <button type="button" className={"btn btn-ghost btn-sm"} onClick={goCreate}>{"Create exercise"}</button>
                 </div>
               </div>

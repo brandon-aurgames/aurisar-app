@@ -117,3 +117,37 @@ describe('FilterDropdown narrow sheet', () => {
     await waitFor(() => expect(document.activeElement).toBe(sheetList));
   });
 });
+
+describe('FilterDropdown active option reconciliation', () => {
+  function renderWith(options, counts) {
+    const props = {
+      id: 'type', label: 'Type', shortLabel: 'Type', optionLabel: v => v,
+      selected: new Set(), onToggle: () => {}, open: true, setOpen: () => {},
+    };
+    const ui = (opts, cts) => <FilterDropdown {...props} options={opts} counts={cts} />;
+    const r = render(ui(options, counts));
+    return { r, ui };
+  }
+  const activeId = () => document.querySelector('[role="listbox"]')?.getAttribute('aria-activedescendant');
+
+  it('never points aria-activedescendant at a removed option', async () => {
+    installMatchMedia(false);
+    const { r, ui } = renderWith(['a', 'b', 'c'], new Map([['a', 1], ['b', 1], ['c', 1]]));
+    const list = () => document.querySelector('[role="listbox"]');
+    fireEvent.keyDown(list(), { key: 'End' });
+    expect(activeId()).toMatch(/-opt-2$/);
+    // option 'c' disappears while open (catalog / facet counts changed)
+    r.rerender(ui(['a', 'b'], new Map([['a', 1], ['b', 1]])));
+    await waitFor(() => expect(activeId()).toMatch(/-opt-0$/));
+    expect(document.getElementById(activeId())).toBeTruthy();
+  });
+
+  it('follows the active option by value when earlier options are removed', async () => {
+    installMatchMedia(false);
+    const { r, ui } = renderWith(['a', 'b', 'c'], new Map([['a', 1], ['b', 1], ['c', 1]]));
+    fireEvent.keyDown(document.querySelector('[role="listbox"]'), { key: 'End' }); // c
+    r.rerender(ui(['b', 'c'], new Map([['b', 1], ['c', 1]])));
+    await waitFor(() => expect(activeId()).toMatch(/-opt-1$/)); // c moved to index 1
+    expect(document.getElementById(activeId()).textContent).toMatch(/c/);
+  });
+});

@@ -27,4 +27,10 @@ describe('pending search debounce is cancelled on clear', () => {
     expect(body).not.toMatch(/clearCart\(\)/);
     expect(app).toMatch(/if \(addToWorkoutPicker\.fromCart\) clearCart\(\)/);
   });
+
+  it('library seeds its search box from the persisted query so a subtab round-trip cannot filter invisibly', () => {
+    const lib = read('src/features/exercises/ExerciseLibraryTab.jsx');
+    expect(lib).toMatch(/useState\(libSearchDebounced \|\| ""\)/);
+    expect(read('src/App.jsx')).toContain('libSearchDebounced={libSearchDebounced}');
+  });
 });

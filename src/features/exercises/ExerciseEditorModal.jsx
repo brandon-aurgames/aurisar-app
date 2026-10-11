@@ -3,7 +3,7 @@ import { S, R, FS } from '../../utils/tokens';
 import Sheet from '../../components/ui/Sheet';
 import ConfirmSheet from '../../components/ui/ConfirmSheet';
 import { MUSCLE_OPTS, EQUIP_OPTS, muscleLabel, equipLabel } from './exerciseFilterOptions';
-import { DIFFICULTY_OPTS } from './exEditorDraft';
+import { DIFFICULTY_OPTS, validateExerciseDraft } from './exEditorDraft';
 import { rankSearch } from './searchRank';
 import { isMetric, lbsToKg, kgToLbs, miToKm, kmToMi, weightLabel, distLabel, pctToSlider, sliderToPct } from '../../utils/units';
 import { getMuscleColor, hrRange } from '../../utils/xp';
@@ -58,6 +58,7 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
   const [fromQ, setFromQ] = useState("");
   const [nameError, setNameError] = useState("");
   const [pending, setPending] = useState(null);
+  const [numErrors, setNumErrors] = useState({});
   const snapshotRef = useRef(snapshotOf(exEditorDraft));
 
   const fromHits = useMemo(() => {
@@ -69,12 +70,20 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
   useEffect(() => {
     snapshotRef.current = snapshotOf(exEditorDraft);
     setNameError("");
+    setNumErrors({});
     setPending(null);
   }, [exEditorMode, exEditorDraft?.id]);
 
   if (!exEditorDraft) return null;
   const ed = exEditorDraft;
   const setEd = patch => setExEditorDraft(d => ({ ...d, ...patch }));
+  const numProps = (key, id) => ({
+    "aria-invalid": !!numErrors[key],
+    "aria-describedby": numErrors[key] ? `${id}-error` : undefined,
+  });
+  const numError = (key, id) => numErrors[key]
+    ? <div id={`${id}-error`} className={"ex-editor-error"} role={"alert"}>{numErrors[key]}</div>
+    : null;
   const isCardioED = ed.category === "cardio";
   const isFlexED = ed.category === "flexibility";
   const hasWeightED = !isCardioED && !isFlexED;
@@ -102,6 +111,14 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
       return;
     }
     setNameError("");
+    const bad = validateExerciseDraft(ed);
+    setNumErrors(bad);
+    const firstKey = Object.keys(bad)[0];
+    if (firstKey) {
+      const ids = { baseXP: "ex-ed-xp", defaultSets: "ex-ed-sets", defaultReps: "ex-ed-reps", defaultWeightLbs: "ex-ed-weight", defaultWeightPct: "ex-ed-intensity", defaultDistanceMi: "ex-ed-distance" };
+      document.getElementById(ids[firstKey])?.focus();
+      return;
+    }
     saveExEditor();
   };
 
@@ -240,7 +257,8 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
           />
           <div className={"field"}>
             <label htmlFor={"ex-ed-xp"}>{"Base XP per session "}<span style={{ fontSize: FS.sm, color: "#8a8478", fontStyle: "italic" }}>{"— typical: 20–80"}</span></label>
-            <input id={"ex-ed-xp"} className={"inp"} type={"number"} min={"1"} max={"500"} value={ed.baseXP || 40} onChange={e => setEd({ baseXP: parseInt(e.target.value) || 1 })} />
+            <input id={"ex-ed-xp"} {...numProps("baseXP", "ex-ed-xp")} className={"inp"} type={"number"} min={"1"} max={"500"} value={ed.baseXP || 40} onChange={e => setEd({ baseXP: parseInt(e.target.value) || 1 })} />
+              {numError("baseXP", "ex-ed-xp")}
           </div>
         </section>
 
@@ -252,32 +270,36 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
           <div className={"r2"}>
             <div className={"field"}>
               <label htmlFor={"ex-ed-sets"}>{"Default sets"}</label>
-              <input id={"ex-ed-sets"} className={"inp"} type={"number"} min={"0"} max={"20"} value={ed.defaultSets != null ? ed.defaultSets : ""} placeholder={"0"} onChange={e => {
+              <input id={"ex-ed-sets"} {...numProps("defaultSets", "ex-ed-sets")} className={"inp"} type={"number"} min={"0"} max={"20"} value={ed.defaultSets != null ? ed.defaultSets : ""} placeholder={"0"} onChange={e => {
                 const v = e.target.value;
                 setEd({ defaultSets: v === "" ? null : parseInt(v) });
               }} />
+              {numError("defaultSets", "ex-ed-sets")}
             </div>
             <div className={"field"}>
               <label htmlFor={"ex-ed-reps"}>{"Default "}{isCardioED || isFlexED ? "duration (min)" : "reps"}</label>
-              <input id={"ex-ed-reps"} className={"inp"} type={"number"} min={"0"} max={"300"} value={ed.defaultReps != null ? ed.defaultReps : ""} placeholder={"0"} onChange={e => {
+              <input id={"ex-ed-reps"} {...numProps("defaultReps", "ex-ed-reps")} className={"inp"} type={"number"} min={"0"} max={"300"} value={ed.defaultReps != null ? ed.defaultReps : ""} placeholder={"0"} onChange={e => {
                 const v = e.target.value;
                 setEd({ defaultReps: v === "" ? null : parseInt(v) });
               }} />
+              {numError("defaultReps", "ex-ed-reps")}
             </div>
           </div>
           {hasWeightED && <>
             <div className={"r2"}>
               <div className={"field"}>
                 <label htmlFor={"ex-ed-weight"}>{"Default base weight ("}{wUnit}{")"}</label>
-                <input id={"ex-ed-weight"} className={"inp"} type={"number"} min={"0"} max={"2000"} step={metric ? "0.5" : "2.5"} value={ed.defaultWeightLbs ? metric ? lbsToKg(ed.defaultWeightLbs) : ed.defaultWeightLbs : ""} onChange={e => {
+                <input id={"ex-ed-weight"} {...numProps("defaultWeightLbs", "ex-ed-weight")} className={"inp"} type={"number"} min={"0"} max={"2000"} step={metric ? "0.5" : "2.5"} value={ed.defaultWeightLbs ? metric ? lbsToKg(ed.defaultWeightLbs) : ed.defaultWeightLbs : ""} onChange={e => {
                   const v = e.target.value;
                   const lbs = v && metric ? kgToLbs(v) : v;
                   setEd({ defaultWeightLbs: lbs || "" });
                 }} placeholder={metric ? "60" : "135"} />
+              {numError("defaultWeightLbs", "ex-ed-weight")}
               </div>
               <div className={"field"}>
                 <label htmlFor={"ex-ed-intensity"}>{"Default intensity %"}</label>
-                <input id={"ex-ed-intensity"} className={"inp"} type={"number"} min={"50"} max={"200"} step={"5"} value={ed.defaultWeightPct || 100} onChange={e => setEd({ defaultWeightPct: parseInt(e.target.value) || 100 })} />
+                <input id={"ex-ed-intensity"} {...numProps("defaultWeightPct", "ex-ed-intensity")} className={"inp"} type={"number"} min={"50"} max={"200"} step={"5"} value={ed.defaultWeightPct || 100} onChange={e => setEd({ defaultWeightPct: parseInt(e.target.value) || 100 })} />
+              {numError("defaultWeightPct", "ex-ed-intensity")}
               </div>
             </div>
             <div>
@@ -303,11 +325,12 @@ const ExerciseEditorModal = memo(function ExerciseEditorModal({
           </>}
           {isCardioED && <div className={"field"}>
             <label htmlFor={"ex-ed-distance"}>{"Default distance ("}{dUnit}{")"}</label>
-            <input id={"ex-ed-distance"} className={"inp"} type={"number"} min={"0"} max={"200"} step={"0.1"} value={ed.defaultDistanceMi ? metric ? miToKm(ed.defaultDistanceMi) : ed.defaultDistanceMi : ""} onChange={e => {
+            <input id={"ex-ed-distance"} {...numProps("defaultDistanceMi", "ex-ed-distance")} className={"inp"} type={"number"} min={"0"} max={"200"} step={"0.1"} value={ed.defaultDistanceMi ? metric ? miToKm(ed.defaultDistanceMi) : ed.defaultDistanceMi : ""} onChange={e => {
               const v = e.target.value;
               const mi = v && metric ? kmToMi(v) : v;
               setEd({ defaultDistanceMi: mi || "" });
             }} placeholder={metric ? "5.0" : "3.1"} />
+              {numError("defaultDistanceMi", "ex-ed-distance")}
           </div>}
           {isCardioED && <div className={"field"}>
             <div id={"ex-ed-hr-legend"}>{"Default heart rate zone "}{profile.age ? `(Age ${profile.age})` : ""}</div>

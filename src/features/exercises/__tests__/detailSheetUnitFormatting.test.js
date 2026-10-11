@@ -26,7 +26,7 @@ describe('ExerciseDetailSheet respects profile.units', () => {
     expect(src).not.toMatch(/Configure/);
     expect(src).not.toMatch(/Stage for later/);
     expect(src).toContain('No logs yet.');
-    expect(src).toMatch(/className=\{["']btn btn-gold btn-sm["']\}/);
+    expect(src).toMatch(/className=\{["']btn btn-gold-solid btn-sm["']\}/);
   });
 
   it('the History Trend chip renders its delta through displayWt, not a hardcoded "lbs" literal', () => {

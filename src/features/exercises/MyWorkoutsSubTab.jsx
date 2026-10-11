@@ -209,10 +209,11 @@ const MyWorkoutsSubTab = memo(function MyWorkoutsSubTab({
           </div>
         ) : (
           <div className={"lib-home-rows"}>
-            {matchedRecent.map(({ ex }) => (
+            {matchedRecent.map(({ ex, days }) => (
               <ExerciseRow
                 key={ex.id}
                 ex={ex}
+                lastLoggedDays={days}
                 selected={isInCart(ex.id)}
                 showEquipment
                 showPB={pbOn(ex.id)}

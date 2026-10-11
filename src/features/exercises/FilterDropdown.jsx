@@ -97,6 +97,27 @@ function FilterDropdown({
     return () => clearTimeout(t);
   }, [open, narrow]);
 
+  // Options/counts can change while open (catalog arrives, facet counts
+  // shift). Follow the active option by value; if it is gone or disabled,
+  // fall back to the first enabled one so aria-activedescendant never
+  // points at a removed option.
+  const activeValRef = useRef(null);
+  useEffect(() => {
+    if (!open) { activeValRef.current = null; return; }
+    if (activeIdx < 0) return;
+    const valid = activeIdx < options.length && enabled[activeIdx];
+    const prev = activeValRef.current;
+    if (valid && (prev === null || options[activeIdx] === prev)) {
+      activeValRef.current = options[activeIdx];
+      return;
+    }
+    const moved = prev !== null ? options.indexOf(prev) : -1;
+    if (moved >= 0 && enabled[moved]) { setActiveIdx(moved); return; }
+    const first = enabled.findIndex(Boolean);
+    setActiveIdx(first);
+    activeValRef.current = first >= 0 ? options[first] : null;
+  }, [open, options, enabled, activeIdx]);
+
   useEffect(() => {
     if (!open || activeIdx < 0) return;
     const el = optionRefs.current[activeIdx];

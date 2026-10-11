@@ -389,7 +389,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
         <div className={"wo-card-actions"} style={{ display: "flex", gap: S.s8, marginTop: S.s4 }}>
           <button
             type="button"
-            className={"btn btn-gold btn-sm"}
+            className={"btn btn-gold-solid btn-sm"}
             style={{ flex: 1 }}
             onClick={() => {
               openQuickLog(ex.id, detailLogArgs(ex));
@@ -398,7 +398,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
           >{"Log"}</button>
           {offersAddToWorkout(ex) && <button
             type="button"
-            className={"btn btn-gold btn-sm"}
+            className={"btn btn-ghost btn-sm"}
             style={{ flex: 1 }}
             onClick={() => {
               setAddToWorkoutPicker({

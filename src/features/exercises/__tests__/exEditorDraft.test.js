@@ -187,3 +187,32 @@ describe('duplicate keeps supported defaults', () => {
     expect('defaultDurationMin' in newExDraft(base, 'copy')).toBe(false);
   });
 });
+
+describe('numeric validation', () => {
+  const ok = { ...base, baseXP: 50, defaultSets: 3, defaultReps: 10, defaultWeightLbs: '', defaultWeightPct: 100 };
+  const save = over => saveCustomExercise({ mode: 'create', draft: { ...ok, id: 'n1', ...over }, list: [] });
+
+  it('accepts unset and in-range values', () => {
+    expect(save({}).error).toBeUndefined();
+    expect(save({ defaultSets: null, defaultReps: null, defaultWeightLbs: '', defaultDistanceMi: '' }).error).toBeUndefined();
+    expect(save({ defaultWeightLbs: '135.5' }).error).toBeUndefined();
+  });
+
+  it.each([
+    ['baseXP', 0], ['baseXP', 501], ['baseXP', NaN],
+    ['defaultSets', -1], ['defaultSets', 21],
+    ['defaultReps', 301], ['defaultWeightPct', 49], ['defaultWeightPct', 201],
+    ['defaultWeightLbs', 'abc'], ['defaultDistanceMi', 500],
+  ])('rejects %s = %s and persists nothing', (key, val) => {
+    const res = save({ [key]: val });
+    expect(res.error).toBeTruthy();
+    expect(res.fieldErrors[key]).toBeTruthy();
+    expect(res.list).toBeUndefined();
+  });
+
+  it('applies to edits too', () => {
+    const stored = { ...ok, id: 'e1', custom: true };
+    const res = saveCustomExercise({ mode: 'edit', draft: { ...stored, defaultSets: 99 }, list: [stored] });
+    expect(res.error).toMatch(/Default sets/);
+  });
+});

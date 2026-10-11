@@ -4953,6 +4953,7 @@ function App() {
             libEquipFilters={libEquipFilters}
             setLibEquipFilters={setLibEquipFilters}
             debouncedSetLibSearch={debouncedSetLibSearch}
+            libSearchDebounced={libSearchDebounced}
             setLibDetailEx={setLibDetailEx}
             cartIds={stagedIds}
             isInCart={isInCart}

@@ -49,6 +49,14 @@ export function exerciseRowLabel(ex, { showPB = false } = {}) {
   ].filter(Boolean).join(', ');
 }
 
+/** "Last logged today / yesterday / N days ago"; null when unknown. */
+export function lastLoggedLabel(days) {
+  if (days == null || !Number.isFinite(days)) return null;
+  if (days <= 0) return "Last logged today";
+  if (days === 1) return "Last logged yesterday";
+  return `Last logged ${days} days ago`;
+}
+
 const ExerciseRow = memo(function ExerciseRow({
   ex,
   onActivate,
@@ -58,6 +66,7 @@ const ExerciseRow = memo(function ExerciseRow({
   showEquipment = false,
   showPB = false,
   showCustomBadge = false,
+  lastLoggedDays,
   isFav,
   onToggleFav,
   onEdit,
@@ -76,6 +85,7 @@ const ExerciseRow = memo(function ExerciseRow({
     ex.custom ? "Custom" : null,
     ex.muscleGroup ? muscleLabel(ex.muscleGroup) : null,
     (showEquipment || !!ex.equipment) && ex.equipment ? equipLabel(ex.equipment) : null,
+    lastLoggedLabel(lastLoggedDays),
   ].filter(Boolean);
 
   return (
@@ -109,7 +119,7 @@ const ExerciseRow = memo(function ExerciseRow({
           <button
             type="button"
             className={"picker-ex-main"}
-            aria-label={label}
+            aria-label={lastLoggedDays != null ? `${label}, ${lastLoggedLabel(lastLoggedDays)}` : label}
             aria-pressed={selectable ? selected : undefined}
             onClick={onActivate}
           >{ex.name}</button>

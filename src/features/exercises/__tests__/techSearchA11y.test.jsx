@@ -127,3 +127,26 @@ describe('Exercise editor labels and selection state', () => {
     expect(radios[0].getAttribute('aria-checked')).toBe('true');
   });
 });
+
+describe('editor inline numeric errors', () => {
+  it('blocks save and shows an alert on the offending field', () => {
+    let saved = 0;
+    function Ed() {
+      const [draft, setDraft] = useState(() => ({ ...newExDraft(null, 'create'), name: 'X', defaultSets: 50 }));
+      return (
+        <ExerciseEditorModal exEditorDraft={draft} setExEditorDraft={setDraft} setExEditorOpen={() => {}}
+          exEditorMode="create" allExercises={[]} profile={{ units: 'imperial', age: 30 }}
+          saveExEditor={() => { saved++; }} openExEditor={() => {}} deleteCustomEx={() => {}} />
+      );
+    }
+    render(<Ed />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save exercise' }));
+    expect(saved).toBe(0);
+    const sets = screen.getByLabelText('Default sets');
+    expect(sets.getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByRole('alert').textContent).toMatch(/Default sets must be between 0 and 20/);
+    fireEvent.change(sets, { target: { value: '5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save exercise' }));
+    expect(saved).toBe(1);
+  });
+});
