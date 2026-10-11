@@ -16,18 +16,18 @@
 // Must cover every `category` and `exerciseType` value in the catalog; the
 // vocabulary test in __tests__/exerciseCart.test.js fails if one drifts out.
 export const TYPE_LABELS = {
-  strength: "⚔️ Strength",
-  cardio: "🏃 Cardio",
-  flexibility: "🧘 Flexibility",
-  endurance: "🛡 Endurance",
-  yoga: "🧘 Yoga",
-  stretching: "🌿 Stretch",
-  plyometric: "⚡ Plyo",
-  calisthenics: "🤸 Cali",
-  functional: "🔧 Functional",
-  isometric: "🧱 Isometric",
-  warmup: "🌅 Warmup",
-  cooldown: "🌙 Cooldown",
+  strength: "Strength",
+  cardio: "Cardio",
+  flexibility: "Flexibility",
+  endurance: "Endurance",
+  yoga: "Yoga",
+  stretching: "Stretch",
+  plyometric: "Plyo",
+  calisthenics: "Cali",
+  functional: "Functional",
+  isometric: "Isometric",
+  warmup: "Warmup",
+  cooldown: "Cooldown",
 };
 export const TYPE_OPTS = Object.keys(TYPE_LABELS);
 

@@ -64,6 +64,11 @@ describe('matchesAll', () => {
   it('ignores an empty or whitespace-only query', () => {
     expect(matchesAll(ex(), '   ', S(), S(), S())).toBe(true);
   });
+
+  it('also matches muscle and equipment', () => {
+    expect(matchesAll(ex({ name: 'Push-up', muscleGroup: 'chest' }), 'chest', S(), S(), S())).toBe(true);
+    expect(matchesAll(ex({ name: 'Push-up', equipment: 'dumbbell' }), 'dumbbell', S(), S(), S())).toBe(true);
+  });
 });
 
 describe('facetCounts', () => {

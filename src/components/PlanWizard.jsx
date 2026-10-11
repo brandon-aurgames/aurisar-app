@@ -18,11 +18,13 @@ import {
 } from '../features/workouts/supersetModel';
 import { NO_SETS_EX_IDS, RUNNING_EX_ID, HR_ZONES, UI_COLORS } from '../data/constants';
 import { FS, R, S } from '../utils/tokens';
+import { EX_ROW_H, EX_ROW_SLOT_PAD_Y } from '../features/exercises/exerciseRowLayout';
 import { CLASSES } from '../data/exercises';
 import { ExIcon } from './ExIcon';
 import FilterDropdown from '../features/exercises/FilterDropdown';
 import { TYPE_OPTS, TYPE_LABELS, MUSCLE_OPTS, EQUIP_OPTS, muscleLabel, equipLabel } from '../features/exercises/exerciseFilterOptions';
 import { SHOW_EXERCISE_PB_DISPLAY } from '../features/exercises/showExercisePbDisplay';
+import { debounce } from '../utils/debounce';
 import { matchesAll, facetCounts as countFacet, muscleKeys, typeKeys, equipKeys } from '../features/exercises/matchesFacets';
 
 const ICONS = ["⚔️","🏹","🧘","🛡️","🔥","💪","🏋️","⚡","🏃","🚴","🌅","🌙","🏔️","🗡️","🧗","🎯"];
@@ -35,7 +37,6 @@ function formatScheduledDate(dateStr) {
   } catch(e) { return dateStr; }
 }
 
-function debounce(fn, ms) { let id; return (...args) => { clearTimeout(id); id = setTimeout(() => fn(...args), ms); }; }
 
 // ── Virtualized picker row (item 4: react-window) ──────────────────────────
 // Module-level so the component identity is stable across PlanWizard renders;
@@ -60,7 +61,7 @@ const PickerRow = React.memo(function PickerRow({ ariaAttributes, index, style, 
   // (the gap-based flex column was 6px gap; 8px here is close enough and
   // simpler than a wrapper margin).
   return (
-    <div style={{...style, paddingTop:4, paddingBottom:4}} {...ariaAttributes}>
+    <div style={{...style, boxSizing: "border-box", overflow: "hidden", paddingTop: EX_ROW_SLOT_PAD_Y, paddingBottom: EX_ROW_SLOT_PAD_Y}} {...ariaAttributes}>
       <div className={"picker-ex-row" + (sel ? " sel" : "")} style={{"--mg-color":exMgColor}} onClick={() => onToggle(ex.id)}>
         <div className="picker-ex-orb"><ExIcon ex={ex} size=".95rem" color="#d4cec4" /></div>
         <div style={PICKER_ROW_NAME_INNER}>
@@ -480,6 +481,7 @@ function PlanWizard(props) {
 
   function closePicker() {
     setExPickerOpen(false);
+    debouncedSetSearch.cancel?.();
     setPickerSearch(""); if(pickerSearchRef.current) pickerSearchRef.current.value=""; setPickerMuscle(new Set()); setPickerTypeFilter(new Set()); setPickerEquipFilter(new Set()); setPickerOpenDrop(null);
     setPickerSelected([]);
   }
@@ -1041,13 +1043,11 @@ function PlanWizard(props) {
                       <div style={{fontSize:FS.fs62,color:"#8a8478",marginBottom:S.s6,textAlign:"right"}}>
                         {filteredExercises.length+" match"+(filteredExercises.length!==1?"es":"")}
                       </div>
-                      {/* Virtualized: rowHeight 60px = .picker-ex-row content (~52px) + 8px slot padding.
-                          height: min(60vh, 480px) keeps the list inside the modal sheet without
-                          overflowing on small screens. The previous slice(0,80) cap is gone —
-                          users can scroll through all matches. */}
+                      {/* Virtualized: EX_ROW_H = card + gap. Slot padding is half the
+                          gap each side so the card fills with height:100% / min-height:0. */}
                       <List
                         rowCount={filteredExercises.length}
-                        rowHeight={60}
+                        rowHeight={EX_ROW_H}
                         rowComponent={PickerRow}
                         rowProps={pickerRowProps}
                         style={{ height: 'min(60vh, 480px)', width: '100%' }}

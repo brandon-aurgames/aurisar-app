@@ -1,3 +1,5 @@
+import { matchesSearchExpanded } from './searchRank';
+
 /**
  * What "filtered by X" means, in one place.
  *
@@ -30,11 +32,8 @@ export function matchesFacets(ex, muscleSet, typeSet, equipSet) {
   return true;
 }
 
-/** Case-insensitive substring match on the exercise name. */
-export const matchesSearch = (ex, query) => {
-  const q = (query || "").toLowerCase().trim();
-  return !q || (ex.name || "").toLowerCase().includes(q);
-};
+/** Name, muscle, or equipment match. Empty query matches everything. */
+export const matchesSearch = (ex, query) => matchesSearchExpanded(ex, query);
 
 /** The two combined — what every list actually wants. */
 export const matchesAll = (ex, query, muscleSet, typeSet, equipSet) =>

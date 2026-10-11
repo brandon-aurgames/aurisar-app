@@ -36,6 +36,14 @@ const STRETCH_ROW_FILES = [
 describe('stretched-row overlay safeguard', () => {
   const css = read('src/styles/app.css');
 
+  it('kills the row press scale when a nested control is the press target', () => {
+    expect(css).toMatch(/\.picker-ex-row\.no-row-press:active\{transform:none\}/);
+  });
+
+  it('lets the muscle grid drop to two columns at narrow widths', () => {
+    expect(css).toMatch(/\.lib-muscle-grid\{display:grid;grid-template-columns:repeat\(2/);
+  });
+
   it('lifts every non-primary control above the overlay', () => {
     // Without this rule the ::after swallows clicks meant for the favourite,
     // edit and delete buttons — they become unusable by mouse and touch.
@@ -44,11 +52,24 @@ describe('stretched-row overlay safeguard', () => {
   });
 
   it('clamps the exercise name so it cannot overflow a fixed virtualized row', () => {
-    // The picker renders fixed-height react-window rows. Before the clamp, a
-    // two-line name on a narrow phone overflowed its 60px slot and the cards
-    // overlapped (reported on deploy-preview-362). The name button must stay
-    // line-clamped so this can't come back.
-    expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?-webkit-line-clamp:\s*2/);
+    // The picker renders fixed-height react-window rows. A wrapping name on a
+    // narrow phone overflowed its slot and the cards overlapped (reported on
+    // deploy-preview-362). The name is one-line ellipsis inside the card.
+    expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?white-space:\s*nowrap/);
+    expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?text-overflow:\s*ellipsis/);
+  });
+
+  it('gives the checkbox and star 44px-wide columns so their hit slop misses the name', () => {
+    expect(css).toMatch(/\.ex-row-check\{[^}]*width:44px/);
+    expect(css).toMatch(/\.picker-ex-fav\{[^}]*width:44px/);
+    expect(css).toMatch(/\.ex-row-more\{[^}]*width:44px/);
+  });
+
+  it('keeps the thin-row exercise name at normal weight', () => {
+    expect(css).toMatch(/\.picker-ex-main\s*\{[\s\S]*?font-weight:\s*400/);
+    const block = css.match(/\.picker-ex-main\{[\s\S]*?\n\s*\}/);
+    expect(block, '.picker-ex-main rule').not.toBeNull();
+    expect(block[0]).not.toMatch(/font-weight:\s*600/);
   });
 
   it('applies .stretch-row wherever the stretched primary action is used', () => {
@@ -163,17 +184,13 @@ describe('picker virtualizes against a definite box', () => {
   });
 
   it('keeps picker exercise cards compact and inset', () => {
-    const match = picker.match(/const ROW_H\s*=\s*(\d+)/);
-    expect(match, 'ROW_H must be declared').not.toBeNull();
-    expect(Number(match[1]), 'picker rows should stay slimmer than the old 86px slab').toBeLessThanOrEqual(76);
-    expect(Number(match[1])).toBeGreaterThanOrEqual(68);
-    expect(css).toMatch(/\.picker-ex-row\.wb-pcard\{[^}]*padding:\s*6px 10px/);
+    expect(picker).toMatch(/const ROW_H\s*=\s*EX_ROW_H/);
+    expect(css).toMatch(/\.picker-ex-row\.wb-pcard\{[^}]*padding:\s*4px 8px/);
   });
 
   it('gives muscle-group headers a 44px touch target', () => {
-    const match = picker.match(/const HEADER_H\s*=\s*(\d+)/);
-    expect(match, 'HEADER_H must be declared').not.toBeNull();
-    expect(Number(match[1]), 'HEADER_H must meet the 44pt iOS minimum').toBeGreaterThanOrEqual(44);
+    expect(picker).toMatch(/const HEADER_H\s*=\s*EX_PICKER_HEADER_H/);
+    expect(picker).toMatch(/kind === 'header' \? HEADER_H : ROW_H/);
   });
 
   it('keeps a selected search pick visible after the query is cleared', () => {
@@ -190,6 +207,21 @@ describe('library list sizes against the visual viewport', () => {
     expect(lib).toContain('window.visualViewport');
     expect(lib).toMatch(/visualViewport\.resize|addEventListener\('resize'/);
     expect(lib).not.toMatch(/Math\.max\(\s*200/);
+  });
+
+  it('virtualizes library rows at the shared card-plus-gap slot', () => {
+    expect(lib).toMatch(/const LIB_ROW_H\s*=\s*EX_ROW_H/);
+  });
+
+  it('puts the muscle grid above Recent and Favorites', () => {
+    const muscle = lib.indexOf('{"Browse by muscle"}');
+    const recent = lib.indexOf('{"Recent"}');
+    const fav = lib.indexOf('{"Favorites"}');
+    expect(muscle).toBeGreaterThan(-1);
+    expect(recent).toBeGreaterThan(-1);
+    expect(fav).toBeGreaterThan(-1);
+    expect(muscle).toBeLessThan(recent);
+    expect(muscle).toBeLessThan(fav);
   });
 });
 
