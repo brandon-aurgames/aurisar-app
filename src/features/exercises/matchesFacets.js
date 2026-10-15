@@ -1,4 +1,5 @@
 import { matchesSearchExpanded } from './searchRank';
+import { difficultyKey, goalKey, movementKey } from './libraryFacets';
 
 /**
  * What "filtered by X" means, in one place.
@@ -14,8 +15,8 @@ import { matchesSearchExpanded } from './searchRank';
  * barbell). An empty facet means "no constraint", not "nothing matches".
  */
 
-/** True if the exercise satisfies all three facet sets. */
-export function matchesFacets(ex, muscleSet, typeSet, equipSet) {
+/** True if the exercise satisfies all facet sets. Extra library facets are optional. */
+export function matchesFacets(ex, muscleSet, typeSet, equipSet, extra = null) {
   if (!ex || ex.id === "rest_day") return false;
 
   if (muscleSet && muscleSet.size) {
@@ -29,6 +30,18 @@ export function matchesFacets(ex, muscleSet, typeSet, equipSet) {
   if (equipSet && equipSet.size) {
     if (!equipSet.has((ex.equipment || "bodyweight").toLowerCase().trim())) return false;
   }
+  if (extra) {
+    if (extra.difficultySet && extra.difficultySet.size && !extra.difficultySet.has(difficultyKey(ex))) {
+      return false;
+    }
+    if (extra.goalSet && extra.goalSet.size) {
+      const g = goalKey(ex);
+      if (!g || !extra.goalSet.has(g)) return false;
+    }
+    if (extra.movementSet && extra.movementSet.size && !extra.movementSet.has(movementKey(ex))) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -36,8 +49,8 @@ export function matchesFacets(ex, muscleSet, typeSet, equipSet) {
 export const matchesSearch = (ex, query) => matchesSearchExpanded(ex, query);
 
 /** The two combined — what every list actually wants. */
-export const matchesAll = (ex, query, muscleSet, typeSet, equipSet) =>
-  matchesFacets(ex, muscleSet, typeSet, equipSet) && matchesSearch(ex, query);
+export const matchesAll = (ex, query, muscleSet, typeSet, equipSet, extra) =>
+  matchesFacets(ex, muscleSet, typeSet, equipSet, extra) && matchesSearch(ex, query);
 
 /**
  * Per-option result counts for one facet, given the search and the *other*
@@ -78,3 +91,5 @@ export const typeKeys = ex => {
   if (cat) tags.add(cat);
   return [...tags];
 };
+
+export { difficultyKey, goalKey, movementKey };

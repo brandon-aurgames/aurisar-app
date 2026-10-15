@@ -513,7 +513,11 @@ function App() {
   const [libTypeFilters, setLibTypeFilters] = useState(() => new Set());
   const [libMuscleFilters, setLibMuscleFilters] = useState(() => new Set());
   const [libEquipFilters, setLibEquipFilters] = useState(() => new Set());
+  const [libDifficultyFilters, setLibDifficultyFilters] = useState(() => new Set());
+  const [libGoalFilters, setLibGoalFilters] = useState(() => new Set());
+  const [libMovementFilters, setLibMovementFilters] = useState(() => new Set());
   const [libDetailEx, setLibDetailEx] = useState(null);
+  const [libDetailSiblings, setLibDetailSiblings] = useState(null);
   const [orbMenuOpen, setOrbMenuOpen] = useState(false);
   // One shared, persisted basket replaces the three throwaway selection Sets
   // the library, favourites list and builder picker each used to keep.
@@ -2966,12 +2970,16 @@ function App() {
     libTypeCounts,
     libMuscleCounts,
     libEquipCounts,
+    libDifficultyCounts,
+    libGoalCounts,
+    libMovementCounts,
     libMuscleCardData,
     libMuscleOpts,
     libEquipOpts,
   } = useExerciseFilters({
     allExercises,
     libSearchDebounced, libTypeFilters, libMuscleFilters, libEquipFilters,
+    libDifficultyFilters, libGoalFilters, libMovementFilters,
     favIds: profile.favoriteExercises,
     recentIds: libRecentIds,
   });
@@ -4942,6 +4950,9 @@ function App() {
             libTypeCounts={libTypeCounts}
             libMuscleCounts={libMuscleCounts}
             libEquipCounts={libEquipCounts}
+            libDifficultyCounts={libDifficultyCounts}
+            libGoalCounts={libGoalCounts}
+            libMovementCounts={libMovementCounts}
             libMuscleCardData={libMuscleCardData}
             libMuscleOpts={libMuscleOpts}
             libEquipOpts={libEquipOpts}
@@ -4952,12 +4963,20 @@ function App() {
             setLibMuscleFilters={setLibMuscleFilters}
             libEquipFilters={libEquipFilters}
             setLibEquipFilters={setLibEquipFilters}
+            libDifficultyFilters={libDifficultyFilters}
+            setLibDifficultyFilters={setLibDifficultyFilters}
+            libGoalFilters={libGoalFilters}
+            setLibGoalFilters={setLibGoalFilters}
+            libMovementFilters={libMovementFilters}
+            setLibMovementFilters={setLibMovementFilters}
             debouncedSetLibSearch={debouncedSetLibSearch}
             libSearchDebounced={libSearchDebounced}
             setLibDetailEx={setLibDetailEx}
+            setLibDetailSiblings={setLibDetailSiblings}
             cartIds={stagedIds}
             isInCart={isInCart}
             toggleCart={toggleCart}
+            clearCart={clearCart}
             profile={profile}
             setProfile={setProfile}
             allExercises={allExercises}
@@ -5298,7 +5317,7 @@ function App() {
         allExById={allExById}
         // The tray is scoped to the surfaces that stage exercises. Following
         // it into the 3D world or a chat thread would be noise.
-        isCartRoute={activeTab === "workout" || activeTab === "workouts" || activeTab === "plans"}
+        isCartRoute={(activeTab === "workout" && exSubTab !== "library") || activeTab === "workouts" || activeTab === "plans"}
         cartOpen={cartOpen}
         setCartOpen={setCartOpen}
         removeFromCart={removeFromCart}
@@ -5333,7 +5352,7 @@ function App() {
       <ExerciseDetailSheet
         ex={libDetailEx}
         setLibDetailEx={setLibDetailEx}
-        siblings={activeTab === "workout" && exSubTab === "library" ? libFiltered : null}
+        siblings={activeTab === "workout" && exSubTab === "library" ? (libDetailSiblings || libFiltered) : null}
         profile={profile}
         setProfile={setProfile}
         setAddToWorkoutPicker={setAddToWorkoutPicker}

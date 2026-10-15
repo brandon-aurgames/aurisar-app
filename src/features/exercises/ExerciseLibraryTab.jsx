@@ -1,76 +1,85 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { List } from 'react-window';
-import { ExIcon } from '../../components/ExIcon';
-import { getMuscleColor, getTypeColor } from '../../utils/xp';
-import { S, FS, Z } from '../../utils/tokens';
+import { S, FS } from '../../utils/tokens';
 import { useScrollRestore } from '../../hooks/useScrollRestore';
-import FilterDropdown from './FilterDropdown';
-import ExerciseRow from './ExerciseRow';
 import TechSearch from './TechSearch';
-import { TYPE_OPTS, TYPE_LABELS, muscleLabel, equipLabel } from './exerciseFilterOptions';
+import AnatomyMaps from './AnatomyMaps';
+import LibraryExerciseCard from './LibraryExerciseCard';
+import EquipIcon from './EquipIcons';
+import { EQUIP_OPTS, muscleLabel, equipLabel } from './exerciseFilterOptions';
 import { measureVisibleListHeight } from './visibleListHeight';
-import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 import { recentExerciseIds, resolveFavoriteExercises, HOME_ROW_COUNT } from './recentExercises';
-import { EX_ROW_H, EX_ROW_SLOT_PAD_Y } from './exerciseRowLayout';
+import {
+  DIFFICULTY_OPTS, GOAL_OPTS, GOAL_LABELS, MOVEMENT_OPTS, MOVEMENT_LABELS,
+} from './libraryFacets';
 
-const STEEL = "#B0A898";
+const LIB_CARD_H = 108;
+const TRAY_RESERVE = 72;
 
 const LibExRow = React.memo(function LibExRow({
   ariaAttributes, index, style,
-  exercises, cartSet, favSet, pbSet, onOpen, onToggleCart, onToggleFav,
+  exercises, cartSet, favSet, onOpen, onToggleCart, onToggleFav,
 }) {
   const ex = exercises[index];
   if (!ex) return null;
   return (
-    <div style={{ ...style, boxSizing: "border-box", overflow: "hidden", paddingTop: EX_ROW_SLOT_PAD_Y, paddingBottom: EX_ROW_SLOT_PAD_Y }} {...ariaAttributes}>
-      <ExerciseRow
+    <div style={{ ...style, boxSizing: "border-box", overflow: "hidden", paddingBottom: 12 }} {...ariaAttributes}>
+      <LibraryExerciseCard
         ex={ex}
         selected={cartSet.has(ex.id)}
-        showEquipment
-        showPB={pbSet.has(ex.id)}
         isFav={favSet.has(ex.id)}
         onToggleFav={onToggleFav}
         onToggleSelect={onToggleCart}
-        onActivate={() => onOpen(ex)}
+        onOpen={exObj => onOpen(exObj, "results")}
       />
     </div>
   );
 });
 
-const HomeExList = React.memo(function HomeExList({
-  items, cartSet, favSet, pbSet, onOpen, onToggleCart, onToggleFav,
-}) {
+function toggleInSet(setter, val) {
+  setter(s => {
+    const n = new Set(s);
+    n.has(val) ? n.delete(val) : n.add(val);
+    return n;
+  });
+}
+
+function matchWord(n) {
+  return n === 1 ? "match" : "matches";
+}
+
+function Chip({ active, onClick, children, ariaLabel }) {
   return (
-    <div className={"lib-home-rows"}>
-      {items.map(ex => (
-        <ExerciseRow
-          key={ex.id}
-          ex={ex}
-          selected={cartSet.has(ex.id)}
-          showEquipment
-          showPB={pbSet.has(ex.id)}
-          isFav={favSet.has(ex.id)}
-          onToggleFav={onToggleFav}
-          onToggleSelect={onToggleCart}
-          onActivate={() => onOpen(ex)}
-        />
-      ))}
-    </div>
+    <button
+      type="button"
+      className={`ex-lib-chip${active ? " is-on" : ""}`}
+      aria-pressed={!!active}
+      aria-label={ariaLabel}
+      onClick={onClick}
+    >
+      <span className="ex-lib-chip-check" aria-hidden="true">✓</span>
+      {children}
+    </button>
   );
-});
+}
 
 const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
   const {
-    libFiltered, libMuscleCardData, libMuscleOpts, libEquipOpts,
-    libTypeCounts, libMuscleCounts, libEquipCounts,
+    libFiltered, libMuscleCardData, libEquipOpts,
+    libMuscleCounts, libEquipCounts,
+    libDifficultyCounts, libGoalCounts, libMovementCounts,
     setLibSearchDebounced,
     libTypeFilters, setLibTypeFilters,
     libMuscleFilters, setLibMuscleFilters,
     libEquipFilters, setLibEquipFilters,
+    libDifficultyFilters, setLibDifficultyFilters,
+    libGoalFilters, setLibGoalFilters,
+    libMovementFilters, setLibMovementFilters,
     debouncedSetLibSearch,
     libSearchDebounced,
     setLibDetailEx,
-    cartIds, toggleCart,
+    setLibDetailSiblings,
+    cartIds, toggleCart, clearCart,
     profile, setProfile,
     allExercises, allExById,
     _exReady, _exLoadError,
@@ -80,9 +89,9 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
 
   const [catalogNoteDismissed, setCatalogNoteDismissed] = useState(false);
   const [search, setSearch] = useState(libSearchDebounced || "");
-  const [libOpenDrop, setLibOpenDrop] = useState(null);
   const [libBrowseMode, setLibBrowseMode] = useState("home");
   const [recentNow] = useState(() => Date.now());
+  const [focusToast, setFocusToast] = useState(null);
 
   useScrollRestore(`lib-${libBrowseMode}`);
 
@@ -90,15 +99,10 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
   const listRef = useRef(null);
   const vlistWrapRef = useRef(null);
   const listSaveTimer = useRef(null);
-  const LIB_ROW_H = EX_ROW_H;
-  const LIST_SCROLL_KEY = 'aurisar-scroll:lib-filtered-list';
+  const LIST_SCROLL_KEY = "aurisar-scroll:lib-filtered-list";
 
   const cartSet = useMemo(() => new Set(cartIds), [cartIds]);
   const favSet = useMemo(() => new Set(profile.favoriteExercises || []), [profile.favoriteExercises]);
-  const pbSet = useMemo(
-    () => SHOW_EXERCISE_PB_DISPLAY ? new Set(Object.keys(profile.exercisePBs || {})) : new Set(),
-    [profile.exercisePBs],
-  );
 
   const recentHome = useMemo(
     () => recentExerciseIds(profile.log, allExById, recentNow, HOME_ROW_COUNT).map(r => r.ex),
@@ -108,6 +112,22 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
     () => resolveFavoriteExercises(profile.favoriteExercises, allExById, HOME_ROW_COUNT),
     [profile.favoriteExercises, allExById]
   );
+
+  const allSiblings = useMemo(
+    () => (allExercises || []).filter(e => e && e.id !== "rest_day"),
+    [allExercises]
+  );
+
+  const muscleCountsByGroup = useMemo(() => {
+    const m = new Map();
+    for (const d of libMuscleCardData || []) m.set(d.mg, d.count);
+    return m;
+  }, [libMuscleCardData]);
+
+  const selectedMuscle = [...libMuscleFilters][0] || null;
+  const selectedMuscleCount = selectedMuscle
+    ? (muscleCountsByGroup.get(selectedMuscle) || libMuscleCounts.get(selectedMuscle) || 0)
+    : allSiblings.length;
 
   const saveListScroll = useCallback(() => {
     if (listSaveTimer.current) return;
@@ -119,9 +139,9 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
   }, []);
 
   useEffect(() => {
-    if (libBrowseMode !== 'filtered') return undefined;
+    if (libBrowseMode !== "results") return undefined;
     let saved = 0;
-    try { saved = parseInt(sessionStorage.getItem(LIST_SCROLL_KEY) || '0', 10) || 0; } catch { /* ignore */ }
+    try { saved = parseInt(sessionStorage.getItem(LIST_SCROLL_KEY) || "0", 10) || 0; } catch { /* ignore */ }
     if (saved <= 0) return undefined;
     let cancelled = false;
     const timers = [40, 120, 260, 500].map(d => setTimeout(() => {
@@ -133,42 +153,48 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
   }, [libBrowseMode]);
 
   useLayoutEffect(() => {
-    const scroller = rootRef.current?.closest('.scroll-area');
+    const scroller = rootRef.current?.closest(".scroll-area");
     if (!scroller) return undefined;
-    if (libBrowseMode === 'filtered') {
-      scroller.classList.add('lib-list-locked');
-      return () => scroller.classList.remove('lib-list-locked');
+    if (libBrowseMode === "results") {
+      scroller.classList.add("lib-list-locked");
+      return () => scroller.classList.remove("lib-list-locked");
     }
-    scroller.classList.remove('lib-list-locked');
+    scroller.classList.remove("lib-list-locked");
     return undefined;
   }, [libBrowseMode]);
 
   useLayoutEffect(() => {
-    if (libBrowseMode !== 'filtered') return undefined;
+    if (libBrowseMode !== "results") return undefined;
     const wrap = vlistWrapRef.current;
-    if (!wrap || typeof ResizeObserver === 'undefined') return undefined;
+    if (!wrap || typeof ResizeObserver === "undefined") return undefined;
     let raf = 0;
     const measure = () => {
       raf = 0;
       const top = wrap.getBoundingClientRect().top;
-      const nav = document.querySelector('.hud-nav-panel');
+      const nav = document.querySelector(".hud-nav-panel");
       const navTop = nav ? nav.getBoundingClientRect().top : Infinity;
+      const tray = document.querySelector(".ex-lib-tray");
+      const trayTop = tray ? tray.getBoundingClientRect().top : Infinity;
       const h = measureVisibleListHeight({
         wrapTop: top,
-        navTop,
+        navTop: Number.isFinite(trayTop) ? Math.min(navTop, trayTop) : navTop,
         visualViewport: window.visualViewport,
         innerHeight: window.innerHeight,
+        gap: cartIds.length ? 12 : 6,
       });
-      wrap.style.height = h + 'px';
+      wrap.style.height = h + "px";
+      wrap.style.maxHeight = h + "px";
     };
     const schedule = () => { if (!raf) raf = requestAnimationFrame(measure); };
     measure();
     const ro = new ResizeObserver(schedule);
     ro.observe(document.body);
-    const nav = document.querySelector('.hud-nav-panel');
+    const nav = document.querySelector(".hud-nav-panel");
     if (nav) ro.observe(nav);
-    window.addEventListener('resize', schedule);
-    window.addEventListener('orientationchange', schedule);
+    const trayEl = document.querySelector(".ex-lib-tray");
+    if (trayEl) ro.observe(trayEl);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("orientationchange", schedule);
     const vv = window.visualViewport;
     if (vv) {
       vv.addEventListener('resize', schedule);
@@ -177,45 +203,35 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
     return () => {
       if (raf) cancelAnimationFrame(raf);
       ro.disconnect();
-      window.removeEventListener('resize', schedule);
-      window.removeEventListener('orientationchange', schedule);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("orientationchange", schedule);
       if (vv) {
-        vv.removeEventListener('resize', schedule);
-        vv.removeEventListener('scroll', schedule);
+        vv.removeEventListener("resize", schedule);
+        vv.removeEventListener("scroll", schedule);
       }
-      if (wrap) wrap.style.height = '';
+      if (wrap) { wrap.style.height = ""; wrap.style.maxHeight = ""; }
     };
-  }, [libBrowseMode]);
+  }, [libBrowseMode, cartIds.length]);
 
   useEffect(() => () => clearTimeout(listSaveTimer.current), []);
 
-  const toggleSet = (setter, val) => {
-    setter(s => {
-      const n = new Set(s);
-      n.has(val) ? n.delete(val) : n.add(val);
-      return n;
-    });
-  };
-  const clearAll = () => {
-    debouncedSetLibSearch.cancel?.();
+  const clearFacetFilters = () => {
     setLibTypeFilters(new Set());
     setLibMuscleFilters(new Set());
     setLibEquipFilters(new Set());
+    setLibDifficultyFilters(new Set());
+    setLibGoalFilters(new Set());
+    setLibMovementFilters(new Set());
+  };
+
+  const clearAll = () => {
+    debouncedSetLibSearch.cancel?.();
+    clearFacetFilters();
     setSearch("");
     setLibSearchDebounced("");
+    setFocusToast(null);
     setLibBrowseMode("home");
   };
-  const hasFilters = libTypeFilters.size > 0 || libMuscleFilters.size > 0 || libEquipFilters.size > 0 || !!search;
-  const activeFilterCount = libTypeFilters.size + libMuscleFilters.size + libEquipFilters.size;
-  const trimmedSearch = search.trim();
-  const hasResumeState = activeFilterCount > 0 || trimmedSearch.length > 0;
-  const resumeSummary = [
-    activeFilterCount > 0 ? `${activeFilterCount} filter${activeFilterCount !== 1 ? "s" : ""}` : null,
-    trimmedSearch ? `“${trimmedSearch}”` : null,
-  ].filter(Boolean).join(" · ");
-
-  const MUSCLE_OPTS = libMuscleOpts;
-  const EQUIP_OPTS = libEquipOpts;
 
   const toggleFav = useCallback(id => setProfile(p => ({
     ...p,
@@ -226,235 +242,369 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
 
   const goCreate = () => openExEditor?.("create", null);
 
-  const applySearch = v => {
-    setSearch(v);
-    debouncedSetLibSearch(v);
-    if (v && libBrowseMode === "home") setLibBrowseMode("filtered");
+  const submitSearch = v => {
+    const q = (v ?? search).trim();
+    debouncedSetLibSearch.cancel?.();
+    setLibSearchDebounced(q);
+    if (q) setLibBrowseMode("results");
   };
+
   const clearSearch = () => {
     debouncedSetLibSearch.cancel?.();
     setSearch("");
     setLibSearchDebounced("");
-    if (libMuscleFilters.size === 0 && libTypeFilters.size === 0 && libEquipFilters.size === 0) {
-      setLibBrowseMode("home");
-    }
   };
 
-  const homeRowProps = useMemo(() => ({
-    cartSet, favSet, pbSet,
-    onOpen: setLibDetailEx,
-    onToggleCart: toggleCart,
-    onToggleFav: toggleFav,
-  }), [cartSet, favSet, pbSet, setLibDetailEx, toggleCart, toggleFav]);
+  const openDetail = useCallback((ex, source) => {
+    const siblings = source === "recent" ? allSiblings : libFiltered;
+    setLibDetailSiblings?.(siblings);
+    setLibDetailEx(ex);
+  }, [allSiblings, libFiltered, setLibDetailEx, setLibDetailSiblings]);
 
-  return <div ref={rootRef} className={libBrowseMode === "filtered" ? "lib-tab-root lib-tab-root--filtered" : "lib-tab-root"}>
-    <div className={"lib-sticky-search"}>
-      <div style={{ display: "flex", gap: S.s8, alignItems: "center" }}>
+  const chooseMuscle = mg => {
+    setLibMuscleFilters(new Set([mg]));
+    setFocusToast({ label: muscleLabel(mg), count: muscleCountsByGroup.get(mg) || 0 });
+    setLibBrowseMode("filters");
+  };
+
+  const browseAll = () => {
+    setLibMuscleFilters(new Set());
+    setFocusToast({ label: "All", count: allSiblings.length });
+    setLibBrowseMode("filters");
+  };
+
+  const resultChipText = () => {
+    const parts = [];
+    if (selectedMuscle) parts.push(muscleLabel(selectedMuscle));
+    if (libEquipFilters.size === 1) parts.push(equipLabel([...libEquipFilters][0]));
+    else if (libEquipFilters.size > 1) parts.push(`${libEquipFilters.size} equip`);
+    if (libMovementFilters.size === 1) parts.push(MOVEMENT_LABELS[[...libMovementFilters][0]]);
+    if (search.trim()) parts.push(`“${search.trim()}”`);
+    return parts.length ? parts.join(" · ") : "All";
+  };
+
+  const n = libFiltered.length;
+  const equipOptions = (libEquipOpts && libEquipOpts.length) ? libEquipOpts : EQUIP_OPTS;
+
+  return (
+    <div
+      ref={rootRef}
+      className={`ex-lib lib-tab-root${libBrowseMode === "results" ? " lib-tab-root--filtered" : ""}`}
+    >
+      <div className="lib-sticky-search ex-lib-search-row">
         <TechSearch
-          id={"lib-search"}
+          id="lib-search"
           label={"Search exercises"}
           value={search}
-          onChange={applySearch}
+          onChange={setSearch}
           onClear={clearSearch}
-          placeholder={"Search…"}
+          onSubmit={submitSearch}
+          placeholder="Search by name"
+          submitLabel="Search"
         />
         {libBrowseMode === "home" && (
-          <button
-            type="button"
-            className={"btn btn-ghost btn-sm"}
-            onClick={goCreate}
-            style={{ flexShrink: 0, whiteSpace: "nowrap" }}
-          >{"Create"}</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={goCreate} style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+            Create
+          </button>
         )}
       </div>
-    </div>
-    {!_exReady && <div className={"lib-catalog-note"} role="status">
-      <span className={"lib-catalog-spinner"} aria-hidden="true" />
-      {"Loading the full catalog…"}
-    </div>}
-    {_exReady && _exLoadError && !catalogNoteDismissed && <div className={"lib-catalog-note lib-catalog-note-warn"} role="status">
-      <span aria-hidden="true">{"⚠"}</span>
-      <span style={{ flex: 1 }}>{`Showing the offline catalog (${allExercises.length} exercises) — couldn't reach the server, so newer additions may be missing.`}</span>
-      <button type="button" onClick={() => setCatalogNoteDismissed(true)} aria-label="Dismiss" style={{
-        background: "transparent", border: "none", color: "inherit",
-        cursor: "pointer", fontSize: FS.fs78, lineHeight: 1, padding: S.s2
-      }}>{"✕"}</button>
-    </div>}
 
-    {libBrowseMode === "home" && <div>
-      {hasResumeState && <div className={"lib-resume-chip"}>
-        <button
-          type={"button"}
-          className={"lib-resume-chip-go"}
-          onClick={() => setLibBrowseMode("filtered")}
-        >
-          <span className={"lib-resume-chip-label"}>{`${resumeSummary} — View ${libFiltered.length} result${libFiltered.length !== 1 ? "s" : ""}`}</span>
-        </button>
-        <button
-          type={"button"}
-          className={"lib-resume-chip-x"}
-          aria-label={"Clear filters and search"}
-          onClick={clearAll}
-        >{"✕"}</button>
+      {!_exReady && <div className="lib-catalog-note" role="status">
+        <span className="lib-catalog-spinner" aria-hidden="true" />
+        Loading the full catalog…
+      </div>}
+      {_exReady && _exLoadError && !catalogNoteDismissed && <div className="lib-catalog-note lib-catalog-note-warn" role="status">
+        <span aria-hidden="true">⚠</span>
+        <span style={{ flex: 1 }}>{`Showing the offline catalog (${allExercises.length} exercises) — couldn't reach the server, so newer additions may be missing.`}</span>
+        <button type="button" onClick={() => setCatalogNoteDismissed(true)} aria-label="Dismiss" style={{
+          background: "transparent", border: "none", color: "inherit",
+          cursor: "pointer", fontSize: FS.fs78, lineHeight: 1, padding: S.s2
+        }}>✕</button>
       </div>}
 
-      <div className={"lib-home-section"}>
-        <div className={"lib-section-hdr"}>{"Browse by muscle"}</div>
-        <div className={"lib-muscle-grid"}>
-          {libMuscleCardData.map(({ mg, label, count, color }) => (
-            <button
-              type="button"
-              key={"mc-" + mg}
-              className={"lib-muscle-tile"}
-              aria-label={`${label}, ${count} exercises`}
-              onClick={() => {
-                setLibMuscleFilters(new Set([mg]));
-                setLibBrowseMode("filtered");
-              }}
-              style={{ '--mg-color': color }}
-            >
-              <div className={"lib-tile-orb"} style={{ '--mg-color': color }}>
-                <ExIcon ex={{ muscleGroup: mg, category: "strength" }} size={"0.95rem"} color={color} />
-              </div>
-              <div>
-                <div className={"lib-tile-name"}>{label}</div>
-                <div className={"lib-tile-count"} style={{ '--mg-color': color }}>{count}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+      {libBrowseMode === "home" && (
+        <div className="ex-lib-screen">
+          <div className="ex-lib-step">Choose a focus.</div>
+          <h2 className="ex-lib-heading">What are you training?</h2>
+          <p className="ex-lib-sub">Tap a muscle on the map to start narrowing.</p>
 
-      {recentHome.length > 0 && <div className={"lib-home-section lib-home-section--compact"}>
-        <div className={"lib-section-hdr"}>{"Recent"}</div>
-        <HomeExList items={recentHome} {...homeRowProps} />
-      </div>}
+          <div className={`ex-lib-focus-card${selectedMuscle ? " has-selection" : ""}`}>
+            <span className="ex-lib-corner tl" aria-hidden="true" />
+            <span className="ex-lib-corner tr" aria-hidden="true" />
+            <span className="ex-lib-corner bl" aria-hidden="true" />
+            <span className="ex-lib-corner br" aria-hidden="true" />
+            <AnatomyMaps
+              selectedMuscle={selectedMuscle}
+              onSelect={chooseMuscle}
+              counts={muscleCountsByGroup}
+              toastLabel={focusToast?.label || (selectedMuscle && muscleLabel(selectedMuscle))}
+              toastCount={focusToast?.count ?? (selectedMuscle ? selectedMuscleCount : null)}
+            />
+            <div className="ex-lib-quick-picks">
+              <button type="button" className="ex-lib-qchip" onClick={browseAll}>
+                Browse all <span className="count">{allSiblings.length}</span>
+              </button>
+            </div>
+            <div className="ex-lib-or">— or search by name above —</div>
+          </div>
 
-      {favHome.length > 0 && <div className={"lib-home-section lib-home-section--compact"}>
-        <div className={"lib-home-section-head"}>
-          <span className={"lib-section-hdr"} style={{ marginBottom: 0 }}>{"Favorites"}</span>
-          {onSeeAllFavorites && (profile.favoriteExercises || []).length > HOME_ROW_COUNT && (
-            <button type="button" className={"lib-see-all btn-sm"} onClick={onSeeAllFavorites}>{"See All"}</button>
+          {recentHome.length > 0 && (
+            <section className="ex-lib-recent">
+              <div className="ex-lib-row-heading">Recent</div>
+              <div className="ex-lib-recent-list">
+                {recentHome.map(ex => (
+                  <LibraryExerciseCard
+                    key={ex.id}
+                    ex={ex}
+                    variant="recent"
+                    selected={cartSet.has(ex.id)}
+                    isFav={favSet.has(ex.id)}
+                    onToggleFav={toggleFav}
+                    onToggleSelect={toggleCart}
+                    onOpen={exObj => openDetail(exObj, "recent")}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {favHome.length > 0 && (
+            <section className="ex-lib-recent">
+              <div className="ex-lib-section-head">
+                <div className="ex-lib-row-heading" style={{ flex: 1, paddingRight: 0 }}>Favorites</div>
+                {onSeeAllFavorites && (profile.favoriteExercises || []).length > HOME_ROW_COUNT && (
+                  <button type="button" className="lib-see-all btn-sm" onClick={onSeeAllFavorites}>See All</button>
+                )}
+              </div>
+              <div className="ex-lib-recent-list">
+                {favHome.map(ex => (
+                  <LibraryExerciseCard
+                    key={ex.id}
+                    ex={ex}
+                    variant="recent"
+                    selected={cartSet.has(ex.id)}
+                    isFav={favSet.has(ex.id)}
+                    onToggleFav={toggleFav}
+                    onToggleSelect={toggleCart}
+                    onOpen={exObj => openDetail(exObj, "recent")}
+                  />
+                ))}
+              </div>
+            </section>
           )}
         </div>
-        <HomeExList items={favHome} {...homeRowProps} />
-      </div>}
-    </div>}
+      )}
 
-    {libBrowseMode === "filtered" && <div className={"lib-filtered-view"}>
-      <div className={"lib-filtered-back"}>
-        <button type="button" className={"lib-back-btn"} onClick={() => setLibBrowseMode("home")}>
-          {"← Library"}
-        </button>
-        <button type="button" className={"btn btn-ghost btn-sm"} onClick={goCreate}>{"Create exercise"}</button>
-      </div>
+      {libBrowseMode === "filters" && (
+        <div className="ex-lib-screen ex-lib-filters">
+          <div className="ex-lib-filters-head">
+            <button type="button" className="ex-lib-icon-btn" aria-label="Back to focus" onClick={() => setLibBrowseMode("home")}>←</button>
+            <h2 className="ex-lib-heading ex-lib-heading--sm">Filters</h2>
+            <div className="ex-lib-count" role="status" aria-live="polite">
+              <span className="n">{n}</span>
+              <span className="l">{matchWord(n)}</span>
+            </div>
+          </div>
 
-      <div className={"lib-filter-row"}>
-        {libOpenDrop && <div aria-hidden={"true"} onClick={() => setLibOpenDrop(null)} style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: Z.scrim
-        }} />}
-        <FilterDropdown
-          id="type"
-          label="Type"
-          shortLabel="Type"
-          options={TYPE_OPTS}
-          optionLabel={v => TYPE_LABELS[v]}
-          selected={libTypeFilters}
-          counts={libTypeCounts}
-          onToggle={v => toggleSet(setLibTypeFilters, v)}
-          open={libOpenDrop === "type"}
-          setOpen={setLibOpenDrop}
-          accent={STEEL}
-          optionAccent={getTypeColor}
-        />
-        <FilterDropdown
-          id="muscle"
-          label="Muscle"
-          shortLabel="Muscle"
-          options={MUSCLE_OPTS}
-          optionLabel={muscleLabel}
-          selected={libMuscleFilters}
-          counts={libMuscleCounts}
-          onToggle={m => toggleSet(setLibMuscleFilters, m)}
-          open={libOpenDrop === "muscle"}
-          setOpen={setLibOpenDrop}
-          accent={STEEL}
-          optionAccent={getMuscleColor}
-        />
-        <FilterDropdown
-          id="equip"
-          label="Equipment"
-          shortLabel="Equip"
-          options={EQUIP_OPTS}
-          optionLabel={equipLabel}
-          selected={libEquipFilters}
-          counts={libEquipCounts}
-          onToggle={eq => toggleSet(setLibEquipFilters, eq)}
-          open={libOpenDrop === "equip"}
-          setOpen={setLibOpenDrop}
-          accent={STEEL}
-        />
-      </div>
-
-      {(libTypeFilters.size > 0 || libMuscleFilters.size > 0 || libEquipFilters.size > 0) && <div className={"lib-filter-chips"}>
-        {[...libTypeFilters].map(v => (
-          <button type="button" key={"t" + v} className={"lib-filter-chip btn-sm"} aria-label={`Remove ${TYPE_LABELS[v] || v} filter`} onClick={() => toggleSet(setLibTypeFilters, v)}>
-            {TYPE_LABELS[v] || v}{" ✕"}
-          </button>
-        ))}
-        {[...libMuscleFilters].map(v => (
-          <button type="button" key={"m" + v} className={"lib-filter-chip btn-sm"} aria-label={`Remove ${muscleLabel(v)} filter`} onClick={() => toggleSet(setLibMuscleFilters, v)}>
-            {muscleLabel(v)}{" ✕"}
-          </button>
-        ))}
-        {[...libEquipFilters].map(v => (
-          <button type="button" key={"e" + v} className={"lib-filter-chip btn-sm"} aria-label={`Remove ${v} filter`} onClick={() => toggleSet(setLibEquipFilters, v)}>
-            {equipLabel(v)}{" ✕"}
-          </button>
-        ))}
-      </div>}
-
-      <div className={"lib-filtered-meta"}>
-        <div className={"lib-filtered-count"} role={"status"} aria-live={"polite"}>{libFiltered.length + " exercises"}</div>
-        {hasFilters && <button type="button" className={"btn btn-gold-solid btn-sm"} onClick={clearAll}>{"Clear search & filters"}</button>}
-      </div>
-
-      <div className={"lib-vlist-wrap"} ref={vlistWrapRef}>{libFiltered.length === 0
-        ? (_exReady
-            ? <div className={"empty lib-empty"} style={{ padding: "24px 0" }}>
-                <div>{"No exercises match."}</div>
-                <div className={"lib-empty-actions"}>
-                  <button type="button" className={"btn btn-gold-solid btn-sm"} onClick={clearAll}>{"Clear search & filters"}</button>
-                  <button type="button" className={"btn btn-ghost btn-sm"} onClick={goCreate}>{"Create exercise"}</button>
-                </div>
+          <div className="ex-lib-focus-summary">
+            <div className="ex-lib-fs-icon" aria-hidden="true"><EquipIcon equipment="barbell" size={20} /></div>
+            <div className="ex-lib-fs-body">
+              <div className="ex-lib-fs-label">Selected focus</div>
+              <div className="ex-lib-fs-value">
+                {selectedMuscle ? muscleLabel(selectedMuscle) : "All exercises"}
+                <span className="ex-lib-fs-count">{selectedMuscleCount} ex</span>
               </div>
-            : <div aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <div key={"skel" + i} className={"lib-skel-row"}>
-                <div className={"lib-skel-orb"} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className={"lib-skel-line"} style={{ width: `${68 - i * 5}%`, marginBottom: S.s6 }} />
-                  <div className={"lib-skel-line"} style={{ width: `${44 - i * 3}%`, height: 7 }} />
+            </div>
+            <button type="button" className="ex-lib-link-btn" onClick={() => setLibBrowseMode("home")}>Change</button>
+          </div>
+
+          <section className="ex-lib-filter-section">
+            <h3 className="ex-lib-filter-title">Equipment</h3>
+            <div className="ex-lib-chip-grid">
+              {equipOptions.map(eq => {
+                const count = libEquipCounts.get(eq) || 0;
+                const active = libEquipFilters.has(eq);
+                return (
+                  <Chip
+                    key={eq}
+                    active={active}
+                    ariaLabel={`${equipLabel(eq)}, ${count} exercises`}
+                    onClick={() => toggleInSet(setLibEquipFilters, eq)}
+                  >
+                    <span className="ex-lib-chip-icon"><EquipIcon equipment={eq} size={14} /></span>
+                    {equipLabel(eq)}
+                    <span className="ex-lib-chip-count">{count}</span>
+                  </Chip>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="ex-lib-filter-section">
+            <h3 className="ex-lib-filter-title">Difficulty</h3>
+            <div className="ex-lib-chip-grid">
+              {DIFFICULTY_OPTS.map(d => {
+                const count = libDifficultyCounts?.get(d) || 0;
+                return (
+                  <Chip
+                    key={d}
+                    active={libDifficultyFilters.has(d)}
+                    ariaLabel={`${d}, ${count} exercises`}
+                    onClick={() => toggleInSet(setLibDifficultyFilters, d)}
+                  >
+                    {d} <span className="ex-lib-chip-count">{count}</span>
+                  </Chip>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="ex-lib-filter-section">
+            <h3 className="ex-lib-filter-title">Goal</h3>
+            <div className="ex-lib-chip-grid">
+              {GOAL_OPTS.map(g => {
+                const count = libGoalCounts?.get(g) || 0;
+                return (
+                  <Chip
+                    key={g}
+                    active={libGoalFilters.has(g)}
+                    ariaLabel={`${GOAL_LABELS[g]}, ${count} exercises`}
+                    onClick={() => toggleInSet(setLibGoalFilters, g)}
+                  >
+                    {GOAL_LABELS[g]} <span className="ex-lib-chip-count">{count}</span>
+                  </Chip>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="ex-lib-filter-section">
+            <h3 className="ex-lib-filter-title">Movement</h3>
+            <div className="ex-lib-chip-grid">
+              {MOVEMENT_OPTS.map(m => {
+                const count = libMovementCounts?.get(m) || 0;
+                return (
+                  <Chip
+                    key={m}
+                    active={libMovementFilters.has(m)}
+                    ariaLabel={`${MOVEMENT_LABELS[m]}, ${count} exercises`}
+                    onClick={() => toggleInSet(setLibMovementFilters, m)}
+                  >
+                    {MOVEMENT_LABELS[m]} <span className="ex-lib-chip-count">{count}</span>
+                  </Chip>
+                );
+              })}
+            </div>
+          </section>
+
+          <p className="ex-lib-helper">Pick a filter or two — keep it under 30 exercises to stay focused.</p>
+
+          <div className="ex-lib-sticky-bar">
+            <button type="button" className="ex-lib-ghost-btn" onClick={() => {
+              setLibEquipFilters(new Set());
+              setLibDifficultyFilters(new Set());
+              setLibGoalFilters(new Set());
+              setLibMovementFilters(new Set());
+              setLibTypeFilters(new Set());
+            }}>Clear</button>
+            <button type="button" className="ex-lib-primary-btn" onClick={() => setLibBrowseMode("results")}>
+              Show {n} {n === 1 ? "exercise" : "exercises"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {libBrowseMode === "results" && (
+        <div className="ex-lib-results lib-filtered-view">
+          <div className="ex-lib-results-head">
+            <button type="button" className="ex-lib-icon-btn" aria-label="Back to filters" onClick={() => setLibBrowseMode("filters")}>←</button>
+            <button
+              type="button"
+              className="ex-lib-active-chip"
+              onClick={() => setLibBrowseMode("filters")}
+            >
+              <span>{resultChipText()}</span>
+              <span className="x" aria-hidden="true">×</span>
+            </button>
+            <div className="ex-lib-count" role="status" aria-live="polite">
+              <span className="n">{n}</span>
+              <span className="l">{matchWord(n)}</span>
+            </div>
+          </div>
+
+          <div className="lib-vlist-wrap" ref={vlistWrapRef}>
+            {n === 0
+              ? (_exReady
+                ? <div className="empty lib-empty" style={{ padding: "24px 0" }}>
+                    <div>No exercises match.</div>
+                    <div className="lib-empty-actions">
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => {
+                        setLibEquipFilters(new Set());
+                        setLibDifficultyFilters(new Set());
+                        setLibGoalFilters(new Set());
+                        setLibMovementFilters(new Set());
+                        setLibTypeFilters(new Set());
+                        if (!selectedMuscle) setLibBrowseMode("filters");
+                      }}>Clear filters</button>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={clearAll}>Start over</button>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={goCreate}>Create exercise</button>
+                    </div>
+                  </div>
+                : <div aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <div key={"skel" + i} className="lib-skel-row">
+                    <div className="lib-skel-orb" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="lib-skel-line" style={{ width: `${68 - i * 5}%`, marginBottom: S.s6 }} />
+                      <div className="lib-skel-line" style={{ width: `${44 - i * 3}%`, height: 7 }} />
+                    </div>
+                  </div>)}</div>)
+              : (n > 60
+                ? <List
+                    listRef={listRef}
+                    rowCount={libFiltered.length}
+                    rowHeight={LIB_CARD_H}
+                    rowComponent={LibExRow}
+                    rowProps={{
+                      exercises: libFiltered,
+                      cartSet, favSet,
+                      onOpen: openDetail,
+                      onToggleCart: toggleCart,
+                      onToggleFav: toggleFav,
+                    }}
+                    overscanCount={6}
+                    onScroll={saveListScroll}
+                    style={{ height: "100%", width: "100%", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
+                  />
+                : <div className="ex-lib-recent-list" style={{ paddingBottom: cartIds.length ? TRAY_RESERVE : 12, overflowY: "auto", height: "100%" }}>
+                    {libFiltered.map(ex => (
+                      <LibraryExerciseCard
+                        key={ex.id}
+                        ex={ex}
+                        selected={cartSet.has(ex.id)}
+                        isFav={favSet.has(ex.id)}
+                        onToggleFav={toggleFav}
+                        onToggleSelect={toggleCart}
+                        onOpen={exObj => openDetail(exObj, "results")}
+                      />
+                    ))}
+                  </div>)}
+          </div>
+          {cartIds.length > 0 && (
+            <div className="ex-lib-tray" role="status">
+              <div className="ex-lib-tray-icon" aria-hidden="true">✓</div>
+              <div className="ex-lib-tray-body">
+                <div className="ex-lib-tray-title">
+                  Added <span className="count">{cartIds.length}</span> {cartIds.length === 1 ? "exercise" : "exercises"}
                 </div>
-              </div>)}</div>)
-        : <List
-            listRef={listRef}
-            rowCount={libFiltered.length}
-            rowHeight={LIB_ROW_H}
-            rowComponent={LibExRow}
-            rowProps={{
-              exercises: libFiltered,
-              cartSet, favSet, pbSet,
-              onOpen: setLibDetailEx,
-              onToggleCart: toggleCart,
-              onToggleFav: toggleFav,
-            }}
-            overscanCount={6}
-            onScroll={saveListScroll}
-            style={{ height: "100%", width: "100%", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
-          />}</div>
-    </div>}
-  </div>;
+                <div className="ex-lib-tray-sub">Not yet in a workout</div>
+              </div>
+              <button type="button" className="ex-lib-link-btn" onClick={clearCart}>Clear</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 });
 
 export default ExerciseLibraryTab;
+export { LIB_CARD_H, TRAY_RESERVE };

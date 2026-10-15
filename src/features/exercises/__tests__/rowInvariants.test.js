@@ -40,8 +40,8 @@ describe('stretched-row overlay safeguard', () => {
     expect(css).toMatch(/\.picker-ex-row\.no-row-press:active\{transform:none\}/);
   });
 
-  it('lets the muscle grid drop to two columns at narrow widths', () => {
-    expect(css).toMatch(/\.lib-muscle-grid\{display:grid;grid-template-columns:repeat\(2/);
+  it('keeps library anatomy maps side by side instead of a cramped tile grid', () => {
+    expect(css).toMatch(/\.ex-lib-body-maps\{display:flex/);
   });
 
   it('lifts every non-primary control above the overlay', () => {
@@ -209,14 +209,22 @@ describe('library list sizes against the visual viewport', () => {
     expect(lib).not.toMatch(/Math\.max\(\s*200/);
   });
 
-  it('virtualizes library rows at the shared card-plus-gap slot', () => {
-    expect(lib).toMatch(/const LIB_ROW_H\s*=\s*EX_ROW_H/);
+  it('virtualizes library result cards at a wrapping-friendly slot', () => {
+    expect(lib).toMatch(/const LIB_CARD_H\s*=\s*108/);
   });
 
-  it('puts the muscle grid above Recent and Favorites', () => {
-    const muscle = lib.indexOf('{"Browse by muscle"}');
-    const recent = lib.indexOf('{"Recent"}');
-    const fav = lib.indexOf('{"Favorites"}');
+  it('docks the library tray and filter action bar above the bottom nav', () => {
+    const css = read('src/styles/app.css');
+    expect(css).toMatch(/\.ex-lib-results\{[\s\S]*?padding-bottom:\s*var\(--bottom-nav-h\)/);
+    expect(css).toMatch(/\.ex-lib-sticky-bar\{[\s\S]*?bottom:\s*var\(--bottom-nav-h\)/);
+    expect(lib).toContain('.ex-lib-tray');
+    expect(lib).not.toMatch(/querySelector\(["']\.cart-tray["']\)/);
+  });
+
+  it('puts the anatomy focus map above Recent and Favorites', () => {
+    const muscle = lib.indexOf('What are you training?');
+    const recent = lib.indexOf('>Recent</');
+    const fav = lib.indexOf('>Favorites</');
     expect(muscle).toBeGreaterThan(-1);
     expect(recent).toBeGreaterThan(-1);
     expect(fav).toBeGreaterThan(-1);

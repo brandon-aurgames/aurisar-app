@@ -9,11 +9,17 @@ const TechSearch = memo(function TechSearch({
   value,
   onChange,
   onClear,
+  onSubmit,
   placeholder = "Search…",
   label,
   autoFocus = false,
   id,
+  submitLabel = "Search",
 }) {
+  const submit = e => {
+    e?.preventDefault?.();
+    onSubmit?.(value);
+  };
   return (
     <div className={"tech-search-wrap"} style={{ flex: 1, marginBottom: 0 }}>
       {label && id && <label htmlFor={id} className={"sr-only"}>{label}</label>}
@@ -27,6 +33,9 @@ const TechSearch = memo(function TechSearch({
         value={value}
         autoFocus={autoFocus}
         onChange={e => onChange(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === "Enter" && onSubmit) submit(e);
+        }}
       />
       {!!value && (
         <button
@@ -35,6 +44,14 @@ const TechSearch = memo(function TechSearch({
           className={"tech-search-clear"}
           onClick={onClear}
         >{"✕"}</button>
+      )}
+      {onSubmit && (
+        <button
+          type={"button"}
+          className={"tech-search-submit"}
+          aria-label={submitLabel}
+          onClick={submit}
+        >{submitLabel}</button>
       )}
     </div>
   );
