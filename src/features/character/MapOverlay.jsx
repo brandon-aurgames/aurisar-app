@@ -79,7 +79,7 @@ const MapOverlay = memo(function MapOverlay({
               <div style={{ fontSize: FS.fs68, color: "#8a8478", marginBottom: S.s8, lineHeight: 1.5 }}>
                 {"Travel to their location for "}<strong style={{ color: "#b4ac9e" }}>{"+10% XP boost"}</strong>{" on all workouts this week."}
               </div>
-              <button className={"btn btn-gold"} style={{ width: "100%", fontSize: FS.lg }} onClick={() => {
+              <button className={"btn btn-gold-solid"} style={{ width: "100%", fontSize: FS.lg }} onClick={() => {
                 const ws = (() => {
                   const d = new Date();
                   d.setHours(0, 0, 0, 0);

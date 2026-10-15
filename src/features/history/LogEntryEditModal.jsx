@@ -180,7 +180,7 @@ const LogEntryEditModal = memo(function LogEntryEditModal({
             }}>{"🗑"}</button>
           <button className={"btn btn-ghost btn-sm"} style={{ flex: 1 }}
             onClick={() => setLogEditModal(null)}>{"Cancel"}</button>
-          <button className={"btn btn-gold"} style={{ flex: 2 }}
+          <button className={"btn btn-gold-solid"} style={{ flex: 2 }}
             onClick={saveLogEdit}>{"✦ Save Changes"}</button>
         </div>
 

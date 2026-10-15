@@ -28,11 +28,13 @@ const zone1Chests = WORLD_CHESTS.filter((c) => c.zoneId === undefined);
 const zone2Chests = WORLD_CHESTS.filter((c) => c.zoneId === 2);
 
 describe('both zones are really in the one committed manifest', () => {
-  it('37 total: Zone 1\'s 25 (untagged) + Zone 2\'s 12 (zoneId 2)', () => {
-    expect(WORLD_CHESTS.length).toBe(37);
-    expect(zone1Chests.length).toBe(25);
-    expect(zone2Chests.length).toBe(zone2Config.scatter.chestCount);
-    expect(zone2Chests.length).toBe(12);
+  // M14-1 (D233) excluded the chests on the wrong side of the overworld
+  // seam: 8 of zone 1's 25 and 4 of zone 2's 12 (scatter.chestCount).
+  it('25 total: Zone 1\'s 17 (untagged) + Zone 2\'s 8 (zoneId 2)', () => {
+    expect(WORLD_CHESTS.length).toBe(25);
+    expect(zone1Chests.length).toBe(17);
+    expect(zone2Chests.length).toBe(zone2Config.scatter.chestCount - 4);
+    expect(zone2Chests.length).toBe(8);
     // Every chest is accounted for by exactly one of the two filters above —
     // there is no third bucket (e.g. a typo'd zoneId) hiding in the manifest.
     expect(zone1Chests.length + zone2Chests.length).toBe(WORLD_CHESTS.length);
@@ -46,7 +48,7 @@ describe('both zones are really in the one committed manifest', () => {
 });
 
 describe('cross-zone id collisions (D176\'s own reasoning, checked rather than trusted)', () => {
-  it('all 37 ids are globally distinct, not just distinct within each zone', () => {
+  it('all 25 ids are globally distinct, not just distinct within each zone', () => {
     const ids = new Set(WORLD_CHESTS.map((c) => c.id));
     expect(ids.size).toBe(WORLD_CHESTS.length);
   });
@@ -86,7 +88,7 @@ describe('the server manifest (spacetimedb/src/manifests/world_chests.json) matc
     readFileSync(join(repoRoot, 'spacetimedb/src/manifests/world_chests.json'), 'utf8'),
   );
 
-  it('is the identical 37-chest list the web content mirrors (both emitted together)', () => {
+  it('is the identical 25-chest list the web content mirrors (both emitted together)', () => {
     expect(server.chests).toEqual(WORLD_CHESTS);
   });
 });

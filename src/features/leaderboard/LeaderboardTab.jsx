@@ -4,6 +4,8 @@ import { formatXP } from '../../utils/format';
 import { S, R, FS } from '../../utils/tokens';
 import { UI_COLORS } from '../../data/constants';
 import { CLASSES } from '../../data/exercises';
+import { formatPbValue } from '../../utils/formatPbValue';
+import { getRowPb, getRowVal, sortLeaderboardRows } from './leaderboardValues';
 
 /**
  * Leaderboard tab — extracted from the inline IIFE in App.jsx as part of
@@ -11,7 +13,7 @@ import { CLASSES } from '../../data/exercises';
  *
  * Renders the world/friends leaderboard with filter chips (state, country)
  * and a stat filter selector. Co-locates LB_FILTERS, TC, MultiDrop helper,
- * and the pure helper functions getRowName / getRowVal / fmtVal.
+ * and getRowName. Row values come from leaderboardValues + formatPbValue.
  */
 
 const LeaderboardTab = memo(function LeaderboardTab({
@@ -124,40 +126,22 @@ const getRowName = row => {
   }
   return row.player_name || "Unknown";
 };
-const getRowVal = (row, filterId) => {
-  if (filterId === "overall_xp") return row.total_xp || 0;
-  if (filterId === "weekly_xp") return row.weekly_xp || 0;
-  if (filterId === "streak") return row.streak || 0;
-  const pbs = row.exercise_pbs || {};
-  if (filterId === "bench_1rm") return (pbs["bench"] || pbs["bench_press"] || {}).weight || 0;
-  if (filterId === "squat_1rm") return (pbs["squat"] || pbs["barbell_back_squat"] || {}).weight || 0;
-  if (filterId === "deadlift_1rm") return (pbs["deadlift"] || pbs["barbell_deadlift"] || {}).weight || 0;
-  if (filterId === "ohp_1rm") return (pbs["overhead_press"] || pbs["ohp"] || {}).weight || 0;
-  if (filterId === "pullup_reps") return (pbs["pull_up"] || pbs["pullups"] || {}).reps || 0;
-  if (filterId === "pushup_reps") return (pbs["push_up"] || pbs["pushups"] || {}).reps || 0;
-  if (filterId === "run_pace") return (pbs["running"] || pbs["treadmill_run"] || pbs["run"] || {}).value || 0;
-  return 0;
-};
-const fmtVal = (id, v) => {
-  if (!v) return "---";
-  if (id === "overall_xp" || id === "weekly_xp") return formatXP(v);
-  if (id.includes("_1rm")) return v + " lbs";
-  if (id.includes("_reps")) return v + " reps";
-  if (id === "run_pace") return v.toFixed(2) + "/mi";
-  if (id === "streak") return v + " days";
-  return String(v);
+const fmtVal = (id, row) => {
+  if (id === "overall_xp" || id === "weekly_xp") {
+    const v = getRowVal(row, id);
+    return v ? formatXP(v) : "---";
+  }
+  if (id === "streak") {
+    const v = getRowVal(row, id);
+    return v ? v + " days" : "---";
+  }
+  const pb = getRowPb(row, id);
+  return formatPbValue(pb, profile.units) || "---";
 };
 
-// Sort lbData by the active filter
-const sorted = (lbData || []).slice().sort((a, b) => {
-  const av = getRowVal(a, lbFilter);
-  const bv = getRowVal(b, lbFilter);
-  if (lbFilter === "run_pace") return (av || 999) - (bv || 999); // lower is better
-  return bv - av;
-}).filter(r => getRowVal(r, lbFilter) > 0 || lbFilter === "overall_xp" || lbFilter === "weekly_xp");
+const sorted = sortLeaderboardRows(lbData || [], lbFilter);
 const myRow = sorted.find(r => r.is_me);
 const myRank = myRow ? sorted.indexOf(myRow) + 1 : null;
-const myVal = myRow ? getRowVal(myRow, lbFilter) : 0;
 const ALL_STATES = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"];
 const ALL_COUNTRIES = ["United States", "Canada", "United Kingdom", "Australia", "Germany", "France", "Mexico", "Brazil", "India", "Japan", "South Korea", "Philippines", "Other"];
 
@@ -456,7 +440,7 @@ return <div> {
           fontSize: "1rem",
           fontWeight: "700",
           color: tc
-        }}>{fmtVal(lbFilter, myVal)}</div><div style={{
+        }}>{fmtVal(lbFilter, myRow)}</div><div style={{
           fontSize: FS.fs50,
           color: "#8a8478",
           marginTop: S.s2
@@ -612,7 +596,7 @@ return <div> {
               fontWeight: "700",
               color: val ? tc : "#8a8478",
               fontFamily: "'Inter',sans-serif"
-            }}>{fmtVal(lbFilter, val)}</div><div style={{
+            }}>{fmtVal(lbFilter, row)}</div><div style={{
               fontSize: FS.fs44,
               color: "#8a8478",
               marginTop: S.s2

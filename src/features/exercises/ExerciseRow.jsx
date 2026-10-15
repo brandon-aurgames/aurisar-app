@@ -4,6 +4,7 @@ import { ExIcon } from '../../components/ExIcon';
 import { S, R, FS } from '../../utils/tokens';
 import { muscleLabel, equipLabel } from './exerciseFilterOptions';
 import { DIFF_FG, DIFF_BG } from './difficulty';
+import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 
 /**
  * The exercise list row, shared by the library tab and the workout-builder
@@ -54,13 +55,16 @@ const ExerciseRow = memo(function ExerciseRow({
 }) {
   const diffLabel = difficultyOf(ex);
   const mg = getMuscleColor(ex.muscleGroup);
+  // Callers still pass showPB; the kill switch drops the trophy (and the
+  // matching screen-reader label) without touching PB storage.
+  const showPbBadge = SHOW_EXERCISE_PB_DISPLAY && showPB;
 
   // What a screen reader hears instead of an undifferentiated "button". The
   // trophy is aria-hidden, so the personal best has to be said here or it is
   // invisible to anyone not looking at the icon.
   const label = [
     ex.name,
-    showPB ? 'personal best' : null,
+    showPbBadge ? 'personal best' : null,
     ex.category && cap(ex.category),
     ex.muscleGroup && muscleLabel(ex.muscleGroup),
     showEquipment && ex.equipment && ex.equipment !== "bodyweight" ? equipLabel(ex.equipment) : null,
@@ -98,7 +102,7 @@ const ExerciseRow = memo(function ExerciseRow({
               letterSpacing: ".005em"
             }}
           >{ex.name}</button>
-          {showPB && <span aria-hidden="true" style={{ fontSize: FS.sm }}>{"🏆"}</span>}
+          {showPbBadge && <span aria-hidden="true" style={{ fontSize: FS.sm }}>{"🏆"}</span>}
           {showCustomBadge && ex.custom && (
             <span className={"custom-ex-badge"} style={{ marginLeft: S.s4 }}>{"custom"}</span>
           )}

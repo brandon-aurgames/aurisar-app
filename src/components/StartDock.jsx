@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { todayStr } from "../utils/helpers";
 import { calcWorkoutXP } from "../utils/xp";
 import { formatXP } from "../utils/format";
-import { FG } from "../utils/tokens";
+import { C, FG } from "../utils/tokens";
 
 // ─── Start dock ────────────────────────────────────────────────────────────────
 // Idle-only quick start for today's schedule, reachable from any tab. Pure
@@ -119,10 +119,10 @@ function StartDock({ profile, allExById, liveWorkout, stagedCount, onStartWorkou
           width: 44,
           height: 44,
           borderRadius: "50%",
-          border: "1px solid rgba(232,180,74,.5)",
-          background: FG.solidBg,
-          boxShadow: "0 8px 22px rgba(0,0,0,.45), 0 0 12px rgba(232,180,74,.18)",
-          color: FG.goldSoft,
+          border: `1px solid ${C.steelBorderStrong}`,
+          background: C.steelFill,
+          boxShadow: `0 8px 22px ${C.steelShadow}, inset 0 1px 0 ${C.steelHighlight}, inset 0 -3px 8px ${C.steelInset}`,
+          color: C.steelText,
           fontSize: "1rem",
           cursor: "pointer",
           display: "flex",
@@ -219,22 +219,16 @@ function StartDock({ profile, allExById, liveWorkout, stagedCount, onStartWorkou
         </div>
         <button
           type="button"
+          className="btn btn-gold-solid"
           onClick={primary.run}
           style={{
             flex: "none",
             padding: "0 16px",
             height: 40,
             borderRadius: 13,
-            cursor: "pointer",
-            border: "1px solid rgba(232,180,74,.5)",
-            background: "linear-gradient(160deg,rgba(232,180,74,.36),rgba(232,180,74,.13))",
-            color: "#FAE6B8",
             fontFamily: FG.fontCond,
             fontSize: ".72rem",
-            fontWeight: 600,
             letterSpacing: ".14em",
-            textTransform: "uppercase",
-            whiteSpace: "nowrap",
           }}
         >
           {primary.btnLabel}

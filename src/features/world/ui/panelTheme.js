@@ -4,6 +4,8 @@
  * WorldOverlay so the new UI feels native to the 3D world.
  */
 
+import { BTN } from '../../../utils/tokens.js';
+
 export const FONT = 'Inter, system-ui, sans-serif';
 
 export const overlayBackdrop = {
@@ -41,8 +43,8 @@ export const closeBtn = {
 };
 
 export const primaryBtn = {
-  background: '#c49428', border: '1px solid #f0d060',
-  borderRadius: 8, color: '#1a1407', fontSize: 13, fontWeight: 700,
+  ...BTN.solid,
+  borderRadius: 8, fontSize: 13, fontWeight: 700,
   padding: '7px 14px', cursor: 'pointer', fontFamily: FONT,
   minHeight: 36, WebkitTapHighlightColor: 'transparent',
 };

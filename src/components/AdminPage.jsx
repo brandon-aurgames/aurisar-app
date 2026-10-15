@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { sb } from '../utils/supabase';
+import { C } from '../utils/tokens';
 import { showToast as showGlobalToast } from './toast/toastStore';
 import ToastHost from './toast/ToastHost';
 
@@ -596,15 +597,16 @@ function statCard() {
 function goldBtn() {
   return {
     padding: "8px 16px",
-    background: "rgba(196,148,40,.15)",
-    color: "#c49428",
-    border: "1px solid rgba(196,148,40,.25)",
+    background: C.steelFill,
+    color: C.steelText,
+    border: `1px solid ${C.steelBorder}`,
     borderRadius: 7,
     fontSize: ".75rem",
     fontWeight: 700,
     letterSpacing: ".06em",
     cursor: "pointer",
     textTransform: "uppercase",
+    boxShadow: `0 3px 12px ${C.steelShadow}, inset 0 1px 0 ${C.steelHighlight}, inset 0 -3px 8px ${C.steelInset}`,
   };
 }
 

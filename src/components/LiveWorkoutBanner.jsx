@@ -152,7 +152,7 @@ export default function LiveWorkoutBanner({
                 <button className="btn btn-ghost btn-sm" style={{ color: '#8a8478' }} onClick={() => setConfirmDiscard(true)}>
                   {"Discard"}
                 </button>
-                <button className="btn btn-gold" style={{ flex: 1 }} onClick={handleFinishPress}>
+                <button className="btn btn-gold-solid" style={{ flex: 1 }} onClick={handleFinishPress}>
                   {doneCount < total
                     ? `✓ Finish (${doneCount}/${total})`
                     : '✓ Finish Workout'}

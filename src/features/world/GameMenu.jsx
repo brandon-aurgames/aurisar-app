@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import WorldModal from './ui/WorldModal.jsx';
 import { HOTKEYS } from './game/hotkeys.js';
 import { FONT, ghostBtn } from './ui/panelTheme.js';
+import { FG } from '../../utils/tokens.js';
 import GraphicsSettingsPanel from './ui/GraphicsSettingsPanel.jsx';
 import { worldGraphicsStyles } from './ui/graphicsPanelStyles.js';
 
@@ -30,8 +31,9 @@ function Toggle({ label, on, onClick }) {
       <span
         style={{
           width: 38, height: 22, borderRadius: 11, flexShrink: 0,
-          background: on ? '#c49428' : 'rgba(100,116,139,0.5)',
-          position: 'relative', transition: 'background 120ms',
+          background: on ? FG.teal : 'rgba(100,116,139,0.5)',
+          boxShadow: on ? '0 0 10px rgba(143,227,210,.45)' : 'none',
+          position: 'relative', transition: 'background 120ms, box-shadow 120ms',
         }}
       >
         <span style={{

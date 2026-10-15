@@ -295,6 +295,25 @@ export interface ZoneDef {
    */
   originOffsetM: { x: number; z: number };
   /**
+   * Where this zone sits in the one continuous overworld the client renders
+   * (D232). The server's px frame does not change with it: `originOffsetM`
+   * and the per-zone boxes stay put, so two zones that meet on screen are
+   * still 3000 m apart in px. A zone without `layout` is not part of the
+   * overworld.
+   *
+   * `offsetM` is added to a zone-local position to get its layout position.
+   * `regionM` is the part of the overworld this zone owns, in its own
+   * zone-local metres (inclusive edges). Exactly one layout zone, the base,
+   * omits it and owns every point of its server box no other region claims.
+   * `crossZone` moves a row between layout zones at an unchanged layout
+   * position (spacetimedb/src/world/layout.ts); `validateContent` holds the
+   * rules a layout must satisfy (D233).
+   */
+  layout?: {
+    offsetM: { x: number; z: number };
+    regionM?: { minX: number; maxX: number; minZ: number; maxZ: number };
+  };
+  /**
    * Half-width, in meters, of this zone's square playable box measured from
    * `originOffsetM` — the server clamps player movement to it (D156).
    * Omitted means the legacy global ±1000 m box every player was clamped to

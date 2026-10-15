@@ -30,6 +30,7 @@ import {
 } from './supersetModel';
 import { useBuilderPointerDnd } from './useBuilderPointerDnd';
 import { UI_COLORS, MUSCLE_COLORS, WORKOUT_TEMPLATES, NO_SETS_EX_IDS, RUNNING_EX_ID } from '../../data/constants';
+import { SHOW_EXERCISE_PB_DISPLAY } from '../exercises/showExercisePbDisplay';
 
 /**
  * Workouts tab — extracted from the inline IIFE in App.jsx as part of
@@ -277,8 +278,8 @@ const WbExCard = React.memo(function WbExCard({
   const noSetsEx = NO_SETS_EX_IDS.has(exD.id);
   const isRunningEx = exD.id === RUNNING_EX_ID;
   const age = profile.age || 30;
-  const pbDisp = displayPace(profile.runningPB || null, profile.units);
-  const exPBDisp = formatExPb((profile.exercisePBs || {})[exD.id], profile.units);
+  const pbDisp = SHOW_EXERCISE_PB_DISPLAY ? displayPace(profile.runningPB || null, profile.units) : null;
+  const exPBDisp = SHOW_EXERCISE_PB_DISPLAY ? formatExPb((profile.exercisePBs || {})[exD.id], profile.units) : null;
   function toggleSuperset(e) {
     e.stopPropagation();
     setSsChecked(prev => {
@@ -327,7 +328,7 @@ const WbExCard = React.memo(function WbExCard({
         }} onClick={e => {
           e.stopPropagation();
           openExEditor("edit", exD);
-        }}>{"✎ edit"}</button>}</div>{orderBadge && <span className={"ss-badge"}>{orderBadge}</span>}{(isRunningEx && pbDisp || exPBDisp) && <span style={{
+        }}>{"✎ edit"}</button>}</div>{orderBadge && <span className={"ss-badge"}>{orderBadge}</span>}{SHOW_EXERCISE_PB_DISPLAY && (isRunningEx && pbDisp || exPBDisp) && <span style={{
         fontSize: FS.fs58,
         color: "#b4ac9e",
         flexShrink: 0
@@ -608,7 +609,7 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
       display: "flex",
       gap: S.s8,
       marginBottom: S.s14
-    }}><button className={"btn btn-gold btn-sm"} onClick={() => initWorkoutBuilder(null)}>{"＋ New Workout"}</button><button className={"btn btn-ghost btn-sm"} onClick={() => setWorkoutView("recipes")}>{"📋 Recipes"}</button></div>{allW.filter(w => !w.oneOff).length > 0 && <div className={"wo-search-sort"}><input className={"inp"} type={"search"} value={woSearch} onChange={e => setWoSearch(e.target.value)} placeholder={"Search workouts…"} aria-label={"Search workouts"} /><select className={"wo-sort"} value={woSort} onChange={e => setWoSort(e.target.value)} aria-label={"Sort workouts"}><option value={"recent"}>{"Recent"}</option><option value={"name"}>{"Name"}</option></select></div>}{(() => {
+    }}><button className={"btn btn-gold-solid btn-sm"} onClick={() => initWorkoutBuilder(null)}>{"＋ New Workout"}</button><button className={"btn btn-ghost btn-sm"} onClick={() => setWorkoutView("recipes")}>{"📋 Recipes"}</button></div>{allW.filter(w => !w.oneOff).length > 0 && <div className={"wo-search-sort"}><input className={"inp"} type={"search"} value={woSearch} onChange={e => setWoSearch(e.target.value)} placeholder={"Search workouts…"} aria-label={"Search workouts"} /><select className={"wo-sort"} value={woSort} onChange={e => setWoSort(e.target.value)} aria-label={"Sort workouts"}><option value={"recent"}>{"Recent"}</option><option value={"name"}>{"Name"}</option></select></div>}{(() => {
       const reusableWo = allW.filter(w => !w.oneOff);
       if (reusableWo.length === 0) return <div className={"empty"} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: S.s12 }}><div>{"No reusable workouts yet."}<br />{"Create your first workout or start from a recipe."}</div><button className={"btn btn-gold-solid btn-sm"} onClick={() => initWorkoutBuilder(null)}>{"＋ New Workout"}</button></div>;
       if (reusableFiltered.length === 0) return <div className={"empty"}>{woSearch.trim() ? "No workouts match that search." : "No workouts match the selected labels."}</div>;
@@ -634,7 +635,7 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
                 })}</span><IntensityChip value={wo.intensity} />{(wo.labels || []).map(l => <span key={l} className={"wo-label-chip"} style={{
                 pointerEvents: "none",
                 marginLeft: S.s2
-              }}>{l}</span>)}</div><div className={"wo-last-done"}>{lastDoneLabel(lastDoneMap.get(wo.id))}</div></div></div><div className={"wo-card-actions"}><button className={`btn btn-gold-solid btn-sm${live ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{live ? "Resume" : "Start"}</button><button className={"btn btn-gold btn-sm"} onClick={e => { e.stopPropagation(); openCompletionFlow(wo); }}>{"Log"}</button></div></div>;
+              }}>{l}</span>)}</div><div className={"wo-last-done"}>{lastDoneLabel(lastDoneMap.get(wo.id))}</div></div></div><div className={"wo-card-actions"}><button className={`btn btn-gold btn-sm${live ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{live ? "Resume" : "Start"}</button><button className={"btn btn-gold btn-sm"} onClick={e => { e.stopPropagation(); openCompletionFlow(wo); }}>{"Log"}</button></div></div>;
     })}</>}{workoutSubTab === "scheduled" && <>{(() => {
       const _now = new Date();
       const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
@@ -705,7 +706,7 @@ if (workoutView === "list") return <><div className={"wo-sticky-filters"}><div s
                   pointerEvents: "none",
                   marginLeft: S.s2
                 }}>{l}</span>)}</div></div></div>
-          <div className={"wo-card-actions"}><button className={`btn btn-gold-solid btn-sm${live ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{live ? "Resume" : "Start"}</button><button className={"btn btn-gold btn-sm"} onClick={e => { e.stopPropagation(); openCompletionFlow({ ...wo, oneOff: true }); }}>{"Log"}</button></div>
+          <div className={"wo-card-actions"}><button className={`btn btn-gold btn-sm${live ? " on" : ""}`} onClick={e => { e.stopPropagation(); startLiveWorkout(wo); }}>{live ? "Resume" : "Start"}</button><button className={"btn btn-gold btn-sm"} onClick={e => { e.stopPropagation(); openCompletionFlow({ ...wo, oneOff: true }); }}>{"Log"}</button></div>
           <div style={{
             display: "flex",
             gap: S.s6,
@@ -1073,7 +1074,7 @@ if (workoutView === "detail" && activeWorkout) {
       display: "flex",
       gap: S.s8,
       flexWrap: "wrap"
-    }}><button className={`btn btn-gold-solid${isLiveWorkout(liveWorkout, wo) ? " on" : ""}`} style={{
+    }}><button className={`btn btn-gold${isLiveWorkout(liveWorkout, wo) ? " on" : ""}`} style={{
         flex: 1,
         minHeight: 44
       }} onClick={() => startLiveWorkout(wo)}>{isLiveWorkout(liveWorkout, wo) ? "Resume" : "Start"}</button><button className={"btn btn-gold"} style={{
