@@ -180,9 +180,10 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
         navTop: Number.isFinite(trayTop) ? Math.min(navTop, trayTop) : navTop,
         visualViewport: window.visualViewport,
         innerHeight: window.innerHeight,
-        gap: cartIds.length ? 8 : 6,
+        gap: cartIds.length ? 12 : 6,
       });
       wrap.style.height = h + "px";
+      wrap.style.maxHeight = h + "px";
     };
     const schedule = () => { if (!raf) raf = requestAnimationFrame(measure); };
     measure();
@@ -190,6 +191,8 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
     ro.observe(document.body);
     const nav = document.querySelector(".hud-nav-panel");
     if (nav) ro.observe(nav);
+    const trayEl = document.querySelector(".ex-lib-tray");
+    if (trayEl) ro.observe(trayEl);
     window.addEventListener("resize", schedule);
     window.addEventListener("orientationchange", schedule);
     const vv = window.visualViewport;
@@ -206,7 +209,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
         vv.removeEventListener("resize", schedule);
         vv.removeEventListener("scroll", schedule);
       }
-      if (wrap) wrap.style.height = "";
+      if (wrap) { wrap.style.height = ""; wrap.style.maxHeight = ""; }
     };
   }, [libBrowseMode, cartIds.length]);
 

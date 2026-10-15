@@ -215,7 +215,7 @@ describe('library list sizes against the visual viewport', () => {
 
   it('docks the library tray and filter action bar above the bottom nav', () => {
     const css = read('src/styles/app.css');
-    expect(css).toMatch(/\.ex-lib-tray\{[\s\S]*?bottom:\s*var\(--bottom-nav-h\)/);
+    expect(css).toMatch(/\.ex-lib-results\{[\s\S]*?padding-bottom:\s*var\(--bottom-nav-h\)/);
     expect(css).toMatch(/\.ex-lib-sticky-bar\{[\s\S]*?bottom:\s*var\(--bottom-nav-h\)/);
     expect(lib).toContain('.ex-lib-tray');
     expect(lib).not.toMatch(/querySelector\(["']\.cart-tray["']\)/);
