@@ -21,6 +21,9 @@ export function useExerciseFilters({
   libTypeFilters,
   libMuscleFilters,
   libEquipFilters,
+  libDifficultyFilters,
+  libGoalFilters,
+  libMovementFilters,
   favIds,
   recentIds,
 }) {
@@ -34,16 +37,23 @@ export function useExerciseFilters({
       muscleSet: libMuscleFilters,
       typeSet: libTypeFilters,
       equipSet: libEquipFilters,
+      difficultySet: libDifficultyFilters,
+      goalSet: libGoalFilters,
+      movementSet: libMovementFilters,
       favSet,
       recentSet,
     }),
-    [allExercises, deferredQ, libMuscleFilters, libTypeFilters, libEquipFilters, favSet, recentSet]
+    [allExercises, deferredQ, libMuscleFilters, libTypeFilters, libEquipFilters,
+      libDifficultyFilters, libGoalFilters, libMovementFilters, favSet, recentSet]
   );
 
   const libFiltered = pass.list;
   const libMuscleCounts = pass.muscleCounts;
   const libTypeCounts = pass.typeCounts;
   const libEquipCounts = pass.equipCounts;
+  const libDifficultyCounts = pass.difficultyCounts;
+  const libGoalCounts = pass.goalCounts;
+  const libMovementCounts = pass.movementCounts;
 
   const libMuscleCountsByGroup = useMemo(() => {
     const counts = new Map();
@@ -93,6 +103,9 @@ export function useExerciseFilters({
     libMuscleCounts,
     libEquipCounts,
     libTypeCounts,
+    libDifficultyCounts,
+    libGoalCounts,
+    libMovementCounts,
     libMuscleCountsByGroup,
     libMuscleCardData,
     libMuscleOpts,

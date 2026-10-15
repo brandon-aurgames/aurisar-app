@@ -1,17 +1,20 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
-import { getMuscleColor, getTypeColor } from '../../utils/xp';
 import { displayWt } from '../../utils/units';
 import { formatPbValue } from '../../utils/formatPbValue';
 import { getExerciseHistory } from '../../utils/exerciseHistory';
-import { ExIcon } from '../../components/ExIcon';
-import { S, R, FS, FG } from '../../utils/tokens';
 import Sheet from '../../components/ui/Sheet';
+import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
 import { planEntry } from './planEntry';
 import { detailWorkoutEntry, offersAddToWorkout, detailLogArgs } from './detailActions';
-import { diffColor } from './difficulty';
-import { SHOW_EXERCISE_PB_DISPLAY } from './showExercisePbDisplay';
+import { muscleLabel, equipLabel } from './exerciseFilterOptions';
+import { difficultyKey, goalLabelOf, movementLabelOf } from './libraryFacets';
+import { illustrationKey } from './illustrationKey';
+import { splitInstructions } from './splitInstructions';
+import ExerciseGlyph from './ExerciseGlyph';
+import { AnatomyFallback } from './AnatomyMaps';
 
 const SWIPE_THRESHOLD = 56;
+const FOCUSABLE = 'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
   ex,
@@ -22,7 +25,7 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
   setAddToWorkoutPicker,
   openSavePlanWizard,
   openQuickLog,
-  isInCart, toggleCart, stagedCount = 0,
+  isInCart, toggleCart,
   allExById,
 }) {
   const close = () => setLibDetailEx(null);
@@ -38,18 +41,18 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
 
   const goTo = (target, dir) => {
     if (!target) return;
-    setTurn(dir === 'next' ? 'enter-right' : 'enter-left');
+    setTurn(dir === "next" ? "enter-right" : "enter-left");
     setLibDetailEx(target);
   };
 
   useEffect(() => {
     if (!ex) return undefined;
     const onKey = e => {
-      if (e.key === 'ArrowRight') { e.preventDefault(); goTo(next, 'next'); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(prev, 'prev'); }
+      if (e.key === "ArrowRight") { e.preventDefault(); goTo(next, "next"); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); goTo(prev, "prev"); }
     };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ex && ex.id, prev && prev.id, next && next.id]);
 
@@ -57,24 +60,26 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
   useEffect(() => {
     const open = ex != null;
     if (open && !wasOpen.current) {
-      sheetRef.current?.focus();
+      const first = sheetRef.current?.querySelector("[data-sheet-prev]") || sheetRef.current;
+      first?.focus?.();
       setSubtab("about");
     }
     wasOpen.current = open;
   }, [ex]);
 
-  const hasTips = !!(ex && Array.isArray(ex.tips) && ex.tips.some(t => String(t || "").trim()));
-  useEffect(() => {
-    if (ex && !hasTips && subtab === "form") setSubtab("about");
-  }, [ex, hasTips, subtab]);
-
   if (!ex) return null;
 
   const isFav = (profile.favoriteExercises || []).includes(ex.id);
   const pb = (profile.exercisePBs || {})[ex.id];
-  const hasPB = !!pb;
-  const mgColor = getMuscleColor(ex.muscleGroup);
+  const showPb = SHOW_EXERCISE_PB_DISPLAY && !!pb;
   const history = getExerciseHistory(profile.log, ex.id);
+  const sessions = history.length;
+  const instructions = splitInstructions(ex.desc);
+  const hasGlyph = !!illustrationKey(ex.name);
+  const movement = movementLabelOf(ex);
+  const goal = goalLabelOf(ex);
+  const diff = difficultyKey(ex);
+  const mgLabel = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : "";
 
   const onTouchStart = e => {
     const t = e.touches[0];
@@ -88,77 +93,24 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
     const dx = t.clientX - start.x;
     const dy = t.clientY - start.y;
     if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
-    goTo(dx < 0 ? next : prev, dx < 0 ? 'next' : 'prev');
+    goTo(dx < 0 ? next : prev, dx < 0 ? "next" : "prev");
   };
 
-  const pagerBtn = (label, target, dir, ariaLabel) => (
-    <button
-      type="button"
-      onClick={() => goTo(target, dir)}
-      disabled={!target}
-      aria-label={ariaLabel}
-      style={{
-        background: "transparent",
-        border: "none",
-        color: target ? "#8a8478" : "rgba(138,132,120,.25)",
-        fontSize: FS.fs82,
-        cursor: target ? "pointer" : "default",
-        padding: `${S.s4}px ${S.s8}px`,
-        lineHeight: 1,
-      }}
-    >{label}</button>
-  );
-
-  const statChip = (label, value, gold) => (
-    <div style={{
-      flex: 1,
-      padding: "8px 10px",
-      borderRadius: R.xxl,
-      background: gold ? "rgba(232,180,74,.08)" : FG.glassBgSoft,
-      border: `1px solid ${gold ? "rgba(232,180,74,.22)" : FG.glassBorder}`,
-    }}>
-      <div style={{
-        fontFamily: FG.fontSerif,
-        fontSize: FS.fs44,
-        letterSpacing: ".24em",
-        textTransform: "uppercase",
-        color: gold ? "rgba(232,180,74,.75)" : "rgba(228,222,211,.4)",
-        marginBottom: 3,
-      }}>{label}</div>
-      <div style={{
-        fontFamily: gold ? FG.fontSerif : FG.fontCond,
-        fontSize: FS.xxl,
-        fontWeight: 600,
-        lineHeight: 1,
-        color: gold ? FG.goldGlow : FG.ink,
-      }}>{value}</div>
-    </div>
-  );
-
-  const subtabBtn = (key, label) => {
-    const on = subtab === key;
-    return (
-      <button
-        key={key}
-        type="button"
-        onClick={() => setSubtab(key)}
-        aria-pressed={on}
-        style={{
-          flex: 1,
-          height: 32,
-          borderRadius: R.xl,
-          cursor: "pointer",
-          border: `1px solid ${on ? `color-mix(in srgb,${mgColor} 55%,rgba(255,255,255,.2))` : "transparent"}`,
-          background: on ? `color-mix(in srgb,${mgColor} 22%,transparent)` : "transparent",
-          color: on ? FG.inkTitle : "rgba(228,222,211,.5)",
-          fontFamily: FG.fontCond,
-          fontSize: FS.base,
-          fontWeight: 600,
-          letterSpacing: ".13em",
-          textTransform: "uppercase",
-        }}
-      >{label}</button>
-    );
+  const trapTab = e => {
+    if (e.key !== "Tab") return;
+    const root = sheetRef.current;
+    if (!root) return;
+    const nodes = [...root.querySelectorAll(FOCUSABLE)].filter(el => !el.hasAttribute("disabled"));
+    if (nodes.length === 0) return;
+    const first = nodes[0];
+    const last = nodes[nodes.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   };
 
   const histVals = history.map(h => (h.weightLbs != null ? h.weightLbs : h.xp));
@@ -168,261 +120,149 @@ const ExerciseDetailSheet = memo(function ExerciseDetailSheet({
     if (histMax === histMin) return 34;
     return Math.round(14 + ((v - histMin) / (histMax - histMin)) * 40);
   };
-  const histWeights = history.filter(h => h.weightLbs != null);
-  const trendDelta = histWeights.length >= 2
-    ? histWeights[histWeights.length - 1].weightLbs - histWeights[0].weightLbs
-    : null;
   const lastRow = history[history.length - 1] || null;
 
   return (
     <Sheet
       open
       onClose={close}
-      layer={"detail"}
+      layer="detail"
       ariaLabel={ex.name}
       tabIndex={-1}
       sheetRef={sheetRef}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       onAnimationEnd={() => setTurn(null)}
-      className={turn ? `sheet-${turn}` : ""}
+      onKeyDown={trapTab}
+      className={`ex-lib-sheet${turn ? ` sheet-${turn}` : ""}`}
+      backdropClassName="ex-lib-sheet-backdrop"
+      maxWidth={480}
+      tall
+      showHandle
+      showClose={false}
     >
-      <div>
-        {(prev || next) && <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: S.s4
-        }}>
-          {pagerBtn("‹ Prev", prev, "prev", "Previous exercise")}
-          <span style={{ fontSize: FS.fs60, color: "#5f5a52", letterSpacing: ".06em" }}>
-            {`${idx + 1} / ${siblings.length}`}
-          </span>
-          {pagerBtn("Next ›", next, "next", "Next exercise")}
-        </div>}
+      <div className={`ex-lib-sheet-inner${turn ? ` is-turn-${turn}` : ""}`}>
+        <div className="ex-lib-sheet-nav">
+          <button type="button" className="ex-lib-nav-pill" data-sheet-prev disabled={!prev} onClick={() => goTo(prev, "prev")} aria-label="Previous exercise">← Prev</button>
+          <div className="ex-lib-sheet-counter">
+            {idx >= 0 && siblings ? `${idx + 1} / ${siblings.length}` : "1 / 1"}
+          </div>
+          <button type="button" className="ex-lib-nav-pill" disabled={!next} onClick={() => goTo(next, "next")} aria-label="Next exercise">Next →</button>
+          <button type="button" className="ex-lib-icon-btn ex-lib-sheet-close" aria-label="Close" onClick={close}>✕</button>
+        </div>
 
-        <div style={{
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: 16,
-          border: `1px solid ${FG.glassBorder}`,
-          background: `linear-gradient(150deg, color-mix(in srgb,${mgColor} 38%,transparent), rgba(13,13,17,.35) 72%)`,
-          padding: "16px 14px 12px",
-          marginBottom: S.s10,
-        }}>
-          <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: mgColor, opacity: .9 }} />
-          <div style={{
-            position: "absolute",
-            right: 6,
-            top: "50%",
-            transform: "translateY(-50%)",
-            opacity: .22,
-            pointerEvents: "none",
-          }}><ExIcon ex={ex} size={"4.4rem"} color={getTypeColor(ex.category)} /></div>
-          <div style={{ position: "relative", paddingRight: 72 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: S.s6, flexWrap: "wrap", marginBottom: 4 }}>
-              <span style={{
-                fontFamily: FG.fontCond,
-                fontSize: "1.16rem",
-                fontWeight: 600,
-                letterSpacing: ".02em",
-                lineHeight: 1.15,
-                color: FG.inkBright,
-              }}>{ex.name}</span>
-              {SHOW_EXERCISE_PB_DISPLAY && hasPB && <span style={{
-                background: "rgba(232,180,74,.14)",
-                border: "1px solid rgba(232,180,74,.3)",
-                color: FG.goldSoft,
-                fontSize: FS.sm,
-                padding: "2px 8px",
-                borderRadius: R.r4,
-                fontWeight: "700"
-              }}>{"🏆 PB"}</span>}
+        <div className="ex-lib-sheet-hero">
+          <div className="ex-lib-sh-body">
+            <div className="ex-lib-sh-cat">{mgLabel}</div>
+            <h2 className="ex-lib-sh-name">{ex.name}{showPb && <span className="ex-lib-pb"> {formatPbValue(pb, profile.units)}</span>}</h2>
+            <div className="ex-lib-tags">
+              <span className="ex-lib-tag is-filled">{diff}</span>
+              {ex.equipment && <span className="ex-lib-tag">{equipLabel(ex.equipment)}</span>}
+              <span className="ex-lib-tag">{movement}</span>
             </div>
-            <div style={{ display: "flex", gap: S.s8, flexWrap: "wrap", alignItems: "baseline" }}>
-              <span style={{
-                fontFamily: FG.fontCond,
-                fontSize: FS.sm,
-                letterSpacing: ".12em",
-                textTransform: "uppercase",
-                color: `color-mix(in srgb,${mgColor} 55%,#fff)`,
-              }}>{ex.muscleGroup ? ex.muscleGroup.charAt(0).toUpperCase() + ex.muscleGroup.slice(1) : ""}</span>
-              {ex.equipment && <span style={{ fontSize: FS.sm, color: "rgba(228,222,211,.5)", textTransform: "capitalize" }}>{"· " + ex.equipment}</span>}
-              {ex.difficulty && <span style={{ fontSize: FS.sm, fontWeight: 700, color: diffColor(ex.difficulty) }}>{"· " + ex.difficulty}</span>}
-            </div>
+          </div>
+          <div className="ex-lib-sh-figure">
+            {hasGlyph
+              ? <ExerciseGlyph name={ex.name} />
+              : <AnatomyFallback muscleGroup={ex.muscleGroup} />}
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: S.s8, marginBottom: S.s10 }}>
-          {statChip("Base XP", `${ex.baseXP}`, false)}
-          {statChip("Tier", ex.difficulty || "—")}
-          {SHOW_EXERCISE_PB_DISPLAY && statChip("Your PB", formatPbValue(pb, profile.units) ?? "—", true)}
+        <div className="ex-lib-stats-row">
+          <div className="ex-lib-stat">
+            <div className="sl">Base XP</div>
+            <div className="sv">{ex.baseXP} <span className="accent">xp</span></div>
+          </div>
+          <div className="ex-lib-stat">
+            <div className="sl">Goal</div>
+            <div className="sv">{goal || "—"}</div>
+          </div>
+          <div className="ex-lib-stat">
+            <div className="sl">Sessions</div>
+            <div className="sv">{sessions}</div>
+          </div>
         </div>
 
-        <div style={{
-          display: "flex",
-          gap: 3,
-          padding: 3,
-          borderRadius: R.xxl,
-          background: "rgba(255,255,255,.045)",
-          border: `1px solid ${FG.glassBorder}`,
-          marginBottom: S.s12,
-        }}>
-          {subtabBtn("about", "About")}
-          {hasTips && subtabBtn("form", "Form")}
-          {subtabBtn("history", "History")}
+        <div className="ex-lib-sheet-tabs" role="tablist" aria-label="Exercise detail">
+          <button type="button" role="tab" aria-selected={subtab === "about"} className={subtab === "about" ? "is-on" : ""} onClick={() => setSubtab("about")}>About</button>
+          <button type="button" role="tab" aria-selected={subtab === "history"} className={subtab === "history" ? "is-on" : ""} onClick={() => setSubtab("history")}>History</button>
+          <span className={`ex-lib-tab-slider${subtab === "history" ? " is-right" : ""}`} aria-hidden="true" />
         </div>
 
-        {subtab === "about" && <div>
-          {ex.desc ? <p style={{
-            fontSize: FS.fs78,
-            color: "rgba(228,222,211,.68)",
-            lineHeight: 1.55,
-            marginBottom: S.s12
-          }}>{ex.desc}</p> : <div style={{
-            fontSize: FS.lg,
-            color: "#8a8478",
-            fontStyle: "italic",
-            marginBottom: S.s12
-          }}>{"No description yet."}</div>}
+        {subtab === "about" && (
+          <div className="ex-lib-desc">
+            {instructions.setup || instructions.movement ? (
+              <>
+                {instructions.setup && <p><strong>Setup.</strong> {instructions.setup}</p>}
+                {instructions.movement && <p><strong>Movement.</strong> {instructions.movement}</p>}
+              </>
+            ) : (
+              <p>No description yet.</p>
+            )}
+          </div>
+        )}
 
-          {SHOW_EXERCISE_PB_DISPLAY && ex.pbType && <div style={{
-            background: FG.glassBgSoft,
-            border: `1px solid ${FG.glassBorder}`,
-            borderRadius: R.lg,
-            padding: "8px 12px",
-            marginBottom: S.s12,
-            fontSize: FS.lg,
-            color: "#8a8478"
-          }}>
-            <span style={{ color: "#b4ac9e", fontWeight: "700" }}>{"PB: "}</span>{ex.pbType}
-            {ex.pbTier === "Leaderboard" && <span style={{
-              marginLeft: S.s8,
-              color: FG.goldSoft,
-              fontSize: FS.fs65
-            }}>{"🏆 Leaderboard"}</span>}
-          </div>}
-        </div>}
-
-        {subtab === "form" && hasTips && <div style={{ marginBottom: S.s12 }}>
-          {ex.tips.filter(t => String(t || "").trim()).map((tip, i) => <div key={i} style={{
-            display: "flex",
-            gap: S.s10,
-            padding: "10px 12px",
-            borderRadius: R.xxl,
-            background: FG.glassBgSoft,
-            border: `1px solid ${FG.glassBorder}`,
-            marginBottom: S.s6,
-          }}>
-            <span style={{
-              flexShrink: 0,
-              width: 20,
-              height: 20,
-              borderRadius: R.md,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: FG.fontCond,
-              fontSize: FS.sm,
-              fontWeight: 600,
-              color: "#0A0A0C",
-              background: `color-mix(in srgb,${mgColor} 80%,#fff)`,
-            }}>{i + 1}</span>
-            <span style={{ fontSize: FS.lg, lineHeight: 1.5, color: "rgba(228,222,211,.7)" }}>{tip}</span>
-          </div>)}
-        </div>}
-
-        {subtab === "history" && <div style={{ marginBottom: S.s12 }}>
-          {history.length === 0 ? <div style={{
-            padding: "18px 12px",
-            borderRadius: R.xxl,
-            border: "1px dashed rgba(255,255,255,.15)",
-            textAlign: "center",
-            fontSize: FS.lg,
-            color: "#8a8478",
-          }}>{"No logs yet."}</div> : <>
-            <div style={{
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 5,
-              height: 96,
-              padding: "10px 12px",
-              borderRadius: 14,
-              background: FG.glassBgSoft,
-              border: `1px solid ${FG.glassBorder}`,
-            }}>
-              {history.map((h, i) => {
-                const v = h.weightLbs != null ? h.weightLbs : h.xp;
-                const isLast = i === history.length - 1;
-                const day = h.dateKey ? new Date(h.dateKey + "T12:00:00").toLocaleDateString(undefined, { weekday: "narrow" }) : "·";
-                return (
-                  <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, justifyContent: "flex-end", height: "100%" }}>
-                    <span style={{ fontFamily: FG.fontCond, fontSize: FS.fs48, color: isLast ? FG.goldGlow : "rgba(228,222,211,.4)" }}>{v}</span>
-                    <span style={{
-                      width: "100%",
-                      borderRadius: "3px 3px 1px 1px",
-                      height: barH(v),
-                      background: isLast ? "rgba(232,180,74,.85)" : `color-mix(in srgb,${mgColor} 65%,transparent)`,
-                    }} />
-                    <span style={{ fontFamily: FG.fontCond, fontSize: FS.fs44, letterSpacing: ".06em", color: "rgba(228,222,211,.3)" }}>{day}</span>
+        {subtab === "history" && (
+          <div className="ex-lib-history">
+            {history.length === 0 ? (
+              <div className="ex-lib-history-empty">No logs yet. History appears here after you log this exercise.</div>
+            ) : (
+              <>
+                <div className="ex-lib-hist-bars">
+                  {history.map((h, i) => {
+                    const v = h.weightLbs != null ? h.weightLbs : h.xp;
+                    const isLast = i === history.length - 1;
+                    const day = h.dateKey ? new Date(h.dateKey + "T12:00:00").toLocaleDateString(undefined, { weekday: "narrow" }) : "·";
+                    return (
+                      <div key={i} className="ex-lib-hist-col">
+                        <span className={isLast ? "is-last" : ""}>{v}</span>
+                        <span className="bar" style={{ height: barH(v) }} />
+                        <span className="day">{day}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {lastRow && (
+                  <div className="ex-lib-hist-last">
+                    Last session {lastRow.sets}×{lastRow.reps}
+                    {lastRow.weightLbs != null ? ` · ${displayWt(lastRow.weightLbs, profile.units) || ""}` : ""}
                   </div>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", gap: S.s8, marginTop: S.s8 }}>
-              <div style={{ flex: 1, padding: "8px 10px", borderRadius: R.xxl, background: FG.glassBgSoft, border: `1px solid ${FG.glassBorder}` }}>
-                <div style={{ fontFamily: FG.fontSerif, fontSize: FS.fs44, letterSpacing: ".24em", textTransform: "uppercase", color: "rgba(228,222,211,.4)", marginBottom: 3 }}>{"Last session"}</div>
-                <div style={{ fontFamily: FG.fontCond, fontSize: FS.xl, fontWeight: 600, color: FG.ink, lineHeight: 1 }}>
-                  {lastRow ? `${lastRow.sets}×${lastRow.reps}${lastRow.weightLbs != null ? " · " + (displayWt(lastRow.weightLbs, profile.units) || "") : ""}` : "—"}
-                </div>
-              </div>
-              <div style={{ flex: 1, padding: "8px 10px", borderRadius: R.xxl, background: "rgba(143,227,210,.07)", border: "1px solid rgba(143,227,210,.2)" }}>
-                <div style={{ fontFamily: FG.fontSerif, fontSize: FS.fs44, letterSpacing: ".24em", textTransform: "uppercase", color: "rgba(143,227,210,.7)", marginBottom: 3 }}>{"Trend"}</div>
-                <div style={{ fontFamily: FG.fontCond, fontSize: FS.xl, fontWeight: 600, color: FG.teal, lineHeight: 1 }}>
-                  {trendDelta == null ? "—" : trendDelta === 0 ? "Holding steady" : `${trendDelta > 0 ? "▲ +" : "▼ "}${displayWt(Math.abs(trendDelta), profile.units)}`}
-                </div>
-              </div>
-            </div>
-          </>}
-        </div>}
+                )}
+              </>
+            )}
+          </div>
+        )}
 
-        <div className={"wo-card-actions"} style={{ display: "flex", gap: S.s8, marginTop: S.s4 }}>
+        <div className="ex-lib-actions-grid">
           <button
             type="button"
-            className={"btn btn-gold-solid btn-sm"}
-            style={{ flex: 1 }}
+            className="ex-lib-primary-btn"
             onClick={() => {
               openQuickLog(ex.id, detailLogArgs(ex));
               close();
             }}
-          >{"Log"}</button>
-          {offersAddToWorkout(ex) && <button
-            type="button"
-            className={"btn btn-ghost btn-sm"}
-            style={{ flex: 1 }}
-            onClick={() => {
-              setAddToWorkoutPicker({
-                exercises: [detailWorkoutEntry(ex)]
-              });
-              close();
-            }}
-          >{"Add to Workout"}</button>}
-        </div>
-
-        <div style={{ display: "flex", gap: S.s8, marginTop: S.s8 }}>
+          >Log</button>
+          {offersAddToWorkout(ex) && (
+            <button
+              type="button"
+              className="ex-lib-sec-btn"
+              onClick={() => {
+                setAddToWorkoutPicker({ exercises: [detailWorkoutEntry(ex)] });
+                close();
+              }}
+            >Add to Workout</button>
+          )}
           <button
             type="button"
-            className={"btn btn-ghost btn-sm"}
-            style={{ flex: 1 }}
+            className="ex-lib-sec-btn"
             onClick={() => {
               openSavePlanWizard([planEntry(ex, profile.chosenClass, allExById)], ex.name, ex.name);
               close();
             }}
-          >{"Add to Plan"}</button>
+          >Add to Plan</button>
           <button
             type="button"
-            className={"btn btn-ghost btn-sm"}
-            style={{ flex: 1 }}
+            className={`ex-lib-sec-btn${isFav ? " is-fav" : ""}`}
             aria-pressed={isFav}
             onClick={() => setProfile(p => ({
               ...p,
