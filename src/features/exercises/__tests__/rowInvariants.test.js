@@ -213,6 +213,14 @@ describe('library list sizes against the visual viewport', () => {
     expect(lib).toMatch(/const LIB_CARD_H\s*=\s*108/);
   });
 
+  it('docks the library tray and filter action bar above the bottom nav', () => {
+    const css = read('src/styles/app.css');
+    expect(css).toMatch(/\.ex-lib-tray\{[\s\S]*?bottom:\s*var\(--bottom-nav-h\)/);
+    expect(css).toMatch(/\.ex-lib-sticky-bar\{[\s\S]*?bottom:\s*var\(--bottom-nav-h\)/);
+    expect(lib).toContain('.ex-lib-tray');
+    expect(lib).not.toMatch(/querySelector\(["']\.cart-tray["']\)/);
+  });
+
   it('puts the anatomy focus map above Recent and Favorites', () => {
     const muscle = lib.indexOf('What are you training?');
     const recent = lib.indexOf('>Recent</');

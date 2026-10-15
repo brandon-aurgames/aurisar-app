@@ -194,7 +194,9 @@
     .tab-badge{position:absolute;top:2px;right:calc(50% - 18px);background:#e74c3c;color:#fff;border-radius:50%;width:14px;height:14px;font-size:.46rem;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;box-shadow:0 0 0 2px rgba(20,18,14,.78)}
     .hud-checkin-strip{display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(145deg,rgba(45,42,36,.35),rgba(32,30,26,.2));border:1px solid rgba(180,172,158,.05);border-radius:12px;margin-bottom:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
     .scroll-area{flex:1;overflow-y:auto;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px));-webkit-mask-image:linear-gradient(to bottom,black 0,black calc(100% - 48px),transparent 100%);mask-image:linear-gradient(to bottom,black 0,black calc(100% - 48px),transparent 100%)}
-    .scroll-area:has(.wb-footer){-webkit-mask-image:none;mask-image:none}
+    .scroll-area:has(.wb-footer),
+    .scroll-area:has(.ex-lib-sticky-bar),
+    .scroll-area:has(.ex-lib-tray){-webkit-mask-image:none;mask-image:none}
     .scroll-area::-webkit-scrollbar{width:3px}
     .scroll-area::-webkit-scrollbar-thumb{background:rgba(45,42,36,.3);border-radius:2px}
     .sec{font-family:'Inter',sans-serif;font-size:.6rem;color:#8a8478;letter-spacing:.13em;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(180,172,158,.04)}
@@ -2725,10 +2727,14 @@
     .ex-lib-chip-count{font-family:var(--ex-mono);font-size:12px;color:inherit;opacity:.75}
     .ex-lib-helper{padding:0 0 14px;font-size:13px;color:var(--ex-muted);display:flex;gap:6px;align-items:center}
     .ex-lib-sticky-bar{
-      position:sticky;bottom:0;z-index:6;margin-top:6px;padding:12px 0 calc(14px + env(safe-area-inset-bottom,0px));
-      background:linear-gradient(180deg,transparent,var(--ex-bg) 40%);display:flex;gap:10px;align-items:center;
+      position:fixed;left:50%;transform:translateX(-50%);
+      bottom:var(--bottom-nav-h);z-index:var(--z-tray);
+      width:100%;max-width:520px;box-sizing:border-box;
+      margin:0;padding:12px 16px 10px;
+      background:linear-gradient(180deg,rgba(13,14,14,.55),var(--ex-bg) 36%);
+      display:flex;gap:10px;align-items:center;
     }
-    .ex-lib-filters{padding-bottom:24px}
+    .ex-lib-filters{padding-bottom:88px}
     .ex-lib-primary-btn{
       flex:1;padding:12px 18px;min-height:44px;border-radius:12px;cursor:pointer;
       background:linear-gradient(145deg,#8fd0e8,#6ebbd6);border:1px solid rgba(126,200,227,.6);color:var(--ex-on-accent);
@@ -2750,12 +2756,18 @@
     .ex-lib-active-chip .x{width:18px;height:18px;border-radius:50%;background:rgba(126,200,227,.24);display:grid;place-items:center}
     .ex-lib-results{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
     .ex-lib-tray{
-      flex-shrink:0;margin:8px 0 4px;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:12px;
-      background:linear-gradient(150deg,#1d1e1d,#151615);border:1px solid var(--ex-border-strong);
-      box-shadow:0 8px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
+      position:fixed;left:50%;transform:translateX(-50%);
+      bottom:var(--bottom-nav-h);z-index:var(--z-tray);
+      width:calc(100% - 24px);max-width:496px;box-sizing:border-box;
+      margin:0;border-radius:14px 14px 0 0;padding:10px 14px;display:flex;align-items:center;gap:12px;
+      background:linear-gradient(150deg,#1d1e1d,#151615);border:1px solid var(--ex-border-strong);border-bottom:none;
+      box-shadow:0 -8px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
       animation:exLibTrayIn 320ms var(--ex-ease) both;
     }
-    @keyframes exLibTrayIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes exLibTrayIn{
+      from{opacity:0;transform:translateX(-50%) translateY(16px)}
+      to{opacity:1;transform:translateX(-50%) translateY(0)}
+    }
     .ex-lib-tray-icon{width:28px;height:28px;border-radius:50%;background:var(--ex-accent-dim);color:var(--ex-accent);display:grid;place-items:center;flex-shrink:0}
     .ex-lib-tray-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
     .ex-lib-tray-title .count{font-family:var(--ex-mono);font-size:12px;color:var(--ex-accent);background:var(--ex-accent-dim);border:1px solid var(--ex-accent-border);border-radius:999px;padding:0 7px}

@@ -173,7 +173,7 @@ const ExerciseLibraryTab = React.memo(function ExerciseLibraryTab(props) {
       const top = wrap.getBoundingClientRect().top;
       const nav = document.querySelector(".hud-nav-panel");
       const navTop = nav ? nav.getBoundingClientRect().top : Infinity;
-      const tray = document.querySelector(".cart-tray");
+      const tray = document.querySelector(".ex-lib-tray");
       const trayTop = tray ? tray.getBoundingClientRect().top : Infinity;
       const h = measureVisibleListHeight({
         wrapTop: top,
